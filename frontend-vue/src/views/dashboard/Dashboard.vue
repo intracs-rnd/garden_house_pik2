@@ -9,6 +9,7 @@ import { useKartuStore } from '@/stores/kartu'
 import { useAuthStore } from '@/stores/auth'
 import { useMqtt } from '@/composables/useMqtt'
 import { useGateControl } from '@/composables/useGateControl'
+import { useToast } from '@/composables/useToast'
 import { KENDARAAN_STATUS, extractErrorMessage, kartuReasonMeta, USER_TYPE_VARIANT } from '@/utils/helper'
 import { formatNumber, formatDateTime, capitalize } from '@/utils/formatter'
 import PageHeader from '@/components/layout/Header.vue'
@@ -40,6 +41,9 @@ const { isConnected, error: mqttErr, connect: mqttConnect, subscribe: mqttSubscr
 
 // Setup Gate Control
 const { publishGateAction, isPublishing: gatePublishing, publishError: gatePublishError, isConnecting: gateConnecting } = useGateControl()
+
+// Setup Toast Notifications
+const { success: toastSuccess, error: toastError } = useToast()
 
 // Handle MQTT RFID status messages
 function handleRfidStatus(message) {
@@ -326,16 +330,23 @@ function submitGateAction() {
       if (success) {
         // Close modal and show success message
         gateModal.value = false
-        // Optional: show toast/notification
+        
+        // Show success notification based on action
+        if (gateAction.value === 'open') {
+          toastSuccess('Gate berhasil di buka')
+        } else {
+          toastSuccess('Gate berhasil di tutup')
+        }
+        
         console.log(
           `✅ Gate ${gateAction.value} command sent for ${gateCamera.value.gate_id}`
         )
       } else {
-        alert(`Gagal mengirim perintah: ${gatePublishError.value}`)
+        toastError(`Gagal mengirim perintah: ${gatePublishError.value}`)
       }
     })
     .catch((err) => {
-      alert(`Error: ${err.message}`)
+      toastError(`Error: ${err.message}`)
     })
     .finally(() => {
       gateSubmitting.value = false
