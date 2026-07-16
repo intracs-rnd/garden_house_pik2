@@ -212,65 +212,7 @@ onMounted(generate)
       subtitle="Rekap & detail transaksi akses kartu (harian, bulanan, tahunan)"
     />
 
-    <!-- Filter bar -->
-    <div class="card">
-      <div class="card-body filter-bar">
-        <div class="field">
-          <label>Periode</label>
-          <select v-model="filters.period" class="form-control" @change="generate">
-            <option v-for="p in PERIODS" :key="p.value" :value="p.value">{{ p.label }}</option>
-          </select>
-        </div>
 
-        <div class="field">
-          <label>Tanggal</label>
-          <input v-if="filters.period === 'harian'" v-model="filters.day" type="date" class="form-control" />
-          <input v-else-if="filters.period === 'bulanan'" v-model="filters.month" type="month" class="form-control" />
-          <select v-else v-model="filters.year" class="form-control">
-            <option v-for="y in yearOptions" :key="y" :value="y">{{ y }}</option>
-          </select>
-        </div>
-
-        <template v-if="filters.period === 'harian'">
-          <div class="field">
-            <label>Waktu Awal</label>
-            <input v-model="filters.time_from" type="time" class="form-control" />
-          </div>
-          <div class="field">
-            <label>Waktu Akhir</label>
-            <input v-model="filters.time_to" type="time" class="form-control" />
-          </div>
-        </template>
-
-        <div class="field">
-          <label>No. Plat</label>
-          <input v-model="filters.no_plat" type="text" class="form-control" placeholder="Semua plat" />
-        </div>
-
-        <div class="field">
-          <label>Arah</label>
-          <select v-model="filters.direction" class="form-control">
-            <option v-for="d in DIRECTIONS" :key="d.label" :value="d.value">{{ d.label }}</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label>Hasil</label>
-          <select v-model="filters.access_granted" class="form-control">
-            <option v-for="r in RESULTS" :key="r.label" :value="r.value">{{ r.label }}</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label>Gate</label>
-          <input v-model="filters.gate" type="text" class="form-control" placeholder="Semua gate" />
-        </div>
-
-        <div class="field field-actions">
-          <Button variant="primary" :loading="loading" @click="generate">Tampilkan</Button>
-        </div>
-      </div>
-    </div>
 
     <div v-if="error" class="alert alert-danger">{{ error }}</div>
 
@@ -309,6 +251,66 @@ onMounted(generate)
           <div>
             <div class="stat-value">{{ formatNumber(card.value) }}</div>
             <div class="stat-label">{{ card.label }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter bar -->
+      <div class="card">
+        <div class="card-body filter-bar">
+          <div class="field">
+            <label>Periode</label>
+            <select v-model="filters.period" class="form-control" @change="generate">
+              <option v-for="p in PERIODS" :key="p.value" :value="p.value">{{ p.label }}</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Tanggal</label>
+            <input v-if="filters.period === 'harian'" v-model="filters.day" type="date" class="form-control" />
+            <input v-else-if="filters.period === 'bulanan'" v-model="filters.month" type="month" class="form-control" />
+            <select v-else v-model="filters.year" class="form-control">
+              <option v-for="y in yearOptions" :key="y" :value="y">{{ y }}</option>
+            </select>
+          </div>
+
+          <template v-if="filters.period === 'harian'">
+            <div class="field">
+              <label>Waktu Awal</label>
+              <input v-model="filters.time_from" type="time" class="form-control" />
+            </div>
+            <div class="field">
+              <label>Waktu Akhir</label>
+              <input v-model="filters.time_to" type="time" class="form-control" />
+            </div>
+          </template>
+
+          <div class="field">
+            <label>No. Plat</label>
+            <input v-model="filters.no_plat" type="text" class="form-control" placeholder="Semua plat" />
+          </div>
+
+          <div class="field">
+            <label>Arah</label>
+            <select v-model="filters.direction" class="form-control">
+              <option v-for="d in DIRECTIONS" :key="d.label" :value="d.value">{{ d.label }}</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Hasil</label>
+            <select v-model="filters.access_granted" class="form-control">
+              <option v-for="r in RESULTS" :key="r.label" :value="r.value">{{ r.label }}</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Gate</label>
+            <input v-model="filters.gate" type="text" class="form-control" placeholder="Semua gate" />
+          </div>
+
+          <div class="field field-actions">
+            <Button variant="primary" :loading="loading" @click="generate">Tampilkan</Button>
           </div>
         </div>
       </div>
