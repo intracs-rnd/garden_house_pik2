@@ -159,6 +159,18 @@ async function handleSubmit() {
   overflow: hidden;
 }
 
+/* Added overlay for better text readability */
+.auth-page::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4); /* Dark overlay */
+  z-index: 0;
+}
+
 .auth-container {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -238,13 +250,18 @@ async function handleSubmit() {
 }
 
 .auth-card {
-  background: rgba(255, 255, 255, 0.98);
+  background: rgba(255, 255, 255, 0.95); /* Slightly less opaque */
   backdrop-filter: blur(20px);
   border-radius: 20px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 0 1px rgba(255, 255, 255, 0.5) inset;
   padding: 48px;
   width: 100%;
   border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: transform 0.3s ease-in-out; /* Added transition for hover effect */
+}
+
+.auth-card:hover {
+  transform: translateY(-5px); /* Subtle lift on hover */
 }
 
 .auth-brand {
@@ -280,7 +297,7 @@ async function handleSubmit() {
 
 .auth-brand p {
   font-size: 14px;
-  color: #47838b;
+  color: #6b5236; /* Changed color for better contrast */
   font-weight: 500;
 }
 
@@ -342,8 +359,8 @@ async function handleSubmit() {
 }
 
 .btn-login:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 102, 204, 0.4);
+  transform: translateY(-3px); /* Slightly more pronounced lift */
+  box-shadow: 0 8px 20px rgba(0, 102, 204, 0.4); /* Stronger shadow */
 }
 
 .alert {
@@ -375,14 +392,14 @@ async function handleSubmit() {
 }
 
 .auth-footer a {
-  color: #478b83;
+  color: #0066cc; /* Changed to match primary button color */
   font-weight: 600;
   text-decoration: none;
   transition: color 0.2s ease;
 }
 
 .auth-footer a:hover {
-  color: #6b5236;
+  color: #0052a3; /* Darker shade on hover */
   text-decoration: underline;
 }
 
