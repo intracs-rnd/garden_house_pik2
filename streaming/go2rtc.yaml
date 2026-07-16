@@ -1,0 +1,44 @@
+# ---------------------------------------------------------------------------
+# go2rtc.yaml - konfigurasi go2rtc untuk GH PIK2 (pengganti MediaMTX).
+#
+# Kenapa go2rtc? Live CCTV diputar lewat WebRTC (latency < 1 detik), jadi
+# tidak ada lagi delay beberapa detik seperti pada HLS/MediaMTX. Kalau
+# WebRTC tidak tersedia, pemutar otomatis mundur ke MSE lalu HLS.
+#
+# URL RTSP tiap kamera bisa diatur dari menu "Pengaturan Kamera" di aplikasi
+# (dikirim ke REST API go2rtc di bawah), jadi tidak perlu mengedit file ini.
+# Nilai "streams:" di bawah hanya menjadi default awal.
+#
+#   1. Download go2rtc:  https://github.com/AlexxIT/go2rtc/releases
+#      (pilih go2rtc_win64.zip), atau cukup jalankan .\start-stream.ps1
+#      yang akan mengunduhnya otomatis.
+#   2. Jalankan:         .\start-stream.ps1
+#   3. Frontend memutar: ws://localhost:1984/api/ws?src=cam1 ... src=cam4
+# ---------------------------------------------------------------------------
+
+# REST API + halaman web + WebSocket signalling (dipakai backend & frontend).
+# origin: "*" mengizinkan koneksi WebSocket dari origin lain (frontend Vue di
+# http://localhost:3000). Tanpa ini go2rtc menolak upgrade WebSocket dengan
+# error "request origin not allowed by Upgrader.CheckOrigin".
+api:
+  listen: ":1984"
+  origin: "*"
+
+# WebRTC. Port ini dipakai untuk kandidat ICE (audio/video peer-to-peer).
+# Untuk pemakaian localhost/LAN nilai default sudah cukup.
+webrtc:
+  listen: ":8555"
+
+# RTSP client memakai TCP secara default (lebih stabil di jaringan CCTV).
+rtsp:
+  default_query: "mp4"
+  listen: ":8557"
+
+log:
+  level: info
+
+# cam1 sudah berisi contoh kamera. cam2..cam4 menunggu sumber diatur dari
+# form "Pengaturan Kamera". Stream tanpa sumber aman dibiarkan kosong.
+streams:
+  cam1:
+    - rtsp://root:cctv123456@192.168.203.119:554/live2.sdp

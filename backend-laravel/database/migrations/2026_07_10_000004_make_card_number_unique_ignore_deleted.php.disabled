@@ -1,0 +1,80 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Index name Laravel generated for the original `->unique()` column.
+     */
+    private string $indexName = 'kartus_card_number_unique';
+
+    /**
+     * Run the migrations.
+     *
+     * Replaces the plain unique index on card_number with a partial unique
+     * index that only applies to active (non soft-deleted) cards. This lets
+     * a card number be reused once its previous card is flagged as deleted
+     * (is_deleted = true).
+     *
+     * @return void
+     */
+    public function up()
+    {
+        if (! Schema::hasColumn('kartus', 'card_number')) {
+            return;
+        }
+
+        // Drop the existing full unique index/constraint.
+        Schema::table('kartus', function (Blueprint $table) {
+            $table->dropUnique(['card_number']);
+        });
+
+        // Recreate it as a partial unique index (active rows only).
+        $driver = Schema::getConnection()->getDriverName();
+
+        if (in_array($driver, ['pgsql', 'sqlite'], true)) {
+            $falseValue = $driver === 'pgsql' ? 'false' : '0';
+
+            DB::statement(
+                "CREATE UNIQUE INDEX {$this->indexName} ON kartus (card_number) WHERE is_deleted = {$falseValue}"
+            );
+        } else {
+            // Fallback for drivers without partial-index support: keep a
+            // plain unique index so the column stays protected.
+            Schema::table('kartus', function (Blueprint $table) {
+                $table->unique('card_number', $this->indexName);
+            });
+        }
+    }
+
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        if (! Schema::hasColumn('kartus', 'card_number')) {
+            return;
+        }
+
+        $driver = Schema::getConnection()->getDriverName();
+
+        if (in_array($driver, ['pgsql', 'sqlite'], true)) {
+            DB::statement("DROP INDEX IF EXISTS {$this->indexName}");
+        } else {
+            Schema::table('kartus', function (Blueprint $table) {
+                $table->dropUnique(['card_number']);
+            });
+        }
+
+        // Restore the original plain unique index.
+        Schema::table('kartus', function (Blueprint $table) {
+            $table->unique('card_number', $this->indexName);
+        });
+    }
+};

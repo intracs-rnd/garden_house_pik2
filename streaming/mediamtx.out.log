@@ -1,0 +1,896 @@
+2026/07/13 08:27:45 INF MediaMTX v1.19.2, windows, amd64
+2026/07/13 08:27:45 INF configuration loaded from D:\kerjaan\Project\GH PIK2\GH PIK2\streaming\mediamtx.yml
+2026/07/13 08:27:45 INF [path cam2] [RTSP source] started
+2026/07/13 08:27:45 INF [path cam1] [RTSP source] started
+2026/07/13 08:27:45 INF [path cam4] [RTSP source] started
+2026/07/13 08:27:45 INF [path cam3] [RTSP source] started
+2026/07/13 08:27:45 INF [RTSP] started with listeners on :8554 (TCP/RTSP), :8000 (UDP/RTP), :8001 (UDP/RTCP)
+2026/07/13 08:27:45 INF [RTMP] started with listener on :1935 (TCP/RTMP)
+2026/07/13 08:27:45 INF [HLS] started with listener on :8888 (TCP/HTTP)
+2026/07/13 08:27:45 INF [WebRTC] started with listeners on :8889 (TCP/HTTP), :8189 (UDP/ICE)
+2026/07/13 08:27:45 INF [SRT] started with listener on :8890 (UDP/SRT)
+2026/07/13 08:27:45 INF [MoQ] started with listeners on :8892 (TCP/HTTP2), :8892 (UDP/HTTP3)
+2026/07/13 08:27:45 INF [RTSP] [conn [::1]:64239] opened
+2026/07/13 08:27:45 INF [RTSP] [conn [::1]:64240] opened
+2026/07/13 08:27:45 INF [RTSP] [conn [::1]:64241] opened
+2026/07/13 08:27:45 INF [RTSP] [conn [::1]:64240] closed: no stream is available on path 'cam1'
+2026/07/13 08:27:45 ERR [path cam2] [RTSP source] bad status code: 404 (Not Found)
+2026/07/13 08:27:45 INF [RTSP] [conn [::1]:64241] closed: no stream is available on path 'cam1'
+2026/07/13 08:27:45 ERR [path cam4] [RTSP source] bad status code: 404 (Not Found)
+2026/07/13 08:27:45 ERR [path cam3] [RTSP source] bad status code: 404 (Not Found)
+2026/07/13 08:27:45 INF [RTSP] [conn [::1]:64239] closed: no stream is available on path 'cam1'
+2026/07/13 08:27:45 INF [path cam1] stream is available and online, 2 tracks (H264, MPEG-4 Audio)
+2026/07/13 08:27:45 INF [HLS] [muxer cam1] created automatically
+2026/07/13 08:27:45 INF [HLS] [muxer cam1] is converting into HLS, 2 tracks (H264, MPEG-4 Audio)
+2026/07/13 08:27:46 INF [HLS] [session cef014a1] created by 127.0.0.1:53531, reading from muxer 'cam1'
+2026/07/13 08:27:50 INF [RTSP] [conn [::1]:62467] opened
+2026/07/13 08:27:50 INF [RTSP] [conn [::1]:62468] opened
+2026/07/13 08:27:50 INF [RTSP] [conn [::1]:62466] opened
+2026/07/13 08:27:50 INF [RTSP] [session a3266fdf] created by [::1]:62467
+2026/07/13 08:27:50 INF [RTSP] [session 418a380b] created by [::1]:62468
+2026/07/13 08:27:50 INF [RTSP] [session 2c4546a0] created by [::1]:62466
+2026/07/13 08:27:50 INF [path cam3] stream is available and online, 2 tracks (H264, MPEG-4 Audio)
+2026/07/13 08:27:50 INF [path cam4] stream is available and online, 2 tracks (H264, MPEG-4 Audio)
+2026/07/13 08:27:50 INF [path cam2] stream is available and online, 2 tracks (H264, MPEG-4 Audio)
+2026/07/13 08:27:50 INF [HLS] [muxer cam3] created automatically
+2026/07/13 08:27:50 INF [RTSP] [session a3266fdf] is reading from path 'cam1', with UDP, 2 tracks (H264, MPEG-4 Audio)
+2026/07/13 08:27:50 INF [RTSP] [session 418a380b] is reading from path 'cam1', with UDP, 2 tracks (H264, MPEG-4 Audio)
+2026/07/13 08:27:50 INF [HLS] [muxer cam4] created automatically
+2026/07/13 08:27:50 INF [HLS] [muxer cam3] is converting into HLS, 2 tracks (H264, MPEG-4 Audio)
+2026/07/13 08:27:50 INF [RTSP] [session 2c4546a0] is reading from path 'cam1', with UDP, 2 tracks (H264, MPEG-4 Audio)
+2026/07/13 08:27:50 INF [HLS] [muxer cam2] created automatically
+2026/07/13 08:27:50 INF [HLS] [muxer cam4] is converting into HLS, 2 tracks (H264, MPEG-4 Audio)
+2026/07/13 08:27:50 INF [HLS] [muxer cam2] is converting into HLS, 2 tracks (H264, MPEG-4 Audio)
+2026/07/13 08:27:57 INF [HLS] [session 12956575] created by 127.0.0.1:53531, reading from muxer 'cam1'
+2026/07/13 08:27:57 INF [HLS] [session 32f4cd21] created by [::1]:56813, reading from muxer 'cam4'
+2026/07/13 08:27:57 INF [HLS] [session 5f04cad0] created by [::1]:50997, reading from muxer 'cam3'
+2026/07/13 08:27:57 INF [HLS] [session a4fdef92] created by 127.0.0.1:53531, reading from muxer 'cam2'
+2026/07/13 08:28:13 WAR [HLS] [muxer cam3] segment duration changed from 3s to 4s - this will cause an error in iOS clients
+2026/07/13 08:28:13 WAR [HLS] [muxer cam2] segment duration changed from 3s to 4s - this will cause an error in iOS clients
+2026/07/13 08:28:13 WAR [HLS] [muxer cam4] segment duration changed from 3s to 4s - this will cause an error in iOS clients
+2026/07/13 08:28:15 INF [HLS] [session d53a2f84] created by [::1]:50997, reading from muxer 'cam1'
+2026/07/13 08:28:16 INF [HLS] [session b6f2dde1] created by [::1]:50997, reading from muxer 'cam2'
+2026/07/13 08:28:17 INF [HLS] [session fa66728e] created by [::1]:50997, reading from muxer 'cam4'
+2026/07/13 08:28:23 INF [HLS] [session f153bf79] created by [::1]:60469, reading from muxer 'cam1'
+2026/07/13 08:28:23 INF [HLS] [session 9ccf5571] created by [::1]:49771, reading from muxer 'cam2'
+2026/07/13 08:28:23 INF [HLS] [session 0dcec8c1] created by [::1]:50005, reading from muxer 'cam4'
+2026/07/13 08:28:23 INF [HLS] [session 7781abe8] created by [::1]:63525, reading from muxer 'cam3'
+2026/07/13 08:28:25 INF [HLS] [session cef014a1] closed: inactive
+2026/07/13 08:28:30 INF [HLS] [session 5f04cad0] closed: inactive
+2026/07/13 08:28:30 INF [HLS] [session 32f4cd21] closed: inactive
+2026/07/13 08:28:30 INF [HLS] [session a4fdef92] closed: inactive
+2026/07/13 08:28:35 INF [HLS] [session 12956575] closed: inactive
+2026/07/13 08:28:41 INF [HLS] [session b99c4564] created by [::1]:58520, reading from muxer 'cam1'
+2026/07/13 08:28:41 INF [HLS] [session fe0d1d91] created by [::1]:58520, reading from muxer 'cam2'
+2026/07/13 08:28:41 INF [HLS] [session 4374f667] created by [::1]:58520, reading from muxer 'cam3'
+2026/07/13 08:28:41 INF [HLS] [session 9629ba77] created by [::1]:58520, reading from muxer 'cam4'
+2026/07/13 08:28:55 INF [HLS] [session d53a2f84] closed: inactive
+2026/07/13 08:29:00 INF [HLS] [session fa66728e] closed: inactive
+2026/07/13 08:29:00 INF [HLS] [session b6f2dde1] closed: inactive
+2026/07/13 08:29:11 INF [HLS] [session 31b8c090] created by [::1]:50005, reading from muxer 'cam1'
+2026/07/13 08:29:11 INF [HLS] [session 0581457b] created by [::1]:60469, reading from muxer 'cam2'
+2026/07/13 08:29:11 INF [HLS] [session bd587739] created by [::1]:63525, reading from muxer 'cam4'
+2026/07/13 08:29:11 INF [HLS] [session 297a8666] created by [::1]:49771, reading from muxer 'cam3'
+2026/07/13 08:29:15 INF [HLS] [session b99c4564] closed: inactive
+2026/07/13 08:29:20 INF [HLS] [session 4374f667] closed: inactive
+2026/07/13 08:29:20 INF [HLS] [session 9629ba77] closed: inactive
+2026/07/13 08:29:20 INF [HLS] [session fe0d1d91] closed: inactive
+2026/07/13 08:29:21 INF [HLS] [session 9f9d6123] created by [::1]:63525, reading from muxer 'cam1'
+2026/07/13 08:29:21 INF [HLS] [session 45960030] created by [::1]:49771, reading from muxer 'cam4'
+2026/07/13 08:29:21 INF [HLS] [session 5c2194a5] created by [::1]:50005, reading from muxer 'cam2'
+2026/07/13 08:29:21 INF [HLS] [session ebe5a027] created by [::1]:60469, reading from muxer 'cam3'
+2026/07/13 08:29:35 INF [HLS] [session f153bf79] closed: inactive
+2026/07/13 08:29:40 INF [HLS] [session 7781abe8] closed: inactive
+2026/07/13 08:29:40 INF [HLS] [session 0dcec8c1] closed: inactive
+2026/07/13 08:29:40 INF [HLS] [session 9ccf5571] closed: inactive
+2026/07/13 08:29:46 INF [HLS] [session ca3dd82a] created by [::1]:63525, reading from muxer 'cam1'
+2026/07/13 08:29:46 INF [HLS] [session 587ca4c2] created by [::1]:50005, reading from muxer 'cam2'
+2026/07/13 08:29:46 INF [HLS] [session 7f2145b7] created by [::1]:60469, reading from muxer 'cam4'
+2026/07/13 08:29:46 INF [HLS] [session d61aab25] created by [::1]:49771, reading from muxer 'cam3'
+2026/07/13 08:29:50 INF [HLS] [session 297a8666] closed: inactive
+2026/07/13 08:29:50 INF [HLS] [session bd587739] closed: inactive
+2026/07/13 08:29:50 INF [HLS] [session 0581457b] closed: inactive
+2026/07/13 08:29:55 INF [HLS] [session 31b8c090] closed: inactive
+2026/07/13 08:30:15 INF [HLS] [session 9f9d6123] closed: inactive
+2026/07/13 08:30:20 INF [HLS] [session 45960030] closed: inactive
+2026/07/13 08:30:20 INF [HLS] [session ebe5a027] closed: inactive
+2026/07/13 08:30:20 INF [HLS] [session 5c2194a5] closed: inactive
+2026/07/13 08:30:25 INF [HLS] [session ca3dd82a] closed: inactive
+2026/07/13 08:30:30 INF [HLS] [session d61aab25] closed: inactive
+2026/07/13 08:30:30 INF [HLS] [session 7f2145b7] closed: inactive
+2026/07/13 08:30:30 INF [HLS] [session 587ca4c2] closed: inactive
+2026/07/13 08:33:02 INF [HLS] [session 2d44f6ff] created by [::1]:64372, reading from muxer 'cam1'
+2026/07/13 08:33:02 INF [HLS] [session 2c23c849] created by [::1]:51395, reading from muxer 'cam4'
+2026/07/13 08:33:02 INF [HLS] [session 5a3ee373] created by [::1]:59386, reading from muxer 'cam3'
+2026/07/13 08:33:02 INF [HLS] [session ca8e9a01] created by [::1]:62300, reading from muxer 'cam2'
+2026/07/13 08:33:40 INF [HLS] [session 5a3ee373] closed: inactive
+2026/07/13 08:33:40 INF [HLS] [session 2c23c849] closed: inactive
+2026/07/13 08:33:40 INF [HLS] [session ca8e9a01] closed: inactive
+2026/07/13 08:33:45 INF [HLS] [session 2d44f6ff] closed: inactive
+2026/07/13 08:37:06 INF [HLS] [session 3ade32b7] created by [::1]:61056, reading from muxer 'cam1'
+2026/07/13 08:37:06 INF [HLS] [session eadcebee] created by [::1]:58264, reading from muxer 'cam3'
+2026/07/13 08:37:06 INF [HLS] [session ab5db501] created by [::1]:50311, reading from muxer 'cam2'
+2026/07/13 08:37:06 INF [HLS] [session 91dd974b] created by [::1]:64552, reading from muxer 'cam4'
+2026/07/13 08:37:40 INF [HLS] [session eadcebee] closed: inactive
+2026/07/13 08:37:40 INF [HLS] [session 91dd974b] closed: inactive
+2026/07/13 08:37:40 INF [HLS] [session ab5db501] closed: inactive
+2026/07/13 08:37:45 INF [HLS] [session 3ade32b7] closed: inactive
+2026/07/13 08:39:40 INF [HLS] [session 576ae710] created by [::1]:61546, reading from muxer 'cam2'
+2026/07/13 08:39:40 INF [HLS] [session e34a6bbb] created by [::1]:52632, reading from muxer 'cam1'
+2026/07/13 08:39:40 INF [HLS] [session b2aab3b4] created by [::1]:53882, reading from muxer 'cam3'
+2026/07/13 08:39:40 INF [HLS] [session b65db880] created by [::1]:53882, reading from muxer 'cam4'
+2026/07/13 08:40:04 INF [HLS] [session e2381704] created by [::1]:56959, reading from muxer 'cam1'
+2026/07/13 08:40:35 INF [HLS] [session e34a6bbb] closed: inactive
+2026/07/13 08:40:40 INF [HLS] [session b2aab3b4] closed: inactive
+2026/07/13 08:40:40 INF [HLS] [session b65db880] closed: inactive
+2026/07/13 08:40:40 INF [HLS] [session 576ae710] closed: inactive
+2026/07/13 08:40:45 INF [HLS] [session e2381704] closed: inactive
+2026/07/13 08:52:51 INF [HLS] [session eb607fec] created by [::1]:62340, reading from muxer 'cam2'
+2026/07/13 08:52:51 INF [HLS] [session 7b60211c] created by [::1]:59775, reading from muxer 'cam1'
+2026/07/13 08:52:51 INF [HLS] [session 0d3b3b23] created by [::1]:61115, reading from muxer 'cam3'
+2026/07/13 08:52:51 INF [HLS] [session 7d3105a4] created by [::1]:52605, reading from muxer 'cam4'
+2026/07/13 08:53:35 INF [HLS] [session 7b60211c] closed: inactive
+2026/07/13 08:53:40 INF [HLS] [session 0d3b3b23] closed: inactive
+2026/07/13 08:53:40 INF [HLS] [session eb607fec] closed: inactive
+2026/07/13 08:53:40 INF [HLS] [session 7d3105a4] closed: inactive
+2026/07/13 09:04:15 INF [HLS] [session 0f94a8c8] created by [::1]:62104, reading from muxer 'cam3'
+2026/07/13 09:04:15 INF [HLS] [session e9d7afe3] created by [::1]:53312, reading from muxer 'cam1'
+2026/07/13 09:04:15 INF [HLS] [session 40340fd1] created by [::1]:56711, reading from muxer 'cam4'
+2026/07/13 09:04:15 INF [HLS] [session f5112f9f] created by [::1]:61802, reading from muxer 'cam2'
+2026/07/13 09:07:24 INF [HLS] [session ca3e126b] created by [::1]:62104, reading from muxer 'cam4'
+2026/07/13 09:07:24 INF [HLS] [session 43050ebe] created by [::1]:53312, reading from muxer 'cam2'
+2026/07/13 09:07:24 INF [HLS] [session fe2d031a] created by [::1]:61802, reading from muxer 'cam1'
+2026/07/13 09:07:24 INF [HLS] [session 36d98ba8] created by [::1]:56711, reading from muxer 'cam3'
+2026/07/13 09:07:50 INF [HLS] [session 0f94a8c8] closed: inactive
+2026/07/13 09:07:50 INF [HLS] [session 40340fd1] closed: inactive
+2026/07/13 09:07:50 INF [HLS] [session f5112f9f] closed: inactive
+2026/07/13 09:07:55 INF [HLS] [session e9d7afe3] closed: inactive
+2026/07/13 09:08:45 INF [HLS] [session fe2d031a] closed: inactive
+2026/07/13 09:08:50 INF [HLS] [session 36d98ba8] closed: inactive
+2026/07/13 09:08:50 INF [HLS] [session ca3e126b] closed: inactive
+2026/07/13 09:08:50 INF [HLS] [session 43050ebe] closed: inactive
+2026/07/13 09:09:42 INF [HLS] [session ec5e5f44] created by [::1]:55763, reading from muxer 'cam2'
+2026/07/13 09:09:42 INF [HLS] [session b07130c6] created by [::1]:56711, reading from muxer 'cam4'
+2026/07/13 09:09:42 INF [HLS] [session cf51a8a7] created by [::1]:55178, reading from muxer 'cam3'
+2026/07/13 09:09:42 INF [HLS] [session 50386848] created by [::1]:59851, reading from muxer 'cam1'
+2026/07/13 09:11:00 INF [HLS] [session cf51a8a7] closed: inactive
+2026/07/13 09:11:00 INF [HLS] [session b07130c6] closed: inactive
+2026/07/13 09:11:00 INF [HLS] [session ec5e5f44] closed: inactive
+2026/07/13 09:11:05 INF [HLS] [session 50386848] closed: inactive
+2026/07/13 09:15:57 INF [HLS] [session 66a86b9e] created by [::1]:52294, reading from muxer 'cam3'
+2026/07/13 09:15:57 INF [HLS] [session a726d8b3] created by [::1]:60512, reading from muxer 'cam1'
+2026/07/13 09:15:57 INF [HLS] [session c3a2fb98] created by [::1]:60530, reading from muxer 'cam4'
+2026/07/13 09:15:57 INF [HLS] [session 18715c4b] created by [::1]:62112, reading from muxer 'cam2'
+2026/07/13 09:16:40 INF [HLS] [session 66a86b9e] closed: inactive
+2026/07/13 09:16:40 INF [HLS] [session c3a2fb98] closed: inactive
+2026/07/13 09:16:40 INF [HLS] [session 18715c4b] closed: inactive
+2026/07/13 09:16:45 INF [HLS] [session a726d8b3] closed: inactive
+2026/07/13 09:20:09 INF [HLS] [session 2aba0629] created by [::1]:55216, reading from muxer 'cam4'
+2026/07/13 09:20:09 INF [HLS] [session aa6b4be8] created by [::1]:59325, reading from muxer 'cam1'
+2026/07/13 09:20:09 INF [HLS] [session e034d0cb] created by [::1]:64694, reading from muxer 'cam2'
+2026/07/13 09:20:09 INF [HLS] [session b1fe5541] created by [::1]:53831, reading from muxer 'cam3'
+2026/07/13 09:22:30 INF [HLS] [session b1fe5541] closed: inactive
+2026/07/13 09:22:30 INF [HLS] [session 2aba0629] closed: inactive
+2026/07/13 09:22:30 INF [HLS] [session e034d0cb] closed: inactive
+2026/07/13 09:22:35 INF [HLS] [session aa6b4be8] closed: inactive
+2026/07/13 10:02:22 INF [HLS] [session 1e365328] created by [::1]:54341, reading from muxer 'cam1'
+2026/07/13 10:02:22 INF [HLS] [session 9f099d3d] created by [::1]:61033, reading from muxer 'cam2'
+2026/07/13 10:02:22 INF [HLS] [session c9a9338c] created by [::1]:53007, reading from muxer 'cam3'
+2026/07/13 10:02:22 INF [HLS] [session 1b536e53] created by [::1]:55664, reading from muxer 'cam4'
+2026/07/13 10:02:55 INF [HLS] [session 1e365328] closed: inactive
+2026/07/13 10:03:00 INF [HLS] [session c9a9338c] closed: inactive
+2026/07/13 10:03:00 INF [HLS] [session 1b536e53] closed: inactive
+2026/07/13 10:03:00 INF [HLS] [session 9f099d3d] closed: inactive
+2026/07/13 10:07:57 INF [HLS] [session 8ec4fda9] created by [::1]:56631, reading from muxer 'cam1'
+2026/07/13 10:07:57 INF [HLS] [session 5ce9f396] created by [::1]:54951, reading from muxer 'cam2'
+2026/07/13 10:07:57 INF [HLS] [session e8cf8bf5] created by [::1]:60400, reading from muxer 'cam4'
+2026/07/13 10:07:57 INF [HLS] [session 64a2df09] created by [::1]:49790, reading from muxer 'cam3'
+2026/07/13 10:08:30 INF [HLS] [session 64a2df09] closed: inactive
+2026/07/13 10:08:30 INF [HLS] [session e8cf8bf5] closed: inactive
+2026/07/13 10:08:30 INF [HLS] [session 5ce9f396] closed: inactive
+2026/07/13 10:08:35 INF [HLS] [session 8ec4fda9] closed: inactive
+2026/07/13 10:27:17 INF [HLS] [session fed09986] created by [::1]:59685, reading from muxer 'cam2'
+2026/07/13 10:27:17 INF [HLS] [session db9d73a4] created by [::1]:64930, reading from muxer 'cam1'
+2026/07/13 10:27:17 INF [HLS] [session 5a757c92] created by [::1]:55304, reading from muxer 'cam4'
+2026/07/13 10:27:17 INF [HLS] [session 06b9992b] created by [::1]:57072, reading from muxer 'cam3'
+2026/07/13 10:28:20 INF [HLS] [session 06b9992b] closed: inactive
+2026/07/13 10:28:20 INF [HLS] [session 5a757c92] closed: inactive
+2026/07/13 10:28:20 INF [HLS] [session fed09986] closed: inactive
+2026/07/13 10:28:25 INF [HLS] [session db9d73a4] closed: inactive
+2026/07/13 10:37:29 INF [HLS] [session 1fec25e9] created by [::1]:62969, reading from muxer 'cam1'
+2026/07/13 10:37:29 INF [HLS] [session 7446c6a6] created by [::1]:62536, reading from muxer 'cam2'
+2026/07/13 10:37:29 INF [HLS] [session 4d63897c] created by [::1]:49735, reading from muxer 'cam3'
+2026/07/13 10:37:29 INF [HLS] [session 7c5efd53] created by [::1]:61297, reading from muxer 'cam4'
+2026/07/13 10:37:46 INF [HLS] [session f36f84c4] created by [::1]:62536, reading from muxer 'cam1'
+2026/07/13 10:37:46 INF [HLS] [session a7945a91] created by [::1]:62969, reading from muxer 'cam3'
+2026/07/13 10:37:46 INF [HLS] [session 3393b4aa] created by [::1]:49735, reading from muxer 'cam2'
+2026/07/13 10:37:46 INF [HLS] [session c9fab17f] created by [::1]:61297, reading from muxer 'cam4'
+2026/07/13 10:38:15 INF [HLS] [session 1fec25e9] closed: inactive
+2026/07/13 10:38:20 INF [HLS] [session 4d63897c] closed: inactive
+2026/07/13 10:38:20 INF [HLS] [session a7945a91] closed: inactive
+2026/07/13 10:38:20 INF [HLS] [session c9fab17f] closed: inactive
+2026/07/13 10:38:20 INF [HLS] [session 7c5efd53] closed: inactive
+2026/07/13 10:38:20 INF [HLS] [session 7446c6a6] closed: inactive
+2026/07/13 10:38:20 INF [HLS] [session 3393b4aa] closed: inactive
+2026/07/13 10:38:25 INF [HLS] [session f36f84c4] closed: inactive
+2026/07/13 10:38:26 INF [HLS] [session 571024fa] created by [::1]:63249, reading from muxer 'cam1'
+2026/07/13 10:38:26 INF [HLS] [session a3c69364] created by [::1]:60979, reading from muxer 'cam2'
+2026/07/13 10:38:26 INF [HLS] [session 9a498b78] created by [::1]:55373, reading from muxer 'cam4'
+2026/07/13 10:38:26 INF [HLS] [session 8efd869c] created by [::1]:53412, reading from muxer 'cam3'
+2026/07/13 10:38:59 INF [HLS] [session be788882] created by [::1]:63249, reading from muxer 'cam3'
+2026/07/13 10:38:59 INF [HLS] [session 58bd216d] created by [::1]:60979, reading from muxer 'cam1'
+2026/07/13 10:38:59 INF [HLS] [session b192e014] created by [::1]:49826, reading from muxer 'cam2'
+2026/07/13 10:38:59 INF [HLS] [session 37028f2f] created by [::1]:55120, reading from muxer 'cam4'
+2026/07/13 10:39:00 INF [HLS] [session 8efd869c] closed: inactive
+2026/07/13 10:39:00 INF [HLS] [session 9a498b78] closed: inactive
+2026/07/13 10:39:00 INF [HLS] [session a3c69364] closed: inactive
+2026/07/13 10:39:05 INF [HLS] [session 571024fa] closed: inactive
+2026/07/13 10:39:14 INF [HLS] [session dd1edfdb] created by [::1]:55120, reading from muxer 'cam1'
+2026/07/13 10:39:14 INF [HLS] [session 2c7fab4e] created by [::1]:49826, reading from muxer 'cam4'
+2026/07/13 10:39:14 INF [HLS] [session ff94bcf2] created by [::1]:60979, reading from muxer 'cam2'
+2026/07/13 10:39:14 INF [HLS] [session 5cb043f9] created by [::1]:63249, reading from muxer 'cam3'
+2026/07/13 10:39:20 INF [HLS] [session 65d5e74a] created by [::1]:55120, reading from muxer 'cam2'
+2026/07/13 10:39:20 INF [HLS] [session 94eb9726] created by [::1]:63249, reading from muxer 'cam1'
+2026/07/13 10:39:20 INF [HLS] [session 401952e1] created by [::1]:49826, reading from muxer 'cam3'
+2026/07/13 10:39:20 INF [HLS] [session 7348615b] created by [::1]:60979, reading from muxer 'cam4'
+2026/07/13 10:39:33 INF [HLS] [session 713173b5] created by [::1]:49826, reading from muxer 'cam1'
+2026/07/13 10:39:34 INF [HLS] [session 646f646e] created by [::1]:60979, reading from muxer 'cam2'
+2026/07/13 10:39:35 INF [HLS] [session bbba2e1b] created by [::1]:63249, reading from muxer 'cam4'
+2026/07/13 10:39:36 INF [HLS] [session e9e7dd36] created by [::1]:49826, reading from muxer 'cam3'
+2026/07/13 10:39:40 INF [HLS] [session be788882] closed: inactive
+2026/07/13 10:39:40 INF [HLS] [session 37028f2f] closed: inactive
+2026/07/13 10:39:40 INF [HLS] [session b192e014] closed: inactive
+2026/07/13 10:39:45 INF [HLS] [session 58bd216d] closed: inactive
+2026/07/13 10:39:50 INF [HLS] [session 5cb043f9] closed: inactive
+2026/07/13 10:39:50 INF [HLS] [session 2c7fab4e] closed: inactive
+2026/07/13 10:39:50 INF [HLS] [session ff94bcf2] closed: inactive
+2026/07/13 10:39:55 INF [HLS] [session 94eb9726] closed: inactive
+2026/07/13 10:39:55 INF [HLS] [session dd1edfdb] closed: inactive
+2026/07/13 10:40:00 INF [HLS] [session 401952e1] closed: inactive
+2026/07/13 10:40:00 INF [HLS] [session 7348615b] closed: inactive
+2026/07/13 10:40:00 INF [HLS] [session 65d5e74a] closed: inactive
+2026/07/13 10:40:25 INF [HLS] [session 713173b5] closed: inactive
+2026/07/13 10:40:30 INF [HLS] [session e9e7dd36] closed: inactive
+2026/07/13 10:40:30 INF [HLS] [session bbba2e1b] closed: inactive
+2026/07/13 10:40:30 INF [HLS] [session 646f646e] closed: inactive
+2026/07/13 10:41:03 INF [HLS] [session a58e166b] created by [::1]:59588, reading from muxer 'cam2'
+2026/07/13 10:41:03 INF [HLS] [session d01a8321] created by [::1]:51614, reading from muxer 'cam3'
+2026/07/13 10:41:03 INF [HLS] [session 3a884196] created by [::1]:52577, reading from muxer 'cam1'
+2026/07/13 10:41:03 INF [HLS] [session 963cd1d6] created by [::1]:57942, reading from muxer 'cam4'
+2026/07/13 10:41:40 INF [HLS] [session a2c74aab] created by [::1]:57942, reading from muxer 'cam1'
+2026/07/13 10:41:40 INF [HLS] [session 4e100dfa] created by [::1]:52577, reading from muxer 'cam2'
+2026/07/13 10:41:40 INF [HLS] [session 8921843b] created by [::1]:59588, reading from muxer 'cam3'
+2026/07/13 10:41:40 INF [HLS] [session 7c7937d9] created by [::1]:51614, reading from muxer 'cam4'
+2026/07/13 10:41:55 INF [HLS] [session 8a897a57] created by [::1]:51614, reading from muxer 'cam4'
+2026/07/13 10:41:55 INF [HLS] [session 2fcd29be] created by [::1]:57942, reading from muxer 'cam2'
+2026/07/13 10:41:55 INF [HLS] [session 188d93fc] created by [::1]:52577, reading from muxer 'cam1'
+2026/07/13 10:41:55 INF [HLS] [session b926faf6] created by [::1]:59588, reading from muxer 'cam3'
+2026/07/13 10:41:55 INF [HLS] [session 3a884196] closed: inactive
+2026/07/13 10:42:00 INF [HLS] [session d01a8321] closed: inactive
+2026/07/13 10:42:00 INF [HLS] [session 963cd1d6] closed: inactive
+2026/07/13 10:42:00 INF [HLS] [session a58e166b] closed: inactive
+2026/07/13 10:42:00 INF [HLS] [session 36adf08b] created by [::1]:51614, reading from muxer 'cam3'
+2026/07/13 10:42:00 INF [HLS] [session c7ed9cfd] created by [::1]:52577, reading from muxer 'cam2'
+2026/07/13 10:42:00 INF [HLS] [session 772c1b94] created by [::1]:57942, reading from muxer 'cam4'
+2026/07/13 10:42:00 INF [HLS] [session 9ea636f7] created by [::1]:59588, reading from muxer 'cam1'
+2026/07/13 10:42:20 INF [HLS] [session 4e100dfa] closed: inactive
+2026/07/13 10:42:20 INF [HLS] [session 7c7937d9] closed: inactive
+2026/07/13 10:42:20 INF [HLS] [session 8921843b] closed: inactive
+2026/07/13 10:42:25 INF [HLS] [session a2c74aab] closed: inactive
+2026/07/13 10:42:30 INF [HLS] [session b926faf6] closed: inactive
+2026/07/13 10:42:30 INF [HLS] [session 2fcd29be] closed: inactive
+2026/07/13 10:42:30 INF [HLS] [session 8a897a57] closed: inactive
+2026/07/13 10:42:35 INF [HLS] [session 188d93fc] closed: inactive
+2026/07/13 10:43:15 INF [HLS] [session 9ea636f7] closed: inactive
+2026/07/13 10:43:20 INF [HLS] [session 36adf08b] closed: inactive
+2026/07/13 10:43:20 INF [HLS] [session 772c1b94] closed: inactive
+2026/07/13 10:43:20 INF [HLS] [session c7ed9cfd] closed: inactive
+2026/07/13 10:43:58 INF [HLS] [session df1fb5d4] created by [::1]:61338, reading from muxer 'cam2'
+2026/07/13 10:43:58 INF [HLS] [session aac91f1d] created by [::1]:62743, reading from muxer 'cam4'
+2026/07/13 10:43:58 INF [HLS] [session 0bc0ccab] created by [::1]:62743, reading from muxer 'cam3'
+2026/07/13 10:43:58 INF [HLS] [session 3af64d1b] created by [::1]:61338, reading from muxer 'cam1'
+2026/07/13 10:44:35 INF [HLS] [session 3af64d1b] closed: inactive
+2026/07/13 10:44:40 INF [HLS] [session 0bc0ccab] closed: inactive
+2026/07/13 10:44:40 INF [HLS] [session aac91f1d] closed: inactive
+2026/07/13 10:44:40 INF [HLS] [session df1fb5d4] closed: inactive
+2026/07/13 10:44:49 INF [HLS] [session 91429ee7] created by [::1]:60273, reading from muxer 'cam1'
+2026/07/13 10:44:49 INF [HLS] [session 3d83ec9e] created by [::1]:57878, reading from muxer 'cam2'
+2026/07/13 10:44:49 INF [HLS] [session ee3efdf5] created by [::1]:60273, reading from muxer 'cam3'
+2026/07/13 10:44:49 INF [HLS] [session 40fddfb6] created by [::1]:50537, reading from muxer 'cam4'
+2026/07/13 10:45:26 INF [HLS] [session 10275590] created by [::1]:60273, reading from muxer 'cam1'
+2026/07/13 10:45:26 INF [HLS] [session 18b25855] created by [::1]:57878, reading from muxer 'cam4'
+2026/07/13 10:45:26 INF [HLS] [session 7750e70c] created by [::1]:49746, reading from muxer 'cam3'
+2026/07/13 10:45:26 INF [HLS] [session f4583ff0] created by [::1]:60273, reading from muxer 'cam2'
+2026/07/13 10:45:41 INF [HLS] [session 5c5bade1] created by [::1]:52766, reading from muxer 'cam3'
+2026/07/13 10:45:41 INF [HLS] [session 7f9b47d1] created by [::1]:55926, reading from muxer 'cam4'
+2026/07/13 10:45:41 INF [HLS] [session 76f566d9] created by [::1]:62323, reading from muxer 'cam2'
+2026/07/13 10:45:41 INF [HLS] [session 0993d1ef] created by [::1]:57704, reading from muxer 'cam1'
+2026/07/13 10:45:45 INF [HLS] [session 91429ee7] closed: inactive
+2026/07/13 10:45:50 INF [HLS] [session 40fddfb6] closed: inactive
+2026/07/13 10:45:50 INF [HLS] [session 3d83ec9e] closed: inactive
+2026/07/13 10:45:50 INF [HLS] [session ee3efdf5] closed: inactive
+2026/07/13 10:45:51 INF [HLS] [session 4999afae] created by [::1]:55926, reading from muxer 'cam2'
+2026/07/13 10:45:51 INF [HLS] [session f5104e24] created by [::1]:52766, reading from muxer 'cam1'
+2026/07/13 10:45:51 INF [HLS] [session 85cf421b] created by [::1]:62323, reading from muxer 'cam3'
+2026/07/13 10:45:51 INF [HLS] [session 02fbfb75] created by [::1]:57704, reading from muxer 'cam4'
+2026/07/13 10:46:04 INF [HLS] [session 3b763279] created by [::1]:57704, reading from muxer 'cam1'
+2026/07/13 10:46:04 INF [HLS] [session 69562582] created by [::1]:62323, reading from muxer 'cam4'
+2026/07/13 10:46:04 INF [HLS] [session e0a275c6] created by [::1]:52766, reading from muxer 'cam3'
+2026/07/13 10:46:04 INF [HLS] [session b308a248] created by [::1]:55926, reading from muxer 'cam2'
+2026/07/13 10:46:05 INF [HLS] [session 10275590] closed: inactive
+2026/07/13 10:46:10 INF [HLS] [session 7750e70c] closed: inactive
+2026/07/13 10:46:10 INF [HLS] [session 18b25855] closed: inactive
+2026/07/13 10:46:10 INF [HLS] [session f4583ff0] closed: inactive
+2026/07/13 10:46:15 INF [HLS] [session 0993d1ef] closed: inactive
+2026/07/13 10:46:18 INF [HLS] [session e5d0ab5d] created by [::1]:52766, reading from muxer 'cam1'
+2026/07/13 10:46:18 INF [HLS] [session 736cbca8] created by [::1]:55926, reading from muxer 'cam2'
+2026/07/13 10:46:18 INF [HLS] [session 70cd6180] created by [::1]:62323, reading from muxer 'cam3'
+2026/07/13 10:46:18 INF [HLS] [session a841c2c2] created by [::1]:55926, reading from muxer 'cam4'
+2026/07/13 10:46:20 INF [HLS] [session 5c5bade1] closed: inactive
+2026/07/13 10:46:20 INF [HLS] [session 7f9b47d1] closed: inactive
+2026/07/13 10:46:20 INF [HLS] [session 76f566d9] closed: inactive
+2026/07/13 10:46:25 INF [HLS] [session f5104e24] closed: inactive
+2026/07/13 10:46:30 INF [HLS] [session 85cf421b] closed: inactive
+2026/07/13 10:46:30 INF [HLS] [session 02fbfb75] closed: inactive
+2026/07/13 10:46:30 INF [HLS] [session 4999afae] closed: inactive
+2026/07/13 10:46:40 INF [HLS] [session e0a275c6] closed: inactive
+2026/07/13 10:46:40 INF [HLS] [session 69562582] closed: inactive
+2026/07/13 10:46:40 INF [HLS] [session b308a248] closed: inactive
+2026/07/13 10:46:45 INF [HLS] [session 3b763279] closed: inactive
+2026/07/13 10:46:50 INF [HLS] [session 70cd6180] closed: inactive
+2026/07/13 10:46:50 INF [HLS] [session a841c2c2] closed: inactive
+2026/07/13 10:46:50 INF [HLS] [session 736cbca8] closed: inactive
+2026/07/13 10:46:54 INF [HLS] [session 8aee11fe] created by [::1]:53422, reading from muxer 'cam1'
+2026/07/13 10:46:54 INF [HLS] [session a9518c92] created by [::1]:54522, reading from muxer 'cam2'
+2026/07/13 10:46:54 INF [HLS] [session 085308e9] created by [::1]:50477, reading from muxer 'cam4'
+2026/07/13 10:46:54 INF [HLS] [session 9412cef2] created by [::1]:49730, reading from muxer 'cam3'
+2026/07/13 10:46:55 INF [HLS] [session e5d0ab5d] closed: inactive
+2026/07/13 10:47:08 INF [HLS] [session 616e5f0b] created by [::1]:49730, reading from muxer 'cam2'
+2026/07/13 10:47:08 INF [HLS] [session ebeba10c] created by [::1]:53422, reading from muxer 'cam1'
+2026/07/13 10:47:08 INF [HLS] [session 7398a030] created by [::1]:53422, reading from muxer 'cam4'
+2026/07/13 10:47:08 INF [HLS] [session 26e1179c] created by [::1]:50477, reading from muxer 'cam3'
+2026/07/13 10:47:35 INF [HLS] [session 8aee11fe] closed: inactive
+2026/07/13 10:47:40 INF [HLS] [session 9412cef2] closed: inactive
+2026/07/13 10:47:40 INF [HLS] [session a9518c92] closed: inactive
+2026/07/13 10:47:40 INF [HLS] [session 085308e9] closed: inactive
+2026/07/13 10:49:55 INF [HLS] [session ebeba10c] closed: inactive
+2026/07/13 10:50:00 INF [HLS] [session 26e1179c] closed: inactive
+2026/07/13 10:50:00 INF [HLS] [session 7398a030] closed: inactive
+2026/07/13 10:50:00 INF [HLS] [session 616e5f0b] closed: inactive
+2026/07/13 10:50:34 INF [HLS] [session 38948e0d] created by [::1]:58208, reading from muxer 'cam1'
+2026/07/13 10:50:34 INF [HLS] [session 62b7ab30] created by [::1]:50730, reading from muxer 'cam3'
+2026/07/13 10:50:34 INF [HLS] [session 6fc2b962] created by [::1]:63003, reading from muxer 'cam4'
+2026/07/13 10:50:34 INF [HLS] [session ee1bede2] created by [::1]:62780, reading from muxer 'cam2'
+2026/07/13 10:54:45 INF [HLS] [session 38948e0d] closed: inactive
+2026/07/13 10:54:50 INF [HLS] [session 62b7ab30] closed: inactive
+2026/07/13 10:54:50 INF [HLS] [session 6fc2b962] closed: inactive
+2026/07/13 10:54:50 INF [HLS] [session ee1bede2] closed: inactive
+2026/07/13 10:55:42 INF [HLS] [session c306b3be] created by [::1]:49304, reading from muxer 'cam3'
+2026/07/13 10:55:42 INF [HLS] [session 6e95caaf] created by [::1]:59413, reading from muxer 'cam4'
+2026/07/13 10:55:42 INF [HLS] [session 3f2d210f] created by [::1]:58017, reading from muxer 'cam2'
+2026/07/13 10:55:42 INF [HLS] [session 52905471] created by [::1]:50456, reading from muxer 'cam1'
+2026/07/13 10:55:48 INF [HLS] [session 3091d217] created by [::1]:50456, reading from muxer 'cam1'
+2026/07/13 10:55:48 INF [HLS] [session bcd62874] created by [::1]:59413, reading from muxer 'cam2'
+2026/07/13 10:55:48 INF [HLS] [session f63d88af] created by [::1]:58017, reading from muxer 'cam3'
+2026/07/13 10:55:48 INF [HLS] [session 918e0245] created by [::1]:49304, reading from muxer 'cam4'
+2026/07/13 10:56:20 INF [HLS] [session c306b3be] closed: inactive
+2026/07/13 10:56:20 INF [HLS] [session 6e95caaf] closed: inactive
+2026/07/13 10:56:20 INF [HLS] [session 3f2d210f] closed: inactive
+2026/07/13 10:56:25 INF [HLS] [session 52905471] closed: inactive
+2026/07/13 10:57:50 INF [HLS] [session 918e0245] closed: inactive
+2026/07/13 10:57:50 INF [HLS] [session bcd62874] closed: inactive
+2026/07/13 10:57:50 INF [HLS] [session f63d88af] closed: inactive
+2026/07/13 10:57:55 INF [HLS] [session 3091d217] closed: inactive
+2026/07/13 11:04:10 INF [HLS] [session 690a5f8f] created by [::1]:64827, reading from muxer 'cam1'
+2026/07/13 11:04:10 INF [HLS] [session 3bfc50cc] created by [::1]:57553, reading from muxer 'cam3'
+2026/07/13 11:04:10 INF [HLS] [session 98785b6c] created by [::1]:60090, reading from muxer 'cam4'
+2026/07/13 11:04:10 INF [HLS] [session 960fffb6] created by [::1]:54276, reading from muxer 'cam2'
+2026/07/13 11:04:29 INF [HLS] [session 9355849a] created by [::1]:54276, reading from muxer 'cam1'
+2026/07/13 11:04:29 INF [HLS] [session 3e63d57c] created by [::1]:54276, reading from muxer 'cam2'
+2026/07/13 11:04:29 INF [HLS] [session ccc06c28] created by [::1]:57553, reading from muxer 'cam4'
+2026/07/13 11:04:29 INF [HLS] [session 93223bc9] created by [::1]:64827, reading from muxer 'cam3'
+2026/07/13 11:04:50 INF [HLS] [session 3bfc50cc] closed: inactive
+2026/07/13 11:04:50 INF [HLS] [session 960fffb6] closed: inactive
+2026/07/13 11:04:50 INF [HLS] [session 98785b6c] closed: inactive
+2026/07/13 11:04:54 INF [HLS] [session c9aa3abb] created by [::1]:54276, reading from muxer 'cam1'
+2026/07/13 11:04:54 INF [HLS] [session 41a4349d] created by [::1]:57553, reading from muxer 'cam2'
+2026/07/13 11:04:54 INF [HLS] [session 2b3d6f2a] created by [::1]:57553, reading from muxer 'cam3'
+2026/07/13 11:04:54 INF [HLS] [session 429daa40] created by [::1]:60090, reading from muxer 'cam4'
+2026/07/13 11:04:55 INF [HLS] [session 690a5f8f] closed: inactive
+2026/07/13 11:05:07 INF [HLS] [session 0e49713d] created by [::1]:57553, reading from muxer 'cam1'
+2026/07/13 11:05:07 INF [HLS] [session 5afda5e6] created by [::1]:60090, reading from muxer 'cam4'
+2026/07/13 11:05:07 INF [HLS] [session c485920f] created by [::1]:54276, reading from muxer 'cam2'
+2026/07/13 11:05:07 INF [HLS] [session d962fdf5] created by [::1]:64827, reading from muxer 'cam3'
+2026/07/13 11:05:15 INF [HLS] [session 9355849a] closed: inactive
+2026/07/13 11:05:20 INF [HLS] [session 93223bc9] closed: inactive
+2026/07/13 11:05:20 INF [HLS] [session ccc06c28] closed: inactive
+2026/07/13 11:05:20 INF [HLS] [session 3e63d57c] closed: inactive
+2026/07/13 11:05:35 INF [HLS] [session c9aa3abb] closed: inactive
+2026/07/13 11:05:35 INF [HLS] [session bca243a8] created by [::1]:64827, reading from muxer 'cam1'
+2026/07/13 11:05:35 INF [HLS] [session 465b887c] created by [::1]:60090, reading from muxer 'cam2'
+2026/07/13 11:05:35 INF [HLS] [session 3a97e3ac] created by [::1]:54276, reading from muxer 'cam3'
+2026/07/13 11:05:35 INF [HLS] [session bcdd0d2f] created by [::1]:57553, reading from muxer 'cam4'
+2026/07/13 11:05:40 INF [HLS] [session 2b3d6f2a] closed: inactive
+2026/07/13 11:05:40 INF [HLS] [session 429daa40] closed: inactive
+2026/07/13 11:05:40 INF [HLS] [session 41a4349d] closed: inactive
+2026/07/13 11:05:55 INF [HLS] [session 0e49713d] closed: inactive
+2026/07/13 11:06:00 INF [HLS] [session d962fdf5] closed: inactive
+2026/07/13 11:06:00 INF [HLS] [session 5afda5e6] closed: inactive
+2026/07/13 11:06:00 INF [HLS] [session c485920f] closed: inactive
+2026/07/13 11:07:18 INF [HLS] [session 6a5a9838] created by [::1]:60090, reading from muxer 'cam2'
+2026/07/13 11:07:18 INF [HLS] [session 8bea5e52] created by [::1]:54276, reading from muxer 'cam4'
+2026/07/13 11:07:18 INF [HLS] [session 63106280] created by [::1]:64827, reading from muxer 'cam3'
+2026/07/13 11:07:18 INF [HLS] [session 9d7a62fd] created by [::1]:57553, reading from muxer 'cam1'
+2026/07/13 11:07:39 INF [HLS] [session 7d6b354e] created by [::1]:54276, reading from muxer 'cam3'
+2026/07/13 11:07:39 INF [HLS] [session 4b093ea4] created by [::1]:64827, reading from muxer 'cam1'
+2026/07/13 11:07:39 INF [HLS] [session 27f7ab96] created by [::1]:57553, reading from muxer 'cam2'
+2026/07/13 11:07:39 INF [HLS] [session a9ed39b0] created by [::1]:60090, reading from muxer 'cam4'
+2026/07/13 11:07:45 INF [HLS] [session bca243a8] closed: inactive
+2026/07/13 11:07:50 INF [HLS] [session 3a97e3ac] closed: inactive
+2026/07/13 11:07:50 INF [HLS] [session bcdd0d2f] closed: inactive
+2026/07/13 11:07:50 INF [HLS] [session 465b887c] closed: inactive
+2026/07/13 11:08:10 INF [HLS] [session 8bea5e52] closed: inactive
+2026/07/13 11:08:10 INF [HLS] [session 63106280] closed: inactive
+2026/07/13 11:08:10 INF [HLS] [session 6a5a9838] closed: inactive
+2026/07/13 11:08:15 INF [HLS] [session 9d7a62fd] closed: inactive
+2026/07/13 11:08:30 INF [HLS] [session 7d6b354e] closed: inactive
+2026/07/13 11:08:30 INF [HLS] [session a9ed39b0] closed: inactive
+2026/07/13 11:08:30 INF [HLS] [session 27f7ab96] closed: inactive
+2026/07/13 11:08:35 INF [HLS] [session 4b093ea4] closed: inactive
+2026/07/13 11:08:49 INF [HLS] [session 4c36cbca] created by [::1]:53147, reading from muxer 'cam2'
+2026/07/13 11:08:49 INF [HLS] [session e7a1b8c5] created by [::1]:55431, reading from muxer 'cam1'
+2026/07/13 11:08:49 INF [HLS] [session d6e00430] created by [::1]:60632, reading from muxer 'cam4'
+2026/07/13 11:08:49 INF [HLS] [session f676bb88] created by [::1]:53147, reading from muxer 'cam3'
+2026/07/13 11:09:09 INF [HLS] [session e393293c] created by [::1]:55431, reading from muxer 'cam1'
+2026/07/13 11:09:10 INF [HLS] [session 6dd1ce55] created by [::1]:53147, reading from muxer 'cam2'
+2026/07/13 11:09:13 INF [HLS] [session 05784b73] created by [::1]:57373, reading from muxer 'cam3'
+2026/07/13 11:09:14 INF [HLS] [session ff54eb40] created by [::1]:53147, reading from muxer 'cam4'
+2026/07/13 11:09:40 INF [HLS] [session 4c36cbca] closed: inactive
+2026/07/13 11:09:45 INF [HLS] [session e7a1b8c5] closed: inactive
+2026/07/13 11:09:50 INF [HLS] [session d6e00430] closed: inactive
+2026/07/13 11:09:50 INF [HLS] [session f676bb88] closed: inactive
+2026/07/13 11:10:26 INF [HLS] [session 2296c3cb] created by [::1]:51484, reading from muxer 'cam2'
+2026/07/13 11:10:26 INF [HLS] [session fbe9c672] created by [::1]:57373, reading from muxer 'cam4'
+2026/07/13 11:10:26 INF [HLS] [session c5d60257] created by [::1]:57373, reading from muxer 'cam3'
+2026/07/13 11:10:26 INF [HLS] [session 479d2fc8] created by [::1]:51484, reading from muxer 'cam1'
+2026/07/13 11:10:55 INF [HLS] [session e393293c] closed: inactive
+2026/07/13 11:11:00 INF [HLS] [session 05784b73] closed: inactive
+2026/07/13 11:11:00 INF [HLS] [session ff54eb40] closed: inactive
+2026/07/13 11:11:00 INF [HLS] [session 6dd1ce55] closed: inactive
+2026/07/13 11:11:16 INF [HLS] [session fc4648a0] created by [::1]:51484, reading from muxer 'cam1'
+2026/07/13 11:11:16 INF [HLS] [session 45e184ff] created by [::1]:60632, reading from muxer 'cam2'
+2026/07/13 11:11:16 INF [HLS] [session 655e53e8] created by [::1]:57373, reading from muxer 'cam3'
+2026/07/13 11:11:16 INF [HLS] [session 6f28e06a] created by [::1]:51484, reading from muxer 'cam4'
+2026/07/13 11:11:33 INF [HLS] [session 575db4b3] created by [::1]:60632, reading from muxer 'cam1'
+2026/07/13 11:11:33 INF [HLS] [session 4be2c8fd] created by [::1]:53147, reading from muxer 'cam4'
+2026/07/13 11:11:33 INF [HLS] [session 09d67c1b] created by [::1]:57373, reading from muxer 'cam3'
+2026/07/13 11:11:33 INF [HLS] [session 776530ab] created by [::1]:51484, reading from muxer 'cam2'
+2026/07/13 11:11:35 INF [HLS] [session 479d2fc8] closed: inactive
+2026/07/13 11:11:40 INF [HLS] [session c5d60257] closed: inactive
+2026/07/13 11:11:40 INF [HLS] [session fbe9c672] closed: inactive
+2026/07/13 11:11:40 INF [HLS] [session 2296c3cb] closed: inactive
+2026/07/13 11:12:00 INF [HLS] [session 655e53e8] closed: inactive
+2026/07/13 11:12:00 INF [HLS] [session 6f28e06a] closed: inactive
+2026/07/13 11:12:00 INF [HLS] [session 45e184ff] closed: inactive
+2026/07/13 11:12:04 INF [HLS] [session 9a14cb34] created by [::1]:60632, reading from muxer 'cam1'
+2026/07/13 11:12:04 INF [HLS] [session 885bf498] created by [::1]:57373, reading from muxer 'cam2'
+2026/07/13 11:12:04 INF [HLS] [session 4742ebd4] created by [::1]:53147, reading from muxer 'cam3'
+2026/07/13 11:12:04 INF [HLS] [session 7846b1fb] created by [::1]:57373, reading from muxer 'cam4'
+2026/07/13 11:12:05 INF [HLS] [session fc4648a0] closed: inactive
+2026/07/13 11:12:15 INF [HLS] [session 5daeaf00] created by [::1]:57373, reading from muxer 'cam1'
+2026/07/13 11:12:15 INF [HLS] [session a4a78738] created by [::1]:51484, reading from muxer 'cam2'
+2026/07/13 11:12:15 INF [HLS] [session f72657bf] created by [::1]:53147, reading from muxer 'cam3'
+2026/07/13 11:12:15 INF [HLS] [session e0a032ac] created by [::1]:53147, reading from muxer 'cam4'
+2026/07/13 11:12:30 INF [HLS] [session 09d67c1b] closed: inactive
+2026/07/13 11:12:30 INF [HLS] [session 4be2c8fd] closed: inactive
+2026/07/13 11:12:30 INF [HLS] [session 776530ab] closed: inactive
+2026/07/13 11:12:35 INF [HLS] [session 575db4b3] closed: inactive
+2026/07/13 11:12:40 INF [HLS] [session 4742ebd4] closed: inactive
+2026/07/13 11:12:40 INF [HLS] [session 7846b1fb] closed: inactive
+2026/07/13 11:12:40 INF [HLS] [session 885bf498] closed: inactive
+2026/07/13 11:12:45 INF [HLS] [session 9a14cb34] closed: inactive
+2026/07/13 11:13:30 INF [HLS] [session f72657bf] closed: inactive
+2026/07/13 11:13:30 INF [HLS] [session e0a032ac] closed: inactive
+2026/07/13 11:13:30 INF [HLS] [session a4a78738] closed: inactive
+2026/07/13 11:13:35 INF [HLS] [session 5daeaf00] closed: inactive
+2026/07/13 11:18:20 INF [HLS] [session e6e4ba43] created by [::1]:51165, reading from muxer 'cam2'
+2026/07/13 11:18:21 INF [HLS] [session 13bf4e0b] created by [::1]:57406, reading from muxer 'cam1'
+2026/07/13 11:18:23 INF [HLS] [session 3ef60a5b] created by [::1]:56214, reading from muxer 'cam3'
+2026/07/13 11:18:24 INF [HLS] [session f841ba85] created by [::1]:51165, reading from muxer 'cam4'
+2026/07/13 11:19:00 INF [HLS] [session 3ef60a5b] closed: inactive
+2026/07/13 11:19:00 INF [HLS] [session f841ba85] closed: inactive
+2026/07/13 11:19:00 INF [HLS] [session e6e4ba43] closed: inactive
+2026/07/13 11:19:05 INF [HLS] [session 13bf4e0b] closed: inactive
+2026/07/13 11:19:10 INF [HLS] [session 74f38ff0] created by [::1]:60849, reading from muxer 'cam1'
+2026/07/13 11:19:10 INF [HLS] [session e46328ac] created by [::1]:63176, reading from muxer 'cam3'
+2026/07/13 11:19:10 INF [HLS] [session 176d528f] created by [::1]:52197, reading from muxer 'cam2'
+2026/07/13 11:19:10 INF [HLS] [session 2a4387d5] created by [::1]:54233, reading from muxer 'cam4'
+2026/07/13 11:20:15 INF [HLS] [session 74f38ff0] closed: inactive
+2026/07/13 11:20:20 INF [HLS] [session e46328ac] closed: inactive
+2026/07/13 11:20:20 INF [HLS] [session 2a4387d5] closed: inactive
+2026/07/13 11:20:20 INF [HLS] [session 176d528f] closed: inactive
+2026/07/13 11:23:22 INF [HLS] [session 61ff13cb] created by [::1]:57949, reading from muxer 'cam1'
+2026/07/13 11:23:22 INF [HLS] [session fd55f017] created by [::1]:65137, reading from muxer 'cam3'
+2026/07/13 11:23:22 INF [HLS] [session 76230e10] created by [::1]:54223, reading from muxer 'cam2'
+2026/07/13 11:23:22 INF [HLS] [session 1411a7e1] created by [::1]:54085, reading from muxer 'cam4'
+2026/07/13 11:23:55 INF [HLS] [session 61ff13cb] closed: inactive
+2026/07/13 11:24:00 INF [HLS] [session fd55f017] closed: inactive
+2026/07/13 11:24:00 INF [HLS] [session 1411a7e1] closed: inactive
+2026/07/13 11:24:00 INF [HLS] [session 76230e10] closed: inactive
+2026/07/13 11:28:06 INF [HLS] [session 185e9549] created by [::1]:64768, reading from muxer 'cam2'
+2026/07/13 11:28:06 INF [HLS] [session 3d574244] created by [::1]:57423, reading from muxer 'cam3'
+2026/07/13 11:28:06 INF [HLS] [session 365c8f55] created by [::1]:57220, reading from muxer 'cam4'
+2026/07/13 11:28:06 INF [HLS] [session 9e11f224] created by [::1]:49900, reading from muxer 'cam1'
+2026/07/13 11:28:50 INF [HLS] [session 3d574244] closed: inactive
+2026/07/13 11:28:50 INF [HLS] [session 365c8f55] closed: inactive
+2026/07/13 11:28:50 INF [HLS] [session 185e9549] closed: inactive
+2026/07/13 11:28:55 INF [HLS] [session 9e11f224] closed: inactive
+2026/07/13 11:39:06 INF [HLS] [session af0227c2] created by [::1]:50456, reading from muxer 'cam2'
+2026/07/13 11:39:06 INF [HLS] [session 1acf1830] created by [::1]:61034, reading from muxer 'cam1'
+2026/07/13 11:39:06 INF [HLS] [session 65ac62d6] created by [::1]:54241, reading from muxer 'cam3'
+2026/07/13 11:39:06 INF [HLS] [session 5801d6d1] created by [::1]:63903, reading from muxer 'cam4'
+2026/07/13 11:39:34 INF [HLS] [session 0de00245] created by [::1]:61034, reading from muxer 'cam2'
+2026/07/13 11:39:34 INF [HLS] [session 38c6df4d] created by [::1]:63903, reading from muxer 'cam1'
+2026/07/13 11:39:34 INF [HLS] [session ff33ed05] created by [::1]:54241, reading from muxer 'cam4'
+2026/07/13 11:39:34 INF [HLS] [session c0876762] created by [::1]:50456, reading from muxer 'cam3'
+2026/07/13 11:39:45 INF [HLS] [session 1acf1830] closed: inactive
+2026/07/13 11:39:50 INF [HLS] [session 65ac62d6] closed: inactive
+2026/07/13 11:39:50 INF [HLS] [session 5801d6d1] closed: inactive
+2026/07/13 11:39:50 INF [HLS] [session af0227c2] closed: inactive
+2026/07/13 11:40:10 INF [HLS] [session c0876762] closed: inactive
+2026/07/13 11:40:10 INF [HLS] [session ff33ed05] closed: inactive
+2026/07/13 11:40:10 INF [HLS] [session 0de00245] closed: inactive
+2026/07/13 11:40:15 INF [HLS] [session 38c6df4d] closed: inactive
+2026/07/13 11:41:41 INF [HLS] [session 5750dffc] created by [::1]:49703, reading from muxer 'cam3'
+2026/07/13 11:41:41 INF [HLS] [session 20930b0f] created by [::1]:60194, reading from muxer 'cam1'
+2026/07/13 11:41:41 INF [HLS] [session c4f99bf6] created by [::1]:57966, reading from muxer 'cam2'
+2026/07/13 11:41:41 INF [HLS] [session 58178801] created by [::1]:54727, reading from muxer 'cam4'
+2026/07/13 11:41:51 INF [HLS] [session 8c24cf03] created by [::1]:57966, reading from muxer 'cam4'
+2026/07/13 11:41:51 INF [HLS] [session 4b05e9f9] created by [::1]:60194, reading from muxer 'cam2'
+2026/07/13 11:41:51 INF [HLS] [session 765f8dd2] created by [::1]:54727, reading from muxer 'cam1'
+2026/07/13 11:41:51 INF [HLS] [session 84df4966] created by [::1]:49703, reading from muxer 'cam3'
+2026/07/13 11:42:07 INF [HLS] [session 2cfcaa52] created by [::1]:54727, reading from muxer 'cam1'
+2026/07/13 11:42:07 INF [HLS] [session 75349bab] created by [::1]:57966, reading from muxer 'cam4'
+2026/07/13 11:42:07 INF [HLS] [session 37d22b39] created by [::1]:60194, reading from muxer 'cam3'
+2026/07/13 11:42:07 INF [HLS] [session 9a737d6c] created by [::1]:49703, reading from muxer 'cam2'
+2026/07/13 11:42:15 INF [HLS] [session 20930b0f] closed: inactive
+2026/07/13 11:42:17 INF [HLS] [session 39e28980] created by [::1]:54727, reading from muxer 'cam4'
+2026/07/13 11:42:17 INF [HLS] [session de7184dc] created by [::1]:57966, reading from muxer 'cam2'
+2026/07/13 11:42:17 INF [HLS] [session 3aec30c4] created by [::1]:60194, reading from muxer 'cam3'
+2026/07/13 11:42:17 INF [HLS] [session 14f603ce] created by [::1]:49703, reading from muxer 'cam1'
+2026/07/13 11:42:20 INF [HLS] [session 5750dffc] closed: inactive
+2026/07/13 11:42:20 INF [HLS] [session 58178801] closed: inactive
+2026/07/13 11:42:20 INF [HLS] [session c4f99bf6] closed: inactive
+2026/07/13 11:42:25 INF [HLS] [session 765f8dd2] closed: inactive
+2026/07/13 11:42:30 INF [HLS] [session 84df4966] closed: inactive
+2026/07/13 11:42:30 INF [HLS] [session 8c24cf03] closed: inactive
+2026/07/13 11:42:30 INF [HLS] [session 4b05e9f9] closed: inactive
+2026/07/13 11:42:30 INF [HLS] [session 63a969d4] created by [::1]:49703, reading from muxer 'cam2'
+2026/07/13 11:42:30 INF [HLS] [session bd732cb7] created by [::1]:60194, reading from muxer 'cam1'
+2026/07/13 11:42:30 INF [HLS] [session 55c77e8f] created by [::1]:57966, reading from muxer 'cam3'
+2026/07/13 11:42:31 INF [HLS] [session 3f2fdc1a] created by [::1]:54727, reading from muxer 'cam4'
+2026/07/13 11:42:40 INF [HLS] [session 37d22b39] closed: inactive
+2026/07/13 11:42:40 INF [HLS] [session 75349bab] closed: inactive
+2026/07/13 11:42:40 INF [HLS] [session 9a737d6c] closed: inactive
+2026/07/13 11:42:44 INF [HLS] [session ba864bf5] created by [::1]:57966, reading from muxer 'cam1'
+2026/07/13 11:42:44 INF [HLS] [session 94920e6b] created by [::1]:54727, reading from muxer 'cam3'
+2026/07/13 11:42:44 INF [HLS] [session 777c9511] created by [::1]:60194, reading from muxer 'cam4'
+2026/07/13 11:42:44 INF [HLS] [session 62674e05] created by [::1]:57966, reading from muxer 'cam2'
+2026/07/13 11:42:45 INF [HLS] [session 2cfcaa52] closed: inactive
+2026/07/13 11:42:50 INF [HLS] [session 3aec30c4] closed: inactive
+2026/07/13 11:42:50 INF [HLS] [session 39e28980] closed: inactive
+2026/07/13 11:42:50 INF [HLS] [session de7184dc] closed: inactive
+2026/07/13 11:42:55 INF [HLS] [session 14f603ce] closed: inactive
+2026/07/13 11:43:07 INF [HLS] [session 0b0acafa] created by [::1]:54727, reading from muxer 'cam2'
+2026/07/13 11:43:07 INF [HLS] [session d1c907d5] created by [::1]:57966, reading from muxer 'cam4'
+2026/07/13 11:43:07 INF [HLS] [session f0fed2e7] created by [::1]:49703, reading from muxer 'cam3'
+2026/07/13 11:43:07 INF [HLS] [session 06437364] created by [::1]:60194, reading from muxer 'cam1'
+2026/07/13 11:43:10 INF [HLS] [session 55c77e8f] closed: inactive
+2026/07/13 11:43:10 INF [HLS] [session 3f2fdc1a] closed: inactive
+2026/07/13 11:43:10 INF [HLS] [session 63a969d4] closed: inactive
+2026/07/13 11:43:15 INF [HLS] [session bd732cb7] closed: inactive
+2026/07/13 11:43:15 INF [HLS] [session ba864bf5] closed: inactive
+2026/07/13 11:43:18 INF [HLS] [session 98bff621] created by [::1]:54727, reading from muxer 'cam3'
+2026/07/13 11:43:18 INF [HLS] [session 515b1187] created by [::1]:57966, reading from muxer 'cam4'
+2026/07/13 11:43:18 INF [HLS] [session c45fd9c7] created by [::1]:60194, reading from muxer 'cam1'
+2026/07/13 11:43:18 INF [HLS] [session 8de82452] created by [::1]:49703, reading from muxer 'cam2'
+2026/07/13 11:43:20 INF [HLS] [session 94920e6b] closed: inactive
+2026/07/13 11:43:20 INF [HLS] [session 777c9511] closed: inactive
+2026/07/13 11:43:20 INF [HLS] [session 62674e05] closed: inactive
+2026/07/13 11:43:40 INF [HLS] [session f0fed2e7] closed: inactive
+2026/07/13 11:43:40 INF [HLS] [session d1c907d5] closed: inactive
+2026/07/13 11:43:40 INF [HLS] [session 0b0acafa] closed: inactive
+2026/07/13 11:43:41 INF [HLS] [session 971600dc] created by [::1]:49703, reading from muxer 'cam1'
+2026/07/13 11:43:41 INF [HLS] [session 3d269e94] created by [::1]:60194, reading from muxer 'cam2'
+2026/07/13 11:43:41 INF [HLS] [session 448d0b6e] created by [::1]:54727, reading from muxer 'cam4'
+2026/07/13 11:43:41 INF [HLS] [session 2d6a9a3a] created by [::1]:57966, reading from muxer 'cam3'
+2026/07/13 11:43:45 INF [HLS] [session 06437364] closed: inactive
+2026/07/13 11:43:50 INF [HLS] [session 98bff621] closed: inactive
+2026/07/13 11:43:50 INF [HLS] [session 515b1187] closed: inactive
+2026/07/13 11:43:50 INF [HLS] [session 8de82452] closed: inactive
+2026/07/13 11:43:55 INF [HLS] [session c45fd9c7] closed: inactive
+2026/07/13 11:44:15 INF [HLS] [session 971600dc] closed: inactive
+2026/07/13 11:44:24 INF [HLS] [session 3c67d7d7] created by [::1]:54637, reading from muxer 'cam1'
+2026/07/13 11:44:24 INF [HLS] [session d5eaafa8] created by [::1]:51661, reading from muxer 'cam2'
+2026/07/13 11:44:24 INF [HLS] [session 0dbdaf96] created by [::1]:63059, reading from muxer 'cam4'
+2026/07/13 11:44:24 INF [HLS] [session 5db4ff3a] created by [::1]:61626, reading from muxer 'cam3'
+2026/07/13 11:44:50 INF [HLS] [session 2d6a9a3a] closed: inactive
+2026/07/13 11:44:50 INF [HLS] [session 448d0b6e] closed: inactive
+2026/07/13 11:44:50 INF [HLS] [session 3d269e94] closed: inactive
+2026/07/13 11:45:00 INF [HLS] [session 5db4ff3a] closed: inactive
+2026/07/13 11:45:00 INF [HLS] [session 0dbdaf96] closed: inactive
+2026/07/13 11:45:00 INF [HLS] [session d5eaafa8] closed: inactive
+2026/07/13 11:45:05 INF [HLS] [session 3c67d7d7] closed: inactive
+2026/07/13 11:48:50 INF [HLS] [session 1ef1d453] created by [::1]:57459, reading from muxer 'cam1'
+2026/07/13 11:48:50 INF [HLS] [session 7354eb68] created by [::1]:60250, reading from muxer 'cam2'
+2026/07/13 11:48:50 INF [HLS] [session 946f7f47] created by [::1]:49825, reading from muxer 'cam4'
+2026/07/13 11:48:50 INF [HLS] [session f5a012b4] created by [::1]:61187, reading from muxer 'cam3'
+2026/07/13 11:49:13 INF [HLS] [session 598e2bdd] created by [::1]:60250, reading from muxer 'cam1'
+2026/07/13 11:49:13 INF [HLS] [session 8bfb121d] created by [::1]:49825, reading from muxer 'cam3'
+2026/07/13 11:49:13 INF [HLS] [session 0e1064f7] created by [::1]:61187, reading from muxer 'cam4'
+2026/07/13 11:49:13 INF [HLS] [session c65e8261] created by [::1]:57459, reading from muxer 'cam2'
+2026/07/13 11:49:25 INF [HLS] [session 1ef1d453] closed: inactive
+2026/07/13 11:49:30 INF [HLS] [session f5a012b4] closed: inactive
+2026/07/13 11:49:30 INF [HLS] [session 946f7f47] closed: inactive
+2026/07/13 11:49:30 INF [HLS] [session 7354eb68] closed: inactive
+2026/07/13 11:49:31 INF [HLS] [session dcbb6b15] created by [::1]:60250, reading from muxer 'cam1'
+2026/07/13 11:49:31 INF [HLS] [session e85db69f] created by [::1]:49825, reading from muxer 'cam2'
+2026/07/13 11:49:31 INF [HLS] [session 6aabd6c0] created by [::1]:61187, reading from muxer 'cam3'
+2026/07/13 11:49:31 INF [HLS] [session 41781337] created by [::1]:57459, reading from muxer 'cam4'
+2026/07/13 11:49:42 INF [HLS] [session ba4650af] created by [::1]:61187, reading from muxer 'cam1'
+2026/07/13 11:49:42 INF [HLS] [session b45e8e95] created by [::1]:49825, reading from muxer 'cam2'
+2026/07/13 11:49:42 INF [HLS] [session 2e150bce] created by [::1]:60250, reading from muxer 'cam3'
+2026/07/13 11:49:42 INF [HLS] [session 29e0ba8f] created by [::1]:57459, reading from muxer 'cam4'
+2026/07/13 11:49:45 INF [HLS] [session 598e2bdd] closed: inactive
+2026/07/13 11:49:50 INF [HLS] [session 8bfb121d] closed: inactive
+2026/07/13 11:49:50 INF [HLS] [session 0e1064f7] closed: inactive
+2026/07/13 11:49:50 INF [HLS] [session c65e8261] closed: inactive
+2026/07/13 11:49:51 INF [HLS] [session 37de9f65] created by [::1]:60250, reading from muxer 'cam1'
+2026/07/13 11:49:51 INF [HLS] [session e6766f7e] created by [::1]:49825, reading from muxer 'cam2'
+2026/07/13 11:49:51 INF [HLS] [session b8f92b9e] created by [::1]:57459, reading from muxer 'cam3'
+2026/07/13 11:49:51 INF [HLS] [session 9b22c5e8] created by [::1]:61187, reading from muxer 'cam4'
+2026/07/13 11:50:02 INF [HLS] [session 812c26a8] created by [::1]:49825, reading from muxer 'cam2'
+2026/07/13 11:50:02 INF [HLS] [session fa04cee5] created by [::1]:57459, reading from muxer 'cam1'
+2026/07/13 11:50:02 INF [HLS] [session df33396c] created by [::1]:60250, reading from muxer 'cam3'
+2026/07/13 11:50:02 INF [HLS] [session 5bc4b226] created by [::1]:57459, reading from muxer 'cam4'
+2026/07/13 11:50:10 INF [HLS] [session e85db69f] closed: inactive
+2026/07/13 11:50:10 INF [HLS] [session 41781337] closed: inactive
+2026/07/13 11:50:10 INF [HLS] [session 6aabd6c0] closed: inactive
+2026/07/13 11:50:15 INF [HLS] [session dcbb6b15] closed: inactive
+2026/07/13 11:50:15 INF [HLS] [session ba4650af] closed: inactive
+2026/07/13 11:50:15 INF [HLS] [session 8d3f197d] created by [::1]:57459, reading from muxer 'cam1'
+2026/07/13 11:50:15 INF [HLS] [session e6be1286] created by [::1]:60250, reading from muxer 'cam4'
+2026/07/13 11:50:15 INF [HLS] [session 7be95447] created by [::1]:61187, reading from muxer 'cam2'
+2026/07/13 11:50:15 INF [HLS] [session df173c55] created by [::1]:49825, reading from muxer 'cam3'
+2026/07/13 11:50:20 INF [HLS] [session 2e150bce] closed: inactive
+2026/07/13 11:50:20 INF [HLS] [session 29e0ba8f] closed: inactive
+2026/07/13 11:50:20 INF [HLS] [session b45e8e95] closed: inactive
+2026/07/13 11:50:25 INF [HLS] [session 37de9f65] closed: inactive
+2026/07/13 11:50:30 INF [HLS] [session b8f92b9e] closed: inactive
+2026/07/13 11:50:30 INF [HLS] [session 9b22c5e8] closed: inactive
+2026/07/13 11:50:30 INF [HLS] [session e6766f7e] closed: inactive
+2026/07/13 11:50:35 INF [HLS] [session fa04cee5] closed: inactive
+2026/07/13 11:50:40 INF [HLS] [session df33396c] closed: inactive
+2026/07/13 11:50:40 INF [HLS] [session 5bc4b226] closed: inactive
+2026/07/13 11:50:40 INF [HLS] [session 812c26a8] closed: inactive
+2026/07/13 11:50:50 INF [HLS] [session df173c55] closed: inactive
+2026/07/13 11:50:50 INF [HLS] [session e6be1286] closed: inactive
+2026/07/13 11:50:50 INF [HLS] [session 7be95447] closed: inactive
+2026/07/13 11:50:55 INF [HLS] [session 8d3f197d] closed: inactive
+2026/07/13 11:51:12 INF [HLS] [session 7ccd1816] created by [::1]:63502, reading from muxer 'cam1'
+2026/07/13 11:51:12 INF [HLS] [session 80c567db] created by [::1]:56981, reading from muxer 'cam2'
+2026/07/13 11:51:12 INF [HLS] [session 7248b39c] created by [::1]:61745, reading from muxer 'cam3'
+2026/07/13 11:51:12 INF [HLS] [session 16739397] created by [::1]:61745, reading from muxer 'cam4'
+2026/07/13 11:52:30 INF [HLS] [session 7248b39c] closed: inactive
+2026/07/13 11:52:30 INF [HLS] [session 16739397] closed: inactive
+2026/07/13 11:52:30 INF [HLS] [session 80c567db] closed: inactive
+2026/07/13 11:52:35 INF [HLS] [session 7ccd1816] closed: inactive
+2026/07/13 11:52:36 INF [HLS] [session f5251ab1] created by [::1]:53906, reading from muxer 'cam1'
+2026/07/13 11:52:36 INF [HLS] [session 9d90fd35] created by [::1]:64806, reading from muxer 'cam2'
+2026/07/13 11:52:36 INF [HLS] [session 0a3e024c] created by [::1]:65376, reading from muxer 'cam3'
+2026/07/13 11:52:36 INF [HLS] [session 73269fe2] created by [::1]:63463, reading from muxer 'cam4'
+2026/07/13 11:53:15 INF [HLS] [session f5251ab1] closed: inactive
+2026/07/13 11:53:20 INF [HLS] [session 0a3e024c] closed: inactive
+2026/07/13 11:53:20 INF [HLS] [session 73269fe2] closed: inactive
+2026/07/13 11:53:20 INF [HLS] [session 9d90fd35] closed: inactive
+2026/07/13 11:53:22 INF [HLS] [session 23aaecd7] created by [::1]:49799, reading from muxer 'cam2'
+2026/07/13 11:53:22 INF [HLS] [session f19a165b] created by [::1]:58183, reading from muxer 'cam1'
+2026/07/13 11:53:22 INF [HLS] [session c56d550a] created by [::1]:58235, reading from muxer 'cam3'
+2026/07/13 11:53:22 INF [HLS] [session 57c7d28d] created by [::1]:58235, reading from muxer 'cam4'
+2026/07/13 11:53:55 INF [HLS] [session f19a165b] closed: inactive
+2026/07/13 11:54:00 INF [HLS] [session c56d550a] closed: inactive
+2026/07/13 11:54:00 INF [HLS] [session 57c7d28d] closed: inactive
+2026/07/13 11:54:00 INF [HLS] [session 23aaecd7] closed: inactive
+2026/07/13 11:54:46 INF [HLS] [session 20d677fe] created by [::1]:49750, reading from muxer 'cam3'
+2026/07/13 11:54:46 INF [HLS] [session 935656c9] created by [::1]:57241, reading from muxer 'cam1'
+2026/07/13 11:54:46 INF [HLS] [session 5cb16aee] created by [::1]:63138, reading from muxer 'cam2'
+2026/07/13 11:54:46 INF [HLS] [session 550138a6] created by [::1]:61036, reading from muxer 'cam4'
+2026/07/13 12:09:40 INF [HLS] [session 20d677fe] closed: inactive
+2026/07/13 12:09:40 INF [HLS] [session 550138a6] closed: inactive
+2026/07/13 12:09:40 INF [HLS] [session 5cb16aee] closed: inactive
+2026/07/13 12:09:45 INF [HLS] [session 935656c9] closed: inactive
+2026/07/13 12:12:22 INF [HLS] [session 6429fae4] created by [::1]:56359, reading from muxer 'cam2'
+2026/07/13 12:12:22 INF [HLS] [session bf151dab] created by [::1]:50412, reading from muxer 'cam1'
+2026/07/13 12:12:22 INF [HLS] [session 95566350] created by [::1]:53086, reading from muxer 'cam4'
+2026/07/13 12:12:22 INF [HLS] [session 890bf306] created by [::1]:56359, reading from muxer 'cam3'
+2026/07/13 12:20:07 INF [HLS] [session 6429fae4] closed: inactive
+2026/07/13 12:20:07 INF [HLS] [session bf151dab] closed: inactive
+2026/07/13 12:20:07 WAR [HLS] [muxer cam2] segment duration changed from 4s to 7s - this will cause an error in iOS clients
+2026/07/13 12:20:07 INF [HLS] [session 890bf306] closed: inactive
+2026/07/13 12:20:07 INF [HLS] [session 95566350] closed: inactive
+2026/07/13 12:20:07 INF [RTSP] [conn [::1]:62468] closed: terminated
+2026/07/13 12:20:07 ERR [path cam4] [RTSP source] UDP timeout
+2026/07/13 12:20:07 INF [HLS] [muxer cam2] destroyed: terminated
+2026/07/13 12:20:07 INF [RTSP] [conn [::1]:62466] closed: terminated
+2026/07/13 12:20:07 INF [HLS] [muxer cam3] destroyed: terminated
+2026/07/13 12:20:07 ERR [path cam1] [RTSP source] read tcp 192.168.216.182:64237->192.168.203.119:554: wsarecv: An existing connection was forcibly closed by the remote host.
+2026/07/13 12:20:07 ERR [path cam3] [RTSP source] UDP timeout
+2026/07/13 12:20:07 INF [HLS] [muxer cam1] destroyed: terminated
+2026/07/13 12:20:07 INF [HLS] [muxer cam4] destroyed: terminated
+2026/07/13 12:20:07 INF [RTSP] [conn [::1]:62467] closed: terminated
+2026/07/13 12:20:07 ERR [path cam2] [RTSP source] read tcp [::1]:62466->[::1]:8554: wsarecv: An existing connection was forcibly closed by the remote host.
+2026/07/13 12:20:07 INF [RTSP] [session 2c4546a0] destroyed: session timed out
+2026/07/13 12:20:07 INF [RTSP] [session 418a380b] destroyed: session timed out
+2026/07/13 12:20:07 INF [RTSP] [session a3266fdf] destroyed: session timed out
+2026/07/13 12:20:12 INF [RTSP] [conn [::1]:57018] opened
+2026/07/13 12:20:12 INF [RTSP] [conn [::1]:57017] opened
+2026/07/13 12:20:12 INF [RTSP] [conn [::1]:57016] opened
+2026/07/13 12:20:12 INF [RTSP] [conn [::1]:57017] closed: no stream is available on path 'cam1'
+2026/07/13 12:20:12 INF [RTSP] [conn [::1]:57018] closed: no stream is available on path 'cam1'
+2026/07/13 12:20:12 INF [RTSP] [conn [::1]:57016] closed: no stream is available on path 'cam1'
+2026/07/13 12:20:12 ERR [path cam2] [RTSP source] bad status code: 404 (Not Found)
+2026/07/13 12:20:12 ERR [path cam3] [RTSP source] bad status code: 404 (Not Found)
+2026/07/13 12:20:12 ERR [path cam4] [RTSP source] bad status code: 404 (Not Found)
+2026/07/13 12:20:12 INF [path cam1] stream is available and online, 2 tracks (H264, MPEG-4 Audio)
+2026/07/13 12:20:12 INF [HLS] [muxer cam1] created automatically
+2026/07/13 12:20:12 INF [HLS] [muxer cam1] is converting into HLS, 2 tracks (H264, MPEG-4 Audio)
+2026/07/13 12:20:17 INF [RTSP] [conn [::1]:50012] opened
+2026/07/13 12:20:17 INF [RTSP] [conn [::1]:50011] opened
+2026/07/13 12:20:17 INF [RTSP] [conn [::1]:50010] opened
+2026/07/13 12:20:17 INF [RTSP] [session 683768b6] created by [::1]:50011
+2026/07/13 12:20:17 INF [RTSP] [session f1ceb4dd] created by [::1]:50012
+2026/07/13 12:20:17 INF [RTSP] [session d91581c3] created by [::1]:50010
+2026/07/13 12:20:17 INF [path cam2] stream is available and online, 2 tracks (H264, MPEG-4 Audio)
+2026/07/13 12:20:17 INF [path cam3] stream is available and online, 2 tracks (H264, MPEG-4 Audio)
+2026/07/13 12:20:17 INF [path cam4] stream is available and online, 2 tracks (H264, MPEG-4 Audio)
+2026/07/13 12:20:17 INF [HLS] [muxer cam2] created automatically
+2026/07/13 12:20:17 INF [HLS] [muxer cam3] created automatically
+2026/07/13 12:20:17 INF [RTSP] [session 683768b6] is reading from path 'cam1', with UDP, 2 tracks (H264, MPEG-4 Audio)
+2026/07/13 12:20:17 INF [RTSP] [session f1ceb4dd] is reading from path 'cam1', with UDP, 2 tracks (H264, MPEG-4 Audio)
+2026/07/13 12:20:17 INF [HLS] [muxer cam4] created automatically
+2026/07/13 12:20:17 INF [RTSP] [session d91581c3] is reading from path 'cam1', with UDP, 2 tracks (H264, MPEG-4 Audio)
+2026/07/13 12:20:17 INF [HLS] [muxer cam2] is converting into HLS, 2 tracks (H264, MPEG-4 Audio)
+2026/07/13 12:20:17 INF [HLS] [muxer cam3] is converting into HLS, 2 tracks (H264, MPEG-4 Audio)
+2026/07/13 12:20:17 INF [HLS] [muxer cam4] is converting into HLS, 2 tracks (H264, MPEG-4 Audio)
+2026/07/13 12:20:24 INF [HLS] [session 87e508e4] created by [::1]:62400, reading from muxer 'cam1'
+2026/07/13 12:20:25 WAR [HLS] [muxer cam2] segment duration changed from 3s to 4s - this will cause an error in iOS clients
+2026/07/13 12:20:25 WAR [HLS] [muxer cam3] segment duration changed from 3s to 4s - this will cause an error in iOS clients
+2026/07/13 12:20:25 WAR [HLS] [muxer cam4] segment duration changed from 3s to 4s - this will cause an error in iOS clients
+2026/07/13 12:20:26 INF [HLS] [session e5f970ad] created by [::1]:58263, reading from muxer 'cam2'
+2026/07/13 12:20:27 INF [HLS] [session bb276a93] created by [::1]:58263, reading from muxer 'cam3'
+2026/07/13 12:20:28 INF [HLS] [session 3fd3cc82] created by [::1]:58263, reading from muxer 'cam4'
+2026/07/13 12:20:31 INF [HLS] [session 680ae62d] created by [::1]:49668, reading from muxer 'cam1'
+2026/07/13 12:20:31 INF [HLS] [session 9ce151a0] created by [::1]:62826, reading from muxer 'cam3'
+2026/07/13 12:20:31 INF [HLS] [session ba67e249] created by [::1]:62400, reading from muxer 'cam2'
+2026/07/13 12:20:31 INF [HLS] [session e0aed24a] created by [::1]:58263, reading from muxer 'cam4'
+2026/07/13 12:20:57 INF [HLS] [session e5f970ad] closed: inactive
+2026/07/13 12:21:02 INF [HLS] [session 87e508e4] closed: inactive
+2026/07/13 12:21:07 INF [HLS] [session 3fd3cc82] closed: inactive
+2026/07/13 12:21:07 INF [HLS] [session bb276a93] closed: inactive
+2026/07/13 12:38:44 INF [HLS] [session ba67e249] closed: inactive
+2026/07/13 12:38:44 INF [HLS] [muxer cam2] destroyed: terminated
+2026/07/13 12:38:44 INF [RTSP] [conn [::1]:50011] closed: read tcp [::1]:8554->[::1]:50011: i/o timeout
+2026/07/13 12:38:44 INF [HLS] [session 9ce151a0] closed: inactive
+2026/07/13 12:38:44 INF [HLS] [session e0aed24a] closed: inactive
+2026/07/13 12:38:44 INF [HLS] [session 680ae62d] closed: inactive
+2026/07/13 12:38:44 ERR [path cam4] [RTSP source] EOF
+2026/07/13 12:38:44 INF [RTSP] [conn [::1]:50010] closed: terminated
+2026/07/13 12:38:44 ERR [path cam2] [RTSP source] read tcp [::1]:50011->[::1]:8554: wsarecv: An existing connection was forcibly closed by the remote host.
+2026/07/13 12:38:44 ERR [path cam1] [RTSP source] read tcp 192.168.216.182:57015->192.168.203.119:554: wsarecv: An existing connection was forcibly closed by the remote host.
+2026/07/13 12:38:44 INF [RTSP] [conn [::1]:50012] closed: terminated
+2026/07/13 12:38:44 ERR [path cam3] [RTSP source] EOF
+2026/07/13 12:38:44 INF [RTSP] [session 683768b6] destroyed: session timed out
+2026/07/13 12:38:44 INF [HLS] [muxer cam3] destroyed: terminated
+2026/07/13 12:38:44 INF [HLS] [muxer cam4] destroyed: terminated
+2026/07/13 12:38:44 INF [HLS] [muxer cam1] destroyed: terminated
+2026/07/13 12:38:44 INF [RTSP] [session d91581c3] destroyed: session timed out
+2026/07/13 12:38:44 INF [RTSP] [session f1ceb4dd] destroyed: terminated
+2026/07/13 12:38:49 INF [RTSP] [conn [::1]:63385] opened
+2026/07/13 12:38:49 INF [RTSP] [conn [::1]:63384] opened
+2026/07/13 12:38:49 INF [RTSP] [conn [::1]:63386] opened
+2026/07/13 12:38:49 INF [RTSP] [conn [::1]:63385] closed: no stream is available on path 'cam1'
+2026/07/13 12:38:49 ERR [path cam4] [RTSP source] bad status code: 404 (Not Found)
+2026/07/13 12:38:49 INF [RTSP] [conn [::1]:63384] closed: no stream is available on path 'cam1'
+2026/07/13 12:38:49 ERR [path cam3] [RTSP source] bad status code: 404 (Not Found)
+2026/07/13 12:38:49 INF [RTSP] [conn [::1]:63386] closed: no stream is available on path 'cam1'
+2026/07/13 12:38:49 ERR [path cam2] [RTSP source] bad status code: 404 (Not Found)
+2026/07/13 12:38:49 INF [path cam1] stream is available and online, 2 tracks (H264, MPEG-4 Audio)
+2026/07/13 12:38:49 INF [HLS] [muxer cam1] created automatically
+2026/07/13 12:38:49 INF [HLS] [muxer cam1] is converting into HLS, 2 tracks (H264, MPEG-4 Audio)
+2026/07/13 12:38:54 INF [RTSP] [conn [::1]:59245] opened
+2026/07/13 12:38:54 INF [RTSP] [conn [::1]:59246] opened
+2026/07/13 12:38:54 INF [RTSP] [conn [::1]:59247] opened
+2026/07/13 12:38:54 INF [RTSP] [session 13b8047d] created by [::1]:59245
+2026/07/13 12:38:54 INF [RTSP] [session f3ec7f1c] created by [::1]:59246
+2026/07/13 12:38:54 INF [RTSP] [session 61faef0b] created by [::1]:59247
+2026/07/13 12:38:54 INF [path cam2] stream is available and online, 2 tracks (H264, MPEG-4 Audio)
+2026/07/13 12:38:54 INF [path cam4] stream is available and online, 2 tracks (H264, MPEG-4 Audio)
+2026/07/13 12:38:54 INF [RTSP] [session 13b8047d] is reading from path 'cam1', with UDP, 2 tracks (H264, MPEG-4 Audio)
+2026/07/13 12:38:54 INF [HLS] [muxer cam2] created automatically
+2026/07/13 12:38:54 INF [HLS] [muxer cam4] created automatically
+2026/07/13 12:38:54 INF [path cam3] stream is available and online, 2 tracks (H264, MPEG-4 Audio)
+2026/07/13 12:38:54 INF [RTSP] [session f3ec7f1c] is reading from path 'cam1', with UDP, 2 tracks (H264, MPEG-4 Audio)
+2026/07/13 12:38:54 INF [HLS] [muxer cam2] is converting into HLS, 2 tracks (H264, MPEG-4 Audio)
+2026/07/13 12:38:54 INF [HLS] [muxer cam4] is converting into HLS, 2 tracks (H264, MPEG-4 Audio)
+2026/07/13 12:38:54 INF [HLS] [muxer cam3] created automatically
+2026/07/13 12:38:54 INF [RTSP] [session 61faef0b] is reading from path 'cam1', with UDP, 2 tracks (H264, MPEG-4 Audio)
+2026/07/13 12:38:54 INF [HLS] [muxer cam3] is converting into HLS, 2 tracks (H264, MPEG-4 Audio)
+2026/07/13 12:39:12 WAR [HLS] [muxer cam1] segment duration changed from 3s to 4s - this will cause an error in iOS clients
+2026/07/13 12:43:21 INF [HLS] [session e8c31720] created by [::1]:53027, reading from muxer 'cam3'
+2026/07/13 12:43:21 INF [HLS] [session 3252e171] created by [::1]:64532, reading from muxer 'cam2'
+2026/07/13 12:43:21 INF [HLS] [session 06fb857a] created by [::1]:60697, reading from muxer 'cam1'
+2026/07/13 12:43:21 INF [HLS] [session e548006e] created by [::1]:55465, reading from muxer 'cam4'
+2026/07/13 12:51:58 INF [HLS] [session 06fb857a] closed: inactive
+2026/07/13 12:51:58 INF [HLS] [session e8c31720] closed: inactive
+2026/07/13 12:51:58 INF [HLS] [session 3252e171] closed: inactive
+2026/07/13 12:51:58 INF [HLS] [session e548006e] closed: inactive
+2026/07/13 12:51:58 WAR [HLS] [muxer cam3] segment duration changed from 4s to 7s - this will cause an error in iOS clients
+2026/07/13 12:51:58 WAR [HLS] [muxer cam4] segment duration changed from 4s to 7s - this will cause an error in iOS clients
+2026/07/13 12:51:58 WAR [HLS] [muxer cam2] segment duration changed from 4s to 7s - this will cause an error in iOS clients
+2026/07/13 12:51:59 WAR [path cam4] [RTSP source] 97 RTP packets lost
+2026/07/13 12:51:59 WAR [path cam2] [RTSP source] 97 RTP packets lost
+2026/07/13 12:51:59 WAR [path cam3] [RTSP source] 97 RTP packets lost
+2026/07/13 12:52:01 INF [HLS] [session 2d514e0f] created by [::1]:52215, reading from muxer 'cam1'
+2026/07/13 12:52:01 INF [HLS] [session 6132ec17] created by [::1]:52670, reading from muxer 'cam2'
+2026/07/13 12:52:01 INF [HLS] [session 5309c77f] created by [::1]:59468, reading from muxer 'cam3'
+2026/07/13 12:52:01 INF [HLS] [session 257087b2] created by [::1]:49668, reading from muxer 'cam4'
+2026/07/13 12:52:34 INF [HLS] [session 6132ec17] closed: inactive
+2026/07/13 12:52:34 INF [HLS] [session 5309c77f] closed: inactive
+2026/07/13 12:52:34 INF [HLS] [session 257087b2] closed: inactive
+2026/07/13 12:52:39 INF [HLS] [session 2d514e0f] closed: inactive
+2026/07/13 13:04:16 INF [HLS] [session 2b713a14] created by [::1]:58581, reading from muxer 'cam1'
+2026/07/13 13:04:16 INF [HLS] [session 3b80907c] created by [::1]:65158, reading from muxer 'cam2'
+2026/07/13 13:04:16 INF [HLS] [session 9a8b87cb] created by [::1]:53674, reading from muxer 'cam3'
+2026/07/13 13:04:16 INF [HLS] [session d0e738d8] created by [::1]:54893, reading from muxer 'cam4'
+2026/07/13 13:04:54 INF [HLS] [session 3b80907c] closed: inactive
+2026/07/13 13:04:54 INF [HLS] [session d0e738d8] closed: inactive
+2026/07/13 13:04:54 INF [HLS] [session 9a8b87cb] closed: inactive
+2026/07/13 13:04:59 INF [HLS] [session 2b713a14] closed: inactive
+2026/07/13 13:05:01 INF [HLS] [session 1c55f002] created by [::1]:53628, reading from muxer 'cam1'
+2026/07/13 13:05:01 INF [HLS] [session 5acec46f] created by [::1]:53522, reading from muxer 'cam2'
+2026/07/13 13:05:01 INF [HLS] [session 4a97e521] created by [::1]:53628, reading from muxer 'cam3'
+2026/07/13 13:05:01 INF [HLS] [session 1ee6bb30] created by [::1]:52848, reading from muxer 'cam4'
+2026/07/13 13:05:34 INF [HLS] [session 1ee6bb30] closed: inactive
+2026/07/13 13:05:34 INF [HLS] [session 5acec46f] closed: inactive
+2026/07/13 13:05:34 INF [HLS] [session 4a97e521] closed: inactive
+2026/07/13 13:05:39 INF [HLS] [session 1c55f002] closed: inactive
+2026/07/13 13:14:22 INF reloading configuration (file changed)
+2026/07/13 13:14:22 ERR [2:1] value is not allowed in this context
+   1 | ﻿# ---------------------------------------------------------------------------
+>  2 | # mediamtx.template.yml â€” TEMPLATE konfigurasi MediaMTX untuk GH PIK2.
+       ^
+   4 | #
+2026/07/13 13:14:22 INF [SRT] closing
+2026/07/13 13:14:22 INF [MoQ] closing
+2026/07/13 13:14:22 INF [WebRTC] closing
+2026/07/13 13:14:22 INF [HLS] closing
+2026/07/13 13:14:22 INF [HLS] [muxer cam3] destroyed: terminated
+2026/07/13 13:14:22 INF [HLS] [muxer cam4] destroyed: terminated
+2026/07/13 13:14:22 INF [HLS] [muxer cam2] destroyed: terminated
+2026/07/13 13:14:22 INF [HLS] [muxer cam1] destroyed: terminated
+2026/07/13 13:14:22 INF [RTMP] closing
+2026/07/13 13:14:22 INF [RTSP] closing
+2026/07/13 13:14:22 INF [RTSP] [conn [::1]:59245] closed: terminated
+2026/07/13 13:14:22 INF [RTSP] [conn [::1]:59246] closed: terminated
+2026/07/13 13:14:22 INF [RTSP] [conn [::1]:59247] closed: terminated
+2026/07/13 13:14:22 ERR [path cam3] [RTSP source] EOF
+2026/07/13 13:14:22 ERR [path cam2] [RTSP source] EOF
+2026/07/13 13:14:22 ERR [path cam4] [RTSP source] EOF
+2026/07/13 13:14:22 INF [RTSP] [session 61faef0b] destroyed: terminated
+2026/07/13 13:14:22 INF [RTSP] [session 13b8047d] destroyed: terminated
+2026/07/13 13:14:22 INF [RTSP] [session f3ec7f1c] destroyed: terminated
+2026/07/13 13:14:22 INF [path cam3] [RTSP source] stopped: path is closing
+2026/07/13 13:14:22 INF [path cam4] [RTSP source] stopped: path is closing
+2026/07/13 13:14:22 INF [path cam2] [RTSP source] stopped: path is closing
+2026/07/13 13:14:22 INF [path cam1] [RTSP source] stopped: path is closing
+2026/07/13 13:14:22 INF waiting for running hooks

@@ -1,0 +1,16 @@
+# Downloaded go2rtc binary + its runtime logs (do not commit)
+go2rtc.exe
+go2rtc.log
+_g2r_tmp/
+
+# Old MediaMTX binary + logs (kept out of git if still present)
+mediamtx.exe
+mediamtx.log
+_mtx_tmp/
+*.zip
+
+# Temp diagnostic files
+_status.txt
+_diag.txt
+_check.txt
+_probe.txt

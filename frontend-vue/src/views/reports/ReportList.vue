@@ -1,0 +1,618 @@
+<script setup>
+import { computed, onMounted, ref } from 'vue'
+import reportApi from '@/api/report'
+import { useToast } from '@/composables/useToast'
+import { extractErrorMessage } from '@/utils/helper'
+import { formatNumber } from '@/utils/formatter'
+import { downloadBlob, openBlob } from '@/utils/download'
+import PageHeader from '@/components/layout/Header.vue'
+import Button from '@/components/common/Button.vue'
+import DataTable from '@/components/common/DataTable.vue'
+import Loader from '@/components/common/Loader.vue'
+import Modal from '@/components/common/Modal.vue'
+
+const toast = useToast()
+
+const PERIODS = [
+  { value: 'harian', label: 'Harian' },
+  { value: 'bulanan', label: 'Bulanan' },
+  { value: 'tahunan', label: 'Tahunan' },
+]
+
+const DIRECTIONS = [
+  { value: '', label: 'Semua Arah' },
+  { value: 1, label: 'Tab In' },
+  { value: 2, label: 'Tab Out' },
+]
+
+const RESULTS = [
+  { value: '', label: 'Semua Hasil' },
+  { value: '1', label: 'Diterima' },
+  { value: '0', label: 'Ditolak' },
+]
+
+const now = new Date()
+const pad = (n) => String(n).length === 1 ? `0${n}` : String(n)
+
+// Filter state. The date input adapts to the selected period.
+const filters = ref({
+  period: 'bulanan',
+  day: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
+  month: `${now.getFullYear()}-${pad(now.getMonth() + 1)}`,
+  year: String(now.getFullYear()),
+  time_from: '',
+  time_to: '',
+  no_plat: '',
+  direction: '',
+  access_granted: '',
+  gate: '',
+})
+
+const activeTab = ref('rekap') // 'rekap' | 'detail'
+const loading = ref(false)
+const downloading = ref('') // '' | '<kind>-<format>' | '<kind>-preview'
+const error = ref('')
+const recap = ref(null)
+const detail = ref(null)
+
+const yearOptions = computed(() => {
+  const current = now.getFullYear()
+  return Array.from({ length: 6 }, (_, i) => String(current - i))
+})
+
+/** The `date` query param, derived from the active period + its input. */
+function resolveDate() {
+  if (filters.value.period === 'harian') return filters.value.day
+  if (filters.value.period === 'tahunan') return filters.value.year
+  return filters.value.month
+}
+
+/** Query params shared by preview + PDF requests. */
+function buildParams() {
+  const isDaily = filters.value.period === 'harian'
+  return {
+    period: filters.value.period,
+    date: resolveDate(),
+    direction: filters.value.direction || undefined,
+    access_granted: filters.value.access_granted !== '' ? filters.value.access_granted : undefined,
+    gate: filters.value.gate || undefined,
+    no_plat: filters.value.no_plat || undefined,
+    time_from: isDaily && filters.value.time_from ? filters.value.time_from : undefined,
+    time_to: isDaily && filters.value.time_to ? filters.value.time_to : undefined,
+  }
+}
+
+const detailColumns = [
+  { key: 'no', label: 'No', align: 'center', width: '56px' },
+  { key: 'tapped_at_label', label: 'Waktu' },
+  { key: 'card_number', label: 'Nomor Kartu', cellClass: 'fw-600' },
+  { key: 'no_plat', label: 'No. Plat' },
+  { key: 'owner', label: 'Pemilik' },
+  { key: 'direction_label', label: 'Arah' },
+  { key: 'result_label', label: 'Hasil' },
+  { key: 'reason_label', label: 'Alasan' },
+  { key: 'gate', label: 'Gate' },
+  { key: 'actions', label: 'Aksi', align: 'center', width: '72px' },
+]
+
+const selectedRow = ref(null)
+const showDetailModal = ref(false)
+
+// Client-side pagination for the detail tab. The endpoint returns every row
+// at once, so we slice locally to keep rendering fast on large result sets.
+const detailPage = ref(1)
+const detailPerPage = ref(10)
+
+const detailRows = computed(() => detail.value?.rows || [])
+const detailTotal = computed(() => detailRows.value.length)
+const detailLastPage = computed(() =>
+  Math.max(1, Math.ceil(detailTotal.value / detailPerPage.value)),
+)
+const pagedDetailRows = computed(() => {
+  const start = (detailPage.value - 1) * detailPerPage.value
+  return detailRows.value.slice(start, start + detailPerPage.value)
+})
+
+function onDetailChangePage(page) {
+  detailPage.value = page
+}
+
+function onDetailChangePerPage(perPage) {
+  detailPerPage.value = perPage
+  detailPage.value = 1
+}
+
+function openDetail(row) {
+  selectedRow.value = row
+  showDetailModal.value = true
+}
+
+const timelineHead = computed(() => ({
+  harian: 'Jam',
+  bulanan: 'Tanggal',
+  tahunan: 'Bulan',
+}[recap.value?.period] || 'Periode'))
+
+const summary = computed(() =>
+  activeTab.value === 'rekap' ? recap.value?.summary : detail.value?.summary,
+)
+
+const summaryCards = computed(() => {
+  const s = summary.value
+  if (!s) return []
+  return [
+    { label: 'Total Tap', value: s.total, color: '#4f46e5' },
+    { label: 'Tap In', value: s.tab_in, color: '#0ea5e9' },
+    { label: 'Tap Out', value: s.tab_out, color: '#9333ea' },
+    { label: 'Diterima', value: s.granted, color: '#16a34a' },
+    { label: 'Ditolak', value: s.denied, color: '#dc2626' },
+  ]
+})
+
+async function generate() {
+  loading.value = true
+  error.value = ''
+  try {
+    const params = buildParams()
+    const [recapRes, detailRes] = await Promise.all([
+      reportApi.recap(params),
+      reportApi.detail(params),
+    ])
+    recap.value = recapRes.data
+    detail.value = detailRes.data
+    detailPage.value = 1
+  } catch (err) {
+    error.value = extractErrorMessage(err, 'Gagal memuat laporan.')
+    recap.value = null
+    detail.value = null
+  } finally {
+    loading.value = false
+  }
+}
+
+async function download(kind, { format = 'pdf', preview = false } = {}) {
+  downloading.value = preview ? `${kind}-preview` : `${kind}-${format}`
+  try {
+    const stamp = new Date().toISOString().slice(0, 10)
+
+    if (format === 'excel') {
+      const blob = kind === 'rekap'
+        ? await reportApi.recapExcel(buildParams())
+        : await reportApi.detailExcel(buildParams())
+      downloadBlob(blob, `laporan-${kind}-${filters.value.period}-${stamp}.xlsx`)
+      toast.success('Excel berhasil diunduh.')
+      return
+    }
+
+    const params = { ...buildParams(), download: preview ? undefined : 1 }
+    const blob = kind === 'rekap'
+      ? await reportApi.recapPdf(params)
+      : await reportApi.detailPdf(params)
+
+    if (preview) {
+      openBlob(blob)
+    } else {
+      downloadBlob(blob, `laporan-${kind}-${filters.value.period}-${stamp}.pdf`)
+      toast.success('PDF berhasil diunduh.')
+    }
+  } catch (err) {
+    toast.error(extractErrorMessage(err, 'Gagal membuat berkas.'))
+  } finally {
+    downloading.value = ''
+  }
+}
+
+onMounted(generate)
+</script>
+
+<template>
+  <div class="page">
+    <PageHeader
+      title="Laporan Transaksi"
+      subtitle="Rekap & detail transaksi akses kartu (harian, bulanan, tahunan)"
+    />
+
+    <!-- Filter bar -->
+    <div class="card">
+      <div class="card-body filter-bar">
+        <div class="field">
+          <label>Periode</label>
+          <select v-model="filters.period" class="form-control" @change="generate">
+            <option v-for="p in PERIODS" :key="p.value" :value="p.value">{{ p.label }}</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Tanggal</label>
+          <input v-if="filters.period === 'harian'" v-model="filters.day" type="date" class="form-control" />
+          <input v-else-if="filters.period === 'bulanan'" v-model="filters.month" type="month" class="form-control" />
+          <select v-else v-model="filters.year" class="form-control">
+            <option v-for="y in yearOptions" :key="y" :value="y">{{ y }}</option>
+          </select>
+        </div>
+
+        <template v-if="filters.period === 'harian'">
+          <div class="field">
+            <label>Waktu Awal</label>
+            <input v-model="filters.time_from" type="time" class="form-control" />
+          </div>
+          <div class="field">
+            <label>Waktu Akhir</label>
+            <input v-model="filters.time_to" type="time" class="form-control" />
+          </div>
+        </template>
+
+        <div class="field">
+          <label>No. Plat</label>
+          <input v-model="filters.no_plat" type="text" class="form-control" placeholder="Semua plat" />
+        </div>
+
+        <div class="field">
+          <label>Arah</label>
+          <select v-model="filters.direction" class="form-control">
+            <option v-for="d in DIRECTIONS" :key="d.label" :value="d.value">{{ d.label }}</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Hasil</label>
+          <select v-model="filters.access_granted" class="form-control">
+            <option v-for="r in RESULTS" :key="r.label" :value="r.value">{{ r.label }}</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Gate</label>
+          <input v-model="filters.gate" type="text" class="form-control" placeholder="Semua gate" />
+        </div>
+
+        <div class="field field-actions">
+          <Button variant="primary" :loading="loading" @click="generate">Tampilkan</Button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="error" class="alert alert-danger">{{ error }}</div>
+
+    <Loader v-if="loading && !recap" text="Memuat laporan..." />
+
+    <template v-else-if="recap">
+      <!-- Period + download actions -->
+      <div class="card">
+        <div class="card-body report-toolbar">
+          <div class="report-period">
+            <span class="period-badge">{{ recap.period_label }}</span>
+            <strong>{{ recap.range.label }}</strong>
+            <small v-if="recap.filters?.length">{{ recap.filters.join(' · ') }}</small>
+          </div>
+          <div class="report-actions">
+            <Button variant="secondary" size="sm" :loading="downloading === 'rekap-pdf'" @click="download('rekap', { format: 'pdf' })">
+              ⬇ Rekap (PDF)
+            </Button>
+            <Button variant="secondary" size="sm" :loading="downloading === 'detail-pdf'" @click="download('detail', { format: 'pdf' })">
+              ⬇ Detail (PDF)
+            </Button>
+            <Button variant="secondary" size="sm" :loading="downloading === 'rekap-excel'" @click="download('rekap', { format: 'excel' })">
+              ⬇ Rekap (Excel)
+            </Button>
+            <Button variant="secondary" size="sm" :loading="downloading === 'detail-excel'" @click="download('detail', { format: 'excel' })">
+              ⬇ Detail (Excel)
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary cards -->
+      <div class="grid grid-stats">
+        <div v-for="card in summaryCards" :key="card.label" class="stat-card">
+          <span class="stat-dot" :style="{ background: card.color }"></span>
+          <div>
+            <div class="stat-value">{{ formatNumber(card.value) }}</div>
+            <div class="stat-label">{{ card.label }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button :class="['tab', { active: activeTab === 'rekap' }]" @click="activeTab = 'rekap'">Rekap</button>
+        <button :class="['tab', { active: activeTab === 'detail' }]" @click="activeTab = 'detail'">Detail</button>
+        <span class="tabs-spacer"></span>
+        <Button variant="ghost" size="sm" @click="download(activeTab, { preview: true })">👁 Pratinjau PDF</Button>
+      </div>
+
+      <!-- Rekap tab -->
+      <template v-if="activeTab === 'rekap'">
+        <div class="card">
+          <div class="card-header"><strong>Rekap {{ timelineHead === 'Jam' ? 'per Jam' : timelineHead === 'Bulan' ? 'per Bulan' : 'per Tanggal' }}</strong></div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>{{ timelineHead }}</th>
+                  <th class="text-right">Total</th>
+                  <th class="text-right">Tap In</th>
+                  <th class="text-right">Tap Out</th>
+                  <th class="text-right">Diterima</th>
+                  <th class="text-right">Ditolak</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(b, i) in recap.timeline" :key="i">
+                  <td>{{ b.label }}</td>
+                  <td class="text-right">{{ formatNumber(b.total) }}</td>
+                  <td class="text-right">{{ formatNumber(b.in) }}</td>
+                  <td class="text-right">{{ formatNumber(b.out) }}</td>
+                  <td class="text-right">{{ formatNumber(b.granted) }}</td>
+                  <td class="text-right">{{ formatNumber(b.denied) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="card-header"><strong>Rekap per Alasan</strong></div>
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr><th>Alasan</th><th class="text-right">Total</th><th class="text-right">Diterima</th><th class="text-right">Ditolak</th></tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(r, i) in recap.by_reason" :key="i">
+                    <td>{{ r.label }}</td>
+                    <td class="text-right">{{ formatNumber(r.total) }}</td>
+                    <td class="text-right">{{ formatNumber(r.granted) }}</td>
+                    <td class="text-right">{{ formatNumber(r.denied) }}</td>
+                  </tr>
+                  <tr v-if="!recap.by_reason.length"><td colspan="4" class="empty-state">Tidak ada data.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><strong>Rekap per Gate</strong></div>
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr><th>Gate</th><th class="text-right">Total</th><th class="text-right">Tab In</th><th class="text-right">Tab Out</th></tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(g, i) in recap.by_gate" :key="i">
+                    <td>{{ g.gate }}</td>
+                    <td class="text-right">{{ formatNumber(g.total) }}</td>
+                    <td class="text-right">{{ formatNumber(g.in) }}</td>
+                    <td class="text-right">{{ formatNumber(g.out) }}</td>
+                  </tr>
+                  <tr v-if="!recap.by_gate.length"><td colspan="4" class="empty-state">Tidak ada data.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- Detail tab -->
+      <template v-else>
+        <DataTable
+          :columns="detailColumns"
+          :rows="pagedDetailRows"
+          :paginated="true"
+          :page="detailPage"
+          :per-page="detailPerPage"
+          :total="detailTotal"
+          :last-page="detailLastPage"
+          empty-text="Tidak ada transaksi pada periode ini."
+          @change-page="onDetailChangePage"
+          @change-per-page="onDetailChangePerPage"
+        >
+          <template #cell-result_label="{ row }">
+            <span class="badge" :class="row.access_granted ? 'badge-success' : 'badge-danger'">
+              {{ row.result_label }}
+            </span>
+          </template>
+          <template #cell-actions="{ row }">
+            <button class="icon-btn" type="button" title="Lihat detail" @click="openDetail(row)">👁</button>
+          </template>
+        </DataTable>
+      </template>
+    </template>
+
+    <!-- Detail popup -->
+    <Modal v-model="showDetailModal" title="Detail Transaksi">
+      <div v-if="selectedRow" class="detail-modal">
+        <div class="detail-image">
+          <div class="detail-image-placeholder">
+            <span>🚗</span>
+            <small>Gambar belum tersedia</small>
+          </div>
+        </div>
+        <dl class="detail-grid">
+          <div><dt>Waktu</dt><dd>{{ selectedRow.tapped_at_label }}</dd></div>
+          <div><dt>Nomor Kartu</dt><dd>{{ selectedRow.card_number || '-' }}</dd></div>
+          <div><dt>No. Plat</dt><dd>{{ selectedRow.no_plat || '-' }}</dd></div>
+          <div><dt>Pemilik</dt><dd>{{ selectedRow.owner || '-' }}</dd></div>
+          <div><dt>Arah</dt><dd>{{ selectedRow.direction_label }}</dd></div>
+          <div>
+            <dt>Hasil</dt>
+            <dd>
+              <span class="badge" :class="selectedRow.access_granted ? 'badge-success' : 'badge-danger'">
+                {{ selectedRow.result_label }}
+              </span>
+            </dd>
+          </div>
+          <div><dt>Alasan</dt><dd>{{ selectedRow.reason_label || '-' }}</dd></div>
+          <div><dt>Gate</dt><dd>{{ selectedRow.gate || '-' }}</dd></div>
+        </dl>
+      </div>
+    </Modal>
+  </div>
+</template>
+
+<style scoped>
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: flex-end;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 150px;
+  flex: 1;
+}
+.field label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+.field-actions {
+  flex: 0 0 auto;
+  min-width: auto;
+}
+.report-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.report-period {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.report-period strong {
+  font-size: 15px;
+}
+.report-period small {
+  color: var(--color-text-muted);
+}
+.period-badge {
+  background: #eef2ff;
+  color: #3730a3;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.report-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.grid-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 4px 0 16px;
+}
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: var(--radius-sm, 8px);
+  padding: 14px 16px;
+}
+.stat-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.stat-label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.tab {
+  border: none;
+  background: transparent;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm, 8px);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+.tab.active {
+  background: var(--color-primary, #4f46e5);
+  color: #fff;
+}
+.tabs-spacer {
+  flex: 1;
+}
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
+.text-right {
+  text-align: right;
+}
+.icon-btn {
+  border: 1px solid var(--color-border, #e5e7eb);
+  background: #fff;
+  border-radius: var(--radius-sm, 8px);
+  padding: 4px 8px;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.icon-btn:hover {
+  background: #f3f4f6;
+}
+.detail-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.detail-image-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 160px;
+  border: 1px dashed var(--color-border, #cbd5e1);
+  border-radius: var(--radius-sm, 8px);
+  background: #f8fafc;
+  color: var(--color-text-muted);
+}
+.detail-image-placeholder span {
+  font-size: 40px;
+}
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px 16px;
+  margin: 0;
+}
+.detail-grid dt {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.detail-grid dd {
+  margin: 0;
+  font-size: 14px;
+}
+</style>

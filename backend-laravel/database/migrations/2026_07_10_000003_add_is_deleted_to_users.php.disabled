@@ -1,0 +1,44 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     *
+     * Adds an is_deleted flag used to soft delete users: deleting a user
+     * from the application only sets this flag to true so the underlying
+     * record is retained instead of being removed.
+     *
+     * @return void
+     */
+    public function up()
+    {
+        if (Schema::hasColumn('users', 'is_deleted')) {
+            return;
+        }
+
+        Schema::table('users', function (Blueprint $table) {
+            $table->boolean('is_deleted')->default(false)->index();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        if (! Schema::hasColumn('users', 'is_deleted')) {
+            return;
+        }
+
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn('is_deleted');
+        });
+    }
+};

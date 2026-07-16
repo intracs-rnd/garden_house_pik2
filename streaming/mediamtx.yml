@@ -1,0 +1,51 @@
+# ---------------------------------------------------------------------------
+# mediamtx.yml - konfigurasi MediaMTX untuk GH PIK2.
+#
+# URL RTSP kamera dapat diatur lewat menu "Pengaturan Kamera" di aplikasi
+# (dikirim ke control API di bawah), sehingga tidak perlu mengedit file ini.
+# Nilai "source:" di bawah hanya menjadi default awal.
+#
+#   1. Download the binary:  https://github.com/bluenviron/mediamtx/releases
+#      (pick mediamtx_vX.X.X_windows_amd64.zip and unzip it here)
+#   2. Run it:               .\start-stream.ps1
+#   3. The frontend reads:   http://localhost:8888/cam1/index.m3u8 ... /cam4/index.m3u8
+# ---------------------------------------------------------------------------
+
+# Browser-friendly HLS server (this is what the Vue app plays).
+hls: yes
+hlsAddress: :8888
+# Control API (port 9997). The GH PIK2 backend uses this to push camera RTSP
+# sources from the "Pengaturan Kamera" form, so feeds can be changed live.
+api: yes
+apiAddress: :9997
+# Keep remuxing even with no viewer so the feed starts instantly.
+hlsAlwaysRemux: yes
+# Use the classic (non low-latency) MPEG-TS variant. Low-latency HLS rotates
+# fMP4 segments so aggressively that the browser frequently requests a segment
+# that has already been deleted -> HTTP 404 -> the player stalls/stops.
+hlsVariant: mpegts
+# Keep more segments in the playlist for a longer, more forgiving live window,
+# so a brief network/CPU hiccup no longer asks for an already-expired segment.
+hlsSegmentCount: 10
+hlsSegmentDuration: 3s
+hlsSegmentMaxSize: 50M
+
+# (Optional) sub-second WebRTC. Built-in test player: http://localhost:8889/cam
+webrtc: yes
+webrtcAddress: :8889
+
+paths:
+  # cam1 ships with the sample camera. cam2..cam4 wait for a source to be set
+  # from the "Pengaturan Kamera" form (source: publisher = no failing dials).
+  cam1:
+    source: rtsp://root:cctv123456@192.168.203.119:554/live2.sdp
+    rtspTransport: tcp
+
+  cam2:
+    source: publisher
+
+  cam3:
+    source: publisher
+
+  cam4:
+    source: publisher

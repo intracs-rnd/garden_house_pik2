@@ -1,0 +1,24 @@
+{
+  "name": "frontend-vue",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Vue 3 admin panel connected to the GH PIK2 Laravel API",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "hls.js": "^1.6.16",
+    "mqtt": "^5.15.2",
+    "pinia": "^2.2.6",
+    "vue": "^3.5.13",
+    "vue-router": "^4.4.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.1.4",
+    "vite": "^5.4.10"
+  }
+}

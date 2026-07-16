@@ -1,0 +1,60 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Convert the existing DATE columns to DATETIME/TIMESTAMP so a card's
+     * validity can expire at a specific hour (e.g. 2026-07-08 17:00:00).
+     *
+     * Uses raw SQL because doctrine/dbal is not installed. On SQLite (used in
+     * tests) columns are dynamically typed, so no change is required there.
+     *
+     * @return void
+     */
+    public function up()
+    {
+        if (! Schema::hasTable('kartus')) {
+            return;
+        }
+
+        switch (DB::getDriverName()) {
+            case 'pgsql':
+                DB::statement('ALTER TABLE kartus ALTER COLUMN valid_from TYPE TIMESTAMP(0) WITHOUT TIME ZONE USING valid_from::timestamp');
+                DB::statement('ALTER TABLE kartus ALTER COLUMN valid_until TYPE TIMESTAMP(0) WITHOUT TIME ZONE USING valid_until::timestamp');
+                break;
+
+            case 'mysql':
+            case 'mariadb':
+                DB::statement('ALTER TABLE `kartus` MODIFY `valid_from` DATETIME NULL, MODIFY `valid_until` DATETIME NULL');
+                break;
+        }
+    }
+
+    /**
+     * Revert the columns back to DATE.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        if (! Schema::hasTable('kartus')) {
+            return;
+        }
+
+        switch (DB::getDriverName()) {
+            case 'pgsql':
+                DB::statement('ALTER TABLE kartus ALTER COLUMN valid_from TYPE DATE USING valid_from::date');
+                DB::statement('ALTER TABLE kartus ALTER COLUMN valid_until TYPE DATE USING valid_until::date');
+                break;
+
+            case 'mysql':
+            case 'mariadb':
+                DB::statement('ALTER TABLE `kartus` MODIFY `valid_from` DATE NULL, MODIFY `valid_until` DATE NULL');
+                break;
+        }
+    }
+};

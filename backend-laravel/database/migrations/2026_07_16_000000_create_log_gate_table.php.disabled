@@ -1,0 +1,35 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('log_gate', function (Blueprint $table) {
+            $table->id();
+            $table->string('gate_id', 100);
+            $table->timestampTz('event_ts')->nullable();
+            $table->enum('action', ['open', 'close']);
+            $table->string('result', 50)->default('SUCCESS');
+            $table->timestamps();
+
+            // Indexes
+            $table->index('gate_id');
+            $table->index('event_ts');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('log_gate');
+    }
+};

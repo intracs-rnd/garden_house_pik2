@@ -1,0 +1,45 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+/**
+ * Schema reference for the RFID gate reader connection log.
+ *
+ * NOTE: This migration is disabled (see the ".disabled" suffix) because the
+ * database schema for this project is managed directly (the log_rfid_conn
+ * table already exists). It is kept purely as documentation of the expected
+ * column layout consumed by App\Models\LogRfidConn.
+ */
+return new class extends Migration
+{
+    public function up()
+    {
+        if (Schema::hasTable('log_rfid_conn')) {
+            return;
+        }
+
+        Schema::create('log_rfid_conn', function (Blueprint $table) {
+            $table->id();
+            // Identitas gate / RFID reader yang melaporkan status.
+            $table->string('gate_id', 50);
+            // Waktu event terjadi (dilaporkan oleh perangkat).
+            $table->timestamp('event_ts')->nullable();
+            // Waktu baris dibuat di database.
+            $table->timestamp('create_at')->nullable();
+            // Status koneksi (mis. connected / disconnected).
+            $table->string('status', 50)->nullable();
+            // Keterangan tambahan.
+            $table->text('detail')->nullable();
+
+            $table->index('gate_id');
+            $table->index('event_ts');
+        });
+    }
+
+    public function down()
+    {
+        Schema::dropIfExists('log_rfid_conn');
+    }
+};

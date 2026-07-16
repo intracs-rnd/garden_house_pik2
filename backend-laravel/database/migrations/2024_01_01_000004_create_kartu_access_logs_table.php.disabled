@@ -1,0 +1,49 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     *
+     * @return void
+     */
+    public function up()
+    {
+        Schema::create('kartu_access_logs', function (Blueprint $table) {
+            $table->id();
+            // Kartu bisa null jika kartu tidak dikenali saat di-tap.
+            $table->foreignId('kartu_id')->nullable()->constrained('kartus')->nullOnDelete();
+            $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
+            // Nomor kartu tetap disimpan walau kartu tidak dikenali.
+            $table->string('card_number', 50);
+            // Nomor plat kendaraan yang dicatat saat tap di gate (opsional).
+            $table->string('no_plat', 20)->nullable();
+            // direction: 1 = Tab In (masuk), 2 = Tab Out (keluar)
+            $table->unsignedTinyInteger('direction');
+            $table->boolean('access_granted')->default(false);
+            // Kode alasan keputusan (ok, expired, blacklisted, dsb).
+            $table->string('reason', 50)->nullable();
+            // Identitas gate / perangkat.
+            $table->string('gate', 50)->nullable();
+            $table->timestamp('tapped_at')->useCurrent();
+            $table->timestamps();
+
+            $table->index(['kartu_id', 'direction']);
+            $table->index('tapped_at');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        Schema::dropIfExists('kartu_access_logs');
+    }
+};

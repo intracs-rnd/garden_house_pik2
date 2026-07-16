@@ -1,0 +1,46 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     *
+     * Adds an rfid_tag column storing the physical RFID tag / UID associated
+     * with the access card. Kept separate from card_number so a card can be
+     * mapped to its RFID hardware tag independently.
+     *
+     * @return void
+     */
+    public function up()
+    {
+        if (Schema::hasColumn('kartus', 'rfid_tag')) {
+            return;
+        }
+
+        Schema::table('kartus', function (Blueprint $table) {
+            $table->string('rfid_tag', 100)->nullable()->after('card_number');
+            $table->index('rfid_tag');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        if (! Schema::hasColumn('kartus', 'rfid_tag')) {
+            return;
+        }
+
+        Schema::table('kartus', function (Blueprint $table) {
+            $table->dropIndex(['rfid_tag']);
+            $table->dropColumn('rfid_tag');
+        });
+    }
+};

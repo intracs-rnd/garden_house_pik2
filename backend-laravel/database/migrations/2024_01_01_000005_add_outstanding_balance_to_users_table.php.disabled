@@ -1,0 +1,34 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     *
+     * @return void
+     */
+    public function up()
+    {
+        Schema::table('users', function (Blueprint $table) {
+            // Total tunggakan / pembayaran yang belum diselesaikan user.
+            // Jika > 0, kartu akses milik user diblokir (blacklist) saat tap.
+            $table->decimal('outstanding_balance', 15, 2)->default(0)->after('is_active');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn('outstanding_balance');
+        });
+    }
+};

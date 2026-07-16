@@ -1,0 +1,49 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     *
+     * @return void
+     */
+    public function up()
+    {
+        Schema::create('kartus', function (Blueprint $table) {
+            $table->id();
+            // Kartu akses dimiliki oleh seorang user (join ke tabel users).
+            $table->foreignId('user_id')->constrained('users')->cascadeOnUpdate()->cascadeOnDelete();
+            // Nomor / UID kartu fisik (RFID) yang dibaca di gate.
+            $table->string('card_number', 50)->unique();
+            $table->string('nama')->nullable();
+            // status: 1 = Aktif, 2 = Non Aktif, 3 = Blacklist
+            $table->unsignedTinyInteger('status')->default(1);
+            // Blacklist manual / otomatis (mis. karena tunggakan pembayaran).
+            $table->boolean('is_blacklisted')->default(false);
+            $table->string('blacklist_reason')->nullable();
+            // Masa berlaku kartu (tanggal + jam, agar bisa habis pada jam tertentu).
+            $table->dateTime('valid_from')->nullable();
+            $table->dateTime('valid_until')->nullable();
+            // Masa tenggang (dalam hari) setelah valid_until kartu masih bisa dipakai.
+            $table->unsignedSmallInteger('grace_days')->default(0);
+            $table->text('keterangan')->nullable();
+            $table->timestamps();
+
+            $table->index(['user_id', 'status']);
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        Schema::dropIfExists('kartus');
+    }
+};

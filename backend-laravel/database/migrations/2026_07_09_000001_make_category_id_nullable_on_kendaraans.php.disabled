@@ -1,0 +1,44 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     *
+     * Makes kendaraans.category_id nullable so vehicles can be created
+     * from the simplified form (nama, nomor_plat, merk, model, tahun).
+     *
+     * @return void
+     */
+    public function up()
+    {
+        $driver = Schema::getConnection()->getDriverName();
+
+        if ($driver === 'pgsql') {
+            DB::statement('ALTER TABLE kendaraans ALTER COLUMN category_id DROP NOT NULL');
+        } elseif ($driver === 'mysql') {
+            DB::statement('ALTER TABLE kendaraans MODIFY category_id BIGINT UNSIGNED NULL');
+        }
+        // sqlite and others: fresh migrations already create the column as nullable.
+    }
+
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        $driver = Schema::getConnection()->getDriverName();
+
+        if ($driver === 'pgsql') {
+            DB::statement('ALTER TABLE kendaraans ALTER COLUMN category_id SET NOT NULL');
+        } elseif ($driver === 'mysql') {
+            DB::statement('ALTER TABLE kendaraans MODIFY category_id BIGINT UNSIGNED NOT NULL');
+        }
+    }
+};
