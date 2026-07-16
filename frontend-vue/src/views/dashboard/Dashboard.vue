@@ -324,8 +324,10 @@ function submitGateAction() {
 
   gateSubmitting.value = true
 
-  // Publish gate action ke MQTT
-  publishGateAction(gateCamera.value.gate_id, gateAction.value === 'open')
+  // Publish gate action ke MQTT dan log dengan nomor plat
+  publishGateAction(gateCamera.value.gate_id, gateAction.value === 'open', {
+    nomor_plat: gateForm.value.nomor_plat,
+  })
     .then((success) => {
       if (success) {
         // Close modal and show success message
@@ -339,7 +341,7 @@ function submitGateAction() {
         }
         
         console.log(
-          `✅ Gate ${gateAction.value} command sent for ${gateCamera.value.gate_id}`
+          `✅ Gate ${gateAction.value} command sent for ${gateCamera.value.gate_id} - Plat: ${gateForm.value.nomor_plat}`
         )
       } else {
         toastError(`Gagal mengirim perintah: ${gatePublishError.value}`)
@@ -774,6 +776,7 @@ onUnmounted(() => {
             <tr>
               <th>Waktu</th>
               <th>Gate ID</th>
+              <th>Nomor Plat</th>
               <th>Aksi</th>
               <th>Hasil</th>
             </tr>
@@ -782,6 +785,7 @@ onUnmounted(() => {
             <tr v-for="log in detailGateLogs" :key="log.id">
               <td class="detail-time">{{ formatDateTime(log.event_ts) }}</td>
               <td class="detail-gate-id">{{ log.gate_id }}</td>
+              <td class="detail-nomor-plat">{{ log.nomor_plat || '-' }}</td>
               <td>
                 <span class="badge" :class="log.action === 'OPEN' ? 'badge-success' : 'badge-info'">
                   {{ log.action }}

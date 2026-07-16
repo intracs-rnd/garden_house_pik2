@@ -8,6 +8,12 @@ export const gateApi = {
   logGateAction: (data) => axios.post('/gate/log', data),
 
   /**
+   * Log manual gate control (ketika user klik Buka/Tutup gate dari dashboard)
+   * @param {object} data - { gate_id, nomor_plat, action, notes? }
+   */
+  logManualControl: (data) => axios.post('/gate/manual-control', data),
+
+  /**
    * Get all gate logs
    * @param {object} params - { limit?, gate_id? }
    */

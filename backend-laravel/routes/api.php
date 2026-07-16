@@ -130,6 +130,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('feature:kartu_gate,manage')->group(function () {
         Route::post('/kartu/tab-in', [KartuController::class, 'tabIn']);
         Route::post('/kartu/tab-out', [KartuController::class, 'tabOut']);
+        // Manual gate control (Buka/Tutup gate dari dashboard)
+        Route::post('/gate/manual-control', [GateController::class, 'logManualControl']);
     });
 
     // Kartu mutations (create / update / delete / blacklist) require manage on "kartu".

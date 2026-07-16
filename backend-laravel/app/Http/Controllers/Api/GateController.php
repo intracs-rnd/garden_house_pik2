@@ -4,13 +4,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\LogGate;
+use App\Models\GateManualControl;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
 class GateController extends Controller
 {
     /**
-     * Log gate action (untuk MQTT integration)
+     * Log gate action (untuk MQTT integration - automatic RFID)
      */
     public function logGateAction(Request $request): JsonResponse
     {
@@ -59,14 +60,60 @@ class GateController extends Controller
     }
 
     /**
+     * Log manual gate control (ketika user klik Buka/Tutup gate dari dashboard)
+     */
+    public function logManualControl(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'gate_id' => 'required|string|max:100',
+            'nomor_plat' => 'required|string|max:50',
+            'action' => 'required|in:OPEN,CLOSE',
+        ]);
+
+        try {
+            $manualControl = GateManualControl::create([
+                'gate_id' => $validated['gate_id'],
+                'nomor_plat' => $validated['nomor_plat'],
+                'action' => $validated['action'],
+                'result' => 'SUCCESS',
+                'user_id' => auth()->id(),
+                'user_name' => auth()->user()?->name,
+                'event_ts' => now(),
+            ]);
+
+            return response()->json([
+                'message' => 'Manual gate control logged successfully',
+                'data' => $manualControl,
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to log manual gate control',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Get gate logs by gate_id with pagination
+     * Combine log_gate dan gate_manual_control
      */
     public function getLogsByGateId(string $gateId, Request $request): JsonResponse
     {
         $page = $request->query('page', 1);
         $perPage = $request->query('per_page', 20);
 
-        $logs = LogGate::where('gate_id', $gateId)
+        // Query dari log_gate (automatic RFID)
+        $logGateQuery = LogGate::where('gate_id', $gateId)
+            ->selectRaw("id, gate_id, event_ts, action, result, NULL as nomor_plat, 'auto' as control_type")
+            ->where('gate_id', $gateId);
+
+        // Query dari gate_manual_control (manual control)
+        $manualControlQuery = GateManualControl::where('gate_id', $gateId)
+            ->selectRaw("id, gate_id, event_ts, action, result, nomor_plat, 'manual' as control_type");
+
+        // Combine dan sort by event_ts
+        $logs = $logGateQuery
+            ->union($manualControlQuery)
             ->orderBy('event_ts', 'desc')
             ->paginate($perPage, ['*'], 'page', $page);
 

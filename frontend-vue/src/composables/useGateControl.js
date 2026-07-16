@@ -17,8 +17,9 @@ export function useGateControl() {
    * Publish gate action ke MQTT dan log ke database
    * @param {string} gateId - Gate ID (e.g., "GATE_IN_01")
    * @param {boolean} open - true untuk buka, false untuk tutup
+   * @param {object} options - { nomor_plat?, notes? }
    */
-  const publishGateAction = async (gateId, open) => {
+  const publishGateAction = async (gateId, open, options = {}) => {
     isPublishing.value = true
     publishError.value = null
 
@@ -52,6 +53,15 @@ export function useGateControl() {
         gate_id: gateId,
         open: open,
       })
+
+      // Jika ada nomor_plat, log ke manual control table
+      if (options.nomor_plat) {
+        await gateApi.logManualControl({
+          gate_id: gateId,
+          nomor_plat: options.nomor_plat,
+          action: open ? 'OPEN' : 'CLOSE',
+        })
+      }
 
       console.log('✅ Gate action completed:', gateId, open ? 'OPEN' : 'CLOSE')
       return true
