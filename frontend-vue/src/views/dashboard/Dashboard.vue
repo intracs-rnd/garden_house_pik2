@@ -142,7 +142,7 @@ const vehicleOutCount = ref(0)
 const activityLoading = ref(true)
 const activityError = ref('')
 const activityPage = ref(1)
-const activityPerPage = 15
+const activityPerPage = 5
 const activityPagination = ref({
   total: 0,
   pages: 0,
@@ -173,17 +173,17 @@ async function loadActivity() {
     const res = await store.fetchRecentLogs({ per_page: 200 })
     const logs = res.data || []
     vehicleActivityAll.value = logs.map(mapLog)
-    
+
     // Counters reflect actual (granted) entries/exits in the recent window.
     vehicleInCount.value = logs.filter((l) => Number(l.direction) === 1 && l.access_granted).length
     vehicleOutCount.value = logs.filter((l) => Number(l.direction) === 2 && l.access_granted).length
-    
+
     // Set pagination
     activityPagination.value = {
       total: logs.length,
       pages: Math.ceil(logs.length / activityPerPage),
     }
-    
+
     // Show current page
     updateActivityPage(1)
     activityError.value = ''
@@ -332,14 +332,14 @@ function submitGateAction() {
       if (success) {
         // Close modal and show success message
         gateModal.value = false
-        
+
         // Show success notification based on action
         if (gateAction.value === 'open') {
           toastSuccess('Gate berhasil di buka')
         } else {
           toastSuccess('Gate berhasil di tutup')
         }
-        
+
         console.log(
           `✅ Gate ${gateAction.value} command sent for ${gateCamera.value.gate_id} - Plat: ${gateForm.value.nomor_plat}`
         )
@@ -529,10 +529,10 @@ onUnmounted(() => {
                 <div class="camera-controls">
                   <!-- Camera 1, 2: Show kontrol gate button; Camera 3, 4: Hidden -->
                   <template v-if="cam.id <= 2">
-                    <Button 
-                      v-if="auth.canManage('kartu_gate')" 
-                      size="sm" 
-                      variant="primary" 
+                    <Button
+                      v-if="auth.canManage('kartu_gate')"
+                      size="sm"
+                      variant="primary"
                       :disabled="!isGateReaderOnline(cam)"
                       :title="isGateReaderOnline(cam) ? 'Kontrol gate' : 'Reader offline - Kontrol tidak tersedia'"
                       @click="openGateModal(cam)"
@@ -546,10 +546,10 @@ onUnmounted(() => {
                     </Button>
                   </template>
                   <!-- Camera 3, 4: Buttons commented out
-                  <Button 
-                    v-if="auth.canManage('kartu_gate')" 
-                    size="sm" 
-                    variant="primary" 
+                  <Button
+                    v-if="auth.canManage('kartu_gate')"
+                    size="sm"
+                    variant="primary"
                     :disabled="!isGateReaderOnline(cam)"
                     :title="isGateReaderOnline(cam) ? 'Kontrol gate' : 'Reader offline - Kontrol tidak tersedia'"
                     @click="openGateModal(cam)"
@@ -669,9 +669,9 @@ onUnmounted(() => {
               Menampilkan {{ (activityPage - 1) * activityPerPage + 1 }} - {{ Math.min(activityPage * activityPerPage, activityPagination.total) }} dari {{ activityPagination.total }} aktivitas
             </div>
             <div class="pagination-buttons" style="display: flex; gap: 8px; justify-content: center;">
-              <Button 
-                size="sm" 
-                variant="secondary" 
+              <Button
+                size="sm"
+                variant="secondary"
                 :disabled="activityPage === 1"
                 @click="updateActivityPage(activityPage - 1)"
               >
@@ -680,9 +680,9 @@ onUnmounted(() => {
               <span style="align-self: center; padding: 0 8px; font-size: 0.9em;">
                 {{ activityPage }} / {{ activityPagination.pages }}
               </span>
-              <Button 
-                size="sm" 
-                variant="secondary" 
+              <Button
+                size="sm"
+                variant="secondary"
                 :disabled="activityPage >= activityPagination.pages"
                 @click="updateActivityPage(activityPage + 1)"
               >
@@ -731,7 +731,7 @@ onUnmounted(() => {
             <span v-if="gateErrors.nomor_plat" class="form-error">{{ gateErrors.nomor_plat }}</span>
           </div>
         </form>
-        
+
         <div v-if="gateCamera" class="gate-live-cctv">
           <label class="form-label">Live CCTV</label>
           <LiveStream :src="gateCamera.src" />
@@ -805,9 +805,9 @@ onUnmounted(() => {
               Menampilkan {{ (detailGatePage - 1) * detailGatePerPage + 1 }} - {{ Math.min(detailGatePage * detailGatePerPage, detailGatePagination.total) }} dari {{ detailGatePagination.total }} records
             </div>
             <div class="pagination-buttons" style="display: flex; gap: 8px; justify-content: center;">
-              <Button 
-                size="sm" 
-                variant="secondary" 
+              <Button
+                size="sm"
+                variant="secondary"
                 :disabled="detailGatePage === 1 || detailGateLoading"
                 @click="loadDetailGateLogs(detailGatePage - 1)"
               >
@@ -816,9 +816,9 @@ onUnmounted(() => {
               <span style="align-self: center; padding: 0 8px;">
                 Halaman {{ detailGatePage }} dari {{ detailGatePagination.last_page }}
               </span>
-              <Button 
-                size="sm" 
-                variant="secondary" 
+              <Button
+                size="sm"
+                variant="secondary"
                 :disabled="!detailGatePagination.has_more || detailGateLoading"
                 @click="loadDetailGateLogs(detailGatePage + 1)"
               >
