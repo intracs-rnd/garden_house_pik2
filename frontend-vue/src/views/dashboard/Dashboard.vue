@@ -309,9 +309,16 @@ const gateImages = ref([])
 const gateImageLoading = ref(false)
 
 const gateActionLabel = computed(() => (gateAction.value === 'open' ? 'Buka Gate' : 'Tutup Gate'))
-const gateModalTitle = computed(
-    () => `Kontrol Gate${gateCamera.value ? ' · ' + gateCamera.value.name : ''}`,
-)
+
+// Judul modal mengikuti step yang sedang berjalan:
+// - Belum ada data transaksi tervalidasi -> masih tahap pencarian plat.
+// - Sudah ada data transaksi -> siap konfirmasi buka gate.
+const gateModalTitle = computed(() => {
+  const camPart = gateCamera.value ? ' · ' + gateCamera.value.name : ''
+  return gateTransactionData.value
+      ? `Konfirmasi Buka Gate${camPart}`
+      : `Cari Kendaraan${camPart}`
+})
 
 function isGateReaderOnline(cam) {
   // Find the gate associated with this camera and check if reader is online
@@ -354,7 +361,7 @@ async function searchPlateNumber() {
     // Validate plate number and get active transaction
     console.log('🔍 Searching for plate:', gateForm.value.nomor_plat.trim())
     const response = await transactionApi.getActiveTransaction(gateForm.value.nomor_plat.trim())
-    
+
     if (!response.data) {
       toastError('Nomor plat tidak valid atau tidak memiliki transaksi aktif')
       return
@@ -362,17 +369,17 @@ async function searchPlateNumber() {
 
     console.log('✅ Transaction found:', response.data)
     gateTransactionData.value = response.data
-    
+
     // Collect image paths from entry_image_1 to entry_image_4 (with underscore)
     // Also check for view_image_path from log_cctv (preferred as it works with API)
     const imagePaths = []
-    
+
     // Priority 1: Use view_image_path from log_cctv if available (this path works!)
     if (response.data.view_image_path) {
       console.log('✨ Using view_image_path from log_cctv:', response.data.view_image_path)
       imagePaths.push(response.data.view_image_path)
     }
-    
+
     // Priority 2: Use entry_image fields from transactions table
     const entryImages = [
       response.data.entry_image_1 || response.data.entry_image1,
@@ -380,7 +387,7 @@ async function searchPlateNumber() {
       response.data.entry_image_3 || response.data.entry_image3,
       response.data.entry_image_4 || response.data.entry_image4,
     ].filter(path => path != null && path !== '')
-    
+
     if (entryImages.length > 0) {
       console.log('📷 Found entry_image paths:', entryImages.length)
       imagePaths.push(...entryImages)
@@ -390,7 +397,7 @@ async function searchPlateNumber() {
 
     if (imagePaths.length > 0) {
       gateImageLoading.value = true
-      
+
       // Fetch all images in parallel
       const imagePromises = imagePaths.map(async (path, idx) => {
         try {
@@ -412,14 +419,14 @@ async function searchPlateNumber() {
 
       const images = await Promise.all(imagePromises)
       console.log('📦 All images fetched:', images)
-      
+
       // Store all images including failed ones for display
       gateImages.value = images
       gateImageLoading.value = false
-      
+
       const successCount = images.filter(img => img.success).length
       console.log(`✅ Success count: ${successCount}/${images.length}`)
-      
+
       if (successCount > 0) {
         toastSuccess(`Data transaksi ditemukan dengan ${successCount} gambar`)
       } else {
@@ -867,17 +874,25 @@ onUnmounted(() => {
 
       <!-- Modal: Buka / Tutup Gate (frontend only) -->
       <Modal v-model="gateModal" :title="gateModalTitle">
-        <div class="gate-toggle" role="tablist">
-          <button
-              type="button"
-              class="gate-toggle-btn"
-              :class="{ 'is-active is-open': gateAction === 'open' }"
-              @click="gateAction = 'open'"
-          >
+        <div class="gate-steps">
+          <span class="gate-step" :class="{ 'is-active': !gateTransactionData, 'is-done': gateTransactionData }">
+            <span class="gate-step-num">
+              <svg v-if="gateTransactionData" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+              <template v-else>1</template>
+            </span>
+            Cari Plat
+          </span>
+          <span class="gate-step-line" :class="{ 'is-done': gateTransactionData }"></span>
+          <span class="gate-step" :class="{ 'is-active': gateTransactionData }">
+            <span class="gate-step-num">2</span>
             Buka Gate
-          </button>
+          </span>
         </div>
-        <p class="gate-hint">Masukkan nomor plat kendaraan dan klik Cari untuk validasi</p>
+        <p class="gate-hint">
+          {{ gateTransactionData
+            ? 'Data transaksi ditemukan. Periksa detail di bawah, lalu klik "Buka Gate" untuk membuka.'
+            : 'Masukkan nomor plat kendaraan dan klik Cari untuk validasi.' }}
+        </p>
         <form class="gate-form" @submit.prevent="searchPlateNumber">
           <div class="form-group">
             <label class="form-label">Nomor Plat <span class="req">*</span></label>
@@ -952,16 +967,16 @@ onUnmounted(() => {
             <div v-else class="images-grid">
               <div v-for="(image, index) in gateImages" :key="index" class="image-item">
                 <!-- Display image from URL (with data URI prefix) -->
-                <img v-if="image.url" 
-                     :src="image.url" 
+                <img v-if="image.url"
+                     :src="image.url"
                      :alt="`Entry Image ${index + 1}`"
                      @error="handleImageError"
                      @load="() => console.log('Image loaded successfully:', index)"
                      style="width: 100%; height: 100%; object-fit: cover;"
                 />
                 <!-- Display image from base64 (add data URI prefix) -->
-                <img v-else-if="image.base64" 
-                     :src="`data:image/jpeg;base64,${image.base64}`" 
+                <img v-else-if="image.base64"
+                     :src="`data:image/jpeg;base64,${image.base64}`"
                      :alt="`Entry Image ${index + 1}`"
                      @error="handleImageError"
                      @load="() => console.log('Base64 image loaded:', index)"
@@ -984,10 +999,10 @@ onUnmounted(() => {
                     {{ image.path.split('/').pop() }}
                   </div>
                   <!-- Debug info button -->
-                  <button 
-                    v-if="image.success === false" 
-                    @click="console.log('Image debug:', image)"
-                    style="margin-top: 8px; padding: 4px 8px; font-size: 10px; border: 1px solid var(--color-border); border-radius: 4px; background: white; cursor: pointer;"
+                  <button
+                      v-if="image.success === false"
+                      @click="console.log('Image debug:', image)"
+                      style="margin-top: 8px; padding: 4px 8px; font-size: 10px; border: 1px solid var(--color-border); border-radius: 4px; background: white; cursor: pointer;"
                   >
                     Debug Info
                   </button>
@@ -1014,10 +1029,10 @@ onUnmounted(() => {
           </div>
         </div>
 
-<!--        <div v-if="gateCamera" class="gate-live-cctv">-->
-<!--          <label class="form-label">Live CCTV</label>-->
-<!--          <LiveStream :src="gateCamera.src" />-->
-<!--        </div>-->
+        <!--        <div v-if="gateCamera" class="gate-live-cctv">-->
+        <!--          <label class="form-label">Live CCTV</label>-->
+        <!--          <LiveStream :src="gateCamera.src" />-->
+        <!--        </div>-->
 
         <div v-if="gatePublishError" class="alert alert-danger" style="margin-top: 12px;">
           {{ gatePublishError }}
@@ -1456,33 +1471,62 @@ a.stat-card:hover .stat-arrow {
 }
 
 /* ---------- Gate action form ---------- */
-.gate-toggle {
+.gate-steps {
   display: flex;
-  gap: 6px;
-  padding: 4px;
+  align-items: center;
+  gap: 10px;
   margin-bottom: 16px;
-  background: var(--color-bg, #f1f5f9);
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
 }
-.gate-toggle-btn {
-  flex: 1;
-  padding: 8px 12px;
-  border: none;
-  border-radius: 7px;
-  background: transparent;
+.gate-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 13px;
   font-weight: 600;
   color: var(--color-text-muted);
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: color 0.15s ease;
 }
-.gate-toggle-btn:hover {
+.gate-step-num {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  flex-shrink: 0;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.gate-step-num svg {
+  width: 12px;
+  height: 12px;
+}
+.gate-step.is-active {
   color: var(--color-text);
 }
-.gate-toggle-btn.is-active.is-open {
+.gate-step.is-active .gate-step-num {
+  border-color: var(--color-primary, #4f46e5);
+  color: var(--color-primary, #4f46e5);
+}
+.gate-step.is-done {
+  color: var(--color-success, #16a34a);
+}
+.gate-step.is-done .gate-step-num {
   background: var(--color-success, #16a34a);
+  border-color: var(--color-success, #16a34a);
   color: #fff;
+}
+.gate-step-line {
+  flex: 1;
+  height: 2px;
+  background: var(--color-border);
+  transition: background 0.15s ease;
+}
+.gate-step-line.is-done {
+  background: var(--color-success, #16a34a);
 }
 .gate-hint {
   margin: 0 0 16px;
