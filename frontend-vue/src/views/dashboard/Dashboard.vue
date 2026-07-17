@@ -5,6 +5,7 @@ import dashboardApi from '@/api/dashboard'
 import rfidApi from '@/api/rfid'
 import cameraApi from '@/api/camera'
 import { gateApi } from '@/api/gate'
+import transactionApi from '@/api/transaction'
 import { useKartuStore } from '@/stores/kartu'
 import { useAuthStore } from '@/stores/auth'
 import { useMqtt } from '@/composables/useMqtt'
@@ -17,6 +18,7 @@ import Loader from '@/components/common/Loader.vue'
 import LiveStream from '@/components/common/LiveStream.vue'
 import Modal from '@/components/common/Modal.vue'
 import Button from '@/components/common/Button.vue'
+import ActivityTrendsChart from '@/components/dashboard/ActivityTrendsChart.vue'
 
 const loading = ref(true)
 const error = ref('')
@@ -182,11 +184,20 @@ const filteredActivity = computed(() => {
   )
 })
 
+// Filter aktivitas untuk hari ini saja (untuk counter Kendaraan Di Dalam)
+const todayActivity = computed(() => {
+  const today = todayDateStr.value
+  return vehicleActivityAll.value.filter(
+      (item) => item.rawTappedAt && toLocalDateStr(new Date(item.rawTappedAt)) === today,
+  )
+})
+
+// Counter kendaraan masuk dan keluar HARI INI (bukan total dari 200 log)
 const vehicleInCount = computed(
-    () => filteredActivity.value.filter((item) => item.type === 'in' && item.granted).length,
+    () => todayActivity.value.filter((item) => item.type === 'in' && item.granted).length,
 )
 const vehicleOutCount = computed(
-    () => filteredActivity.value.filter((item) => item.type === 'out' && item.granted).length,
+    () => todayActivity.value.filter((item) => item.type === 'out' && item.granted).length,
 )
 
 const activityPagination = computed(() => ({
@@ -245,12 +256,7 @@ const rfidAllOnline = computed(
 // lebih dari 200 tap, angka ini bisa kurang dari jumlah sebenarnya — bukan
 // gara-gara belum lewat tengah malam, tapi karena log lama terdorong keluar
 // dari jendela 200 tersebut.
-const todayActivityCount = computed(() => {
-  const today = todayDateStr.value
-  return vehicleActivityAll.value.filter(
-      (item) => item.rawTappedAt && toLocalDateStr(new Date(item.rawTappedAt)) === today,
-  ).length
-})
+const todayActivityCount = computed(() => todayActivity.value.length)
 
 // --- RFID Gate Detail Modal -------------------------------------------------
 const rfidDetailModal = ref(false)
@@ -297,6 +303,10 @@ const emptyGateForm = () => ({
 })
 const gateForm = ref(emptyGateForm())
 const gateErrors = ref({})
+const gateSearching = ref(false)
+const gateTransactionData = ref(null)
+const gateImages = ref([])
+const gateImageLoading = ref(false)
 
 const gateActionLabel = computed(() => (gateAction.value === 'open' ? 'Buka Gate' : 'Tutup Gate'))
 const gateModalTitle = computed(
@@ -320,6 +330,8 @@ function openGateModal(cam) {
   gateAction.value = 'open'
   gateForm.value = emptyGateForm()
   gateErrors.value = {}
+  gateTransactionData.value = null
+  gateImages.value = []
   gateModal.value = true
 }
 
@@ -330,8 +342,111 @@ function validateGateForm() {
   return Object.keys(errors).length === 0
 }
 
-function submitGateAction() {
+async function searchPlateNumber() {
   if (!validateGateForm()) return
+
+  gateSearching.value = true
+  gateErrors.value = {}
+  gateTransactionData.value = null
+  gateImages.value = []
+
+  try {
+    // Validate plate number and get active transaction
+    console.log('🔍 Searching for plate:', gateForm.value.nomor_plat.trim())
+    const response = await transactionApi.getActiveTransaction(gateForm.value.nomor_plat.trim())
+    
+    if (!response.data) {
+      toastError('Nomor plat tidak valid atau tidak memiliki transaksi aktif')
+      return
+    }
+
+    console.log('✅ Transaction found:', response.data)
+    gateTransactionData.value = response.data
+    
+    // Collect image paths from entry_image_1 to entry_image_4 (with underscore)
+    // Also check for view_image_path from log_cctv (preferred as it works with API)
+    const imagePaths = []
+    
+    // Priority 1: Use view_image_path from log_cctv if available (this path works!)
+    if (response.data.view_image_path) {
+      console.log('✨ Using view_image_path from log_cctv:', response.data.view_image_path)
+      imagePaths.push(response.data.view_image_path)
+    }
+    
+    // Priority 2: Use entry_image fields from transactions table
+    const entryImages = [
+      response.data.entry_image_1 || response.data.entry_image1,
+      response.data.entry_image_2 || response.data.entry_image2,
+      response.data.entry_image_3 || response.data.entry_image3,
+      response.data.entry_image_4 || response.data.entry_image4,
+    ].filter(path => path != null && path !== '')
+    
+    if (entryImages.length > 0) {
+      console.log('📷 Found entry_image paths:', entryImages.length)
+      imagePaths.push(...entryImages)
+    }
+
+    console.log('📷 Total image paths to fetch:', imagePaths.length, imagePaths)
+
+    if (imagePaths.length > 0) {
+      gateImageLoading.value = true
+      
+      // Fetch all images in parallel
+      const imagePromises = imagePaths.map(async (path, idx) => {
+        try {
+          console.log(`🌐 [${idx + 1}/${imagePaths.length}] Fetching image:`, path)
+          const imageData = await transactionApi.fetchImage(path)
+          console.log(`✅ [${idx + 1}/${imagePaths.length}] Image data received:`, {
+            success: imageData.success,
+            hasUrl: !!imageData.url,
+            hasBase64: !!imageData.base64,
+            base64Length: imageData.base64 ? imageData.base64.length : 0,
+            urlPreview: imageData.url ? imageData.url.substring(0, 50) : null
+          })
+          return imageData
+        } catch (err) {
+          console.error(`❌ [${idx + 1}/${imagePaths.length}] Failed to fetch:`, path, err)
+          return { success: false, path, error: err.message }
+        }
+      })
+
+      const images = await Promise.all(imagePromises)
+      console.log('📦 All images fetched:', images)
+      
+      // Store all images including failed ones for display
+      gateImages.value = images
+      gateImageLoading.value = false
+      
+      const successCount = images.filter(img => img.success).length
+      console.log(`✅ Success count: ${successCount}/${images.length}`)
+      
+      if (successCount > 0) {
+        toastSuccess(`Data transaksi ditemukan dengan ${successCount} gambar`)
+      } else {
+        toastSuccess('Data transaksi ditemukan')
+        console.warn('⚠️ No images loaded successfully')
+      }
+    } else {
+      console.log('ℹ️ No image paths in transaction')
+      toastSuccess('Data transaksi ditemukan (tanpa gambar)')
+    }
+
+  } catch (err) {
+    console.error('❌ Search error:', err)
+    const errorMsg = extractErrorMessage(err, 'Nomor plat tidak valid')
+    gateErrors.value.nomor_plat = errorMsg
+    toastError(errorMsg)
+  } finally {
+    gateSearching.value = false
+  }
+}
+
+function submitGateAction() {
+  if (!gateTransactionData.value) {
+    toastError('Silakan cari dan validasi nomor plat terlebih dahulu')
+    return
+  }
+
   if (!gateCamera.value) {
     alert('Camera tidak ditemukan')
     return
@@ -343,13 +458,19 @@ function submitGateAction() {
   publishGateAction(gateCamera.value.gate_id, gateAction.value === 'open', {
     nomor_plat: gateForm.value.nomor_plat,
   })
-      .then((success) => {
+      .then(async (success) => {
         if (success) {
-          gateModal.value = false
-          if (gateAction.value === 'open') {
-            toastSuccess('Gate berhasil di buka')
-          } else {
-            toastSuccess('Gate berhasil di tutup')
+          // Update transaction status to COMPLETED
+          try {
+            await transactionApi.completeTransaction(gateTransactionData.value.id)
+            gateModal.value = false
+            if (gateAction.value === 'open') {
+              toastSuccess('Gate berhasil dibuka dan transaksi diselesaikan')
+            } else {
+              toastSuccess('Gate berhasil ditutup dan transaksi diselesaikan')
+            }
+          } catch (err) {
+            toastError(`Gate dibuka tapi gagal update transaksi: ${extractErrorMessage(err)}`)
           }
         } else {
           toastError(`Gagal mengirim perintah: ${gatePublishError.value}`)
@@ -361,6 +482,12 @@ function submitGateAction() {
       .finally(() => {
         gateSubmitting.value = false
       })
+}
+
+function handleImageError(event) {
+  console.error('Image failed to load:', event.target.src)
+  // Hide broken image
+  event.target.style.display = 'none'
 }
 
 // --- Detail / Riwayat Gate Log ----------------------------------
@@ -735,6 +862,9 @@ onUnmounted(() => {
         </div>
       </div>
 
+      <!-- Grafik Trend Aktivitas 7 Hari Terakhir -->
+      <ActivityTrendsChart :autoRefresh="true" :refreshInterval="30000" />
+
       <!-- Modal: Buka / Tutup Gate (frontend only) -->
       <Modal v-model="gateModal" :title="gateModalTitle">
         <div class="gate-toggle" role="tablist">
@@ -747,25 +877,147 @@ onUnmounted(() => {
             Buka Gate
           </button>
         </div>
-        <p class="gate-hint">Masukkan nomor plat kendaraan</p>
-        <form class="gate-form" @submit.prevent="submitGateAction">
+        <p class="gate-hint">Masukkan nomor plat kendaraan dan klik Cari untuk validasi</p>
+        <form class="gate-form" @submit.prevent="searchPlateNumber">
           <div class="form-group">
             <label class="form-label">Nomor Plat <span class="req">*</span></label>
-            <input
-                v-model="gateForm.nomor_plat"
-                type="text"
-                class="form-control plate-input"
-                :class="{ 'is-invalid': gateErrors.nomor_plat }"
-                placeholder="B 1234 XYZ"
-            />
+            <div style="display: flex; gap: 8px;">
+              <input
+                  v-model="gateForm.nomor_plat"
+                  type="text"
+                  class="form-control plate-input"
+                  :class="{ 'is-invalid': gateErrors.nomor_plat }"
+                  placeholder="B 1234 XYZ"
+                  :disabled="gateSearching || gateTransactionData"
+                  style="flex: 1;"
+              />
+              <Button
+                  v-if="!gateTransactionData"
+                  type="submit"
+                  variant="primary"
+                  :loading="gateSearching"
+                  style="white-space: nowrap;"
+              >
+                {{ gateSearching ? 'Mencari...' : 'Cari' }}
+              </Button>
+              <Button
+                  v-else
+                  type="button"
+                  variant="secondary"
+                  @click="gateTransactionData = null; gateImages = []; gateForm.nomor_plat = ''"
+                  style="white-space: nowrap;"
+              >
+                Reset
+              </Button>
+            </div>
             <span v-if="gateErrors.nomor_plat" class="form-error">{{ gateErrors.nomor_plat }}</span>
           </div>
         </form>
 
-        <div v-if="gateCamera" class="gate-live-cctv">
-          <label class="form-label">Live CCTV</label>
-          <LiveStream :src="gateCamera.src" />
+        <!-- Transaction Data Display -->
+        <div v-if="gateTransactionData" class="gate-transaction-info">
+          <div class="transaction-info-header">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 20px; height: 20px; color: #16a34a;">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            <span style="font-weight: 600; color: #16a34a;">Data Transaksi Valid</span>
+          </div>
+          <div class="transaction-info-grid">
+            <div class="info-item">
+              <span class="info-label">Kode Transaksi:</span>
+              <span class="info-value">{{ gateTransactionData.code_transaction || '-' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Waktu Masuk:</span>
+              <span class="info-value">{{ gateTransactionData.entry_time ? formatDateTime(gateTransactionData.entry_time) : '-' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Lokasi:</span>
+              <span class="info-value">{{ gateTransactionData.location || '-' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Status:</span>
+              <span class="badge badge-warning">{{ gateTransactionData.status }}</span>
+            </div>
+          </div>
+
+          <!-- Images Display -->
+          <div v-if="gateImages.length > 0 || gateImageLoading" class="gate-images">
+            <label class="form-label">Gambar Entry</label>
+            <div v-if="gateImageLoading" class="gate-images-loading">
+              <span class="spinner"></span>
+              <span>Memuat gambar...</span>
+            </div>
+            <div v-else class="images-grid">
+              <div v-for="(image, index) in gateImages" :key="index" class="image-item">
+                <!-- Display image from URL (with data URI prefix) -->
+                <img v-if="image.url" 
+                     :src="image.url" 
+                     :alt="`Entry Image ${index + 1}`"
+                     @error="handleImageError"
+                     @load="() => console.log('Image loaded successfully:', index)"
+                     style="width: 100%; height: 100%; object-fit: cover;"
+                />
+                <!-- Display image from base64 (add data URI prefix) -->
+                <img v-else-if="image.base64" 
+                     :src="`data:image/jpeg;base64,${image.base64}`" 
+                     :alt="`Entry Image ${index + 1}`"
+                     @error="handleImageError"
+                     @load="() => console.log('Base64 image loaded:', index)"
+                     style="width: 100%; height: 100%; object-fit: cover;"
+                />
+                <!-- Fallback: Show placeholder with path info -->
+                <div v-else class="image-placeholder">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 32px; height: 32px; margin-bottom: 8px; opacity: 0.5;">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                  </svg>
+                  <div style="font-size: 11px; color: var(--color-text-muted);">
+                    {{ image.success === false ? 'Gagal memuat' : 'Tidak tersedia' }}
+                  </div>
+                  <div v-if="image.error" style="font-size: 10px; color: var(--color-danger); margin-top: 4px; padding: 0 8px;">
+                    {{ image.error }}
+                  </div>
+                  <div v-if="image.path" style="font-size: 10px; color: var(--color-text-muted); margin-top: 4px; word-break: break-all; max-width: 100%; padding: 0 8px;">
+                    {{ image.path.split('/').pop() }}
+                  </div>
+                  <!-- Debug info button -->
+                  <button 
+                    v-if="image.success === false" 
+                    @click="console.log('Image debug:', image)"
+                    style="margin-top: 8px; padding: 4px 8px; font-size: 10px; border: 1px solid var(--color-border); border-radius: 4px; background: white; cursor: pointer;"
+                  >
+                    Debug Info
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-else-if="gateTransactionData" class="gate-images-empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width: 24px; height: 24px; opacity: 0.5;">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <circle cx="8.5" cy="8.5" r="1.5"></circle>
+              <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+            <span>Tidak ada gambar tersedia</span>
+            <details style="margin-top: 10px; font-size: 11px; color: var(--color-text-muted); max-width: 100%; text-align: left;">
+              <summary style="cursor: pointer; font-weight: 600;">Debug Info</summary>
+              <div style="margin-top: 8px; padding: 8px; background: white; border: 1px solid var(--color-border); border-radius: 4px; font-family: monospace;">
+                <div>entry_image_1: {{ gateTransactionData.entry_image_1 || gateTransactionData.entry_image1 || 'null' }}</div>
+                <div>entry_image_2: {{ gateTransactionData.entry_image_2 || gateTransactionData.entry_image2 || 'null' }}</div>
+                <div>entry_image_3: {{ gateTransactionData.entry_image_3 || gateTransactionData.entry_image3 || 'null' }}</div>
+                <div>entry_image_4: {{ gateTransactionData.entry_image_4 || gateTransactionData.entry_image4 || 'null' }}</div>
+              </div>
+            </details>
+          </div>
         </div>
+
+<!--        <div v-if="gateCamera" class="gate-live-cctv">-->
+<!--          <label class="form-label">Live CCTV</label>-->
+<!--          <LiveStream :src="gateCamera.src" />-->
+<!--        </div>-->
 
         <div v-if="gatePublishError" class="alert alert-danger" style="margin-top: 12px;">
           {{ gatePublishError }}
@@ -774,6 +1026,7 @@ onUnmounted(() => {
         <template #footer>
           <Button variant="secondary" type="button" @click="gateModal = false" :disabled="gateSubmitting || gateConnecting">Batal</Button>
           <Button
+              v-if="gateTransactionData"
               :variant="gateAction === 'open' ? 'primary' : 'danger'"
               type="button"
               :loading="gateSubmitting || gateConnecting"
@@ -1259,6 +1512,112 @@ a.stat-card:hover .stat-arrow {
   color: var(--color-danger);
 }
 
+/* ---------- Transaction Info Display ---------- */
+.gate-transaction-info {
+  margin-top: 16px;
+  padding: 16px;
+  background: var(--color-bg, #f8fafc);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+}
+.transaction-info-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+.transaction-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.info-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted);
+}
+.info-value {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+/* ---------- Images Grid ---------- */
+.gate-images {
+  margin-top: 16px;
+}
+.images-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 10px;
+}
+.image-item {
+  position: relative;
+  width: 100%;
+  padding-top: 75%; /* 4:3 aspect ratio */
+  background: var(--color-bg, #f1f5f9);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.image-item img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.image-placeholder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: 8px;
+}
+.gate-images-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px;
+  margin-top: 10px;
+  background: var(--color-bg, #f8fafc);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+.gate-images-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px;
+  margin-top: 16px;
+  background: var(--color-bg, #f8fafc);
+  border: 1px dashed var(--color-border);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
 /* ---------- Riwayat gate table ---------- */
 .detail-history {
   max-height: 420px;
@@ -1310,6 +1669,7 @@ a.stat-card:hover .stat-arrow {
 /* ---------- Live CCTV + Kendaraan In/Out row ---------- */
 .live-row {
   align-items: stretch;
+  margin-top: 24px;
 }
 .live-cctv {
   flex: 2;

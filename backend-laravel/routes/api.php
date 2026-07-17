@@ -7,10 +7,12 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ErrorLogController;
 use App\Http\Controllers\Api\GateController;
+use App\Http\Controllers\Api\ImageController;
 use App\Http\Controllers\Api\KartuController;
 use App\Http\Controllers\Api\KendaraanController;
 use App\Http\Controllers\Api\LogRfidConnController;
 use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -39,6 +41,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index']);
+    Route::get('/dashboard/activity-trends', [DashboardController::class, 'activityTrends']);
 
     // ---- Application error / bug log (SUPER ADMIN ONLY) ----
     // Auto-captured server errors, reviewable and downloadable (CSV / JSON).
@@ -60,6 +63,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Live CCTV feeds for the dashboard grid (name + HLS only, no credentials).
     Route::get('/cameras/feeds', [CameraController::class, 'feeds']);
+
+    // ---- Image Upload Service ----
+    // Endpoint untuk fetch gambar dari image upload API (192.168.214.7:4000)
+    Route::post('/images/fetch', [ImageController::class, 'fetchImage']);
+    Route::post('/images/fetch-multiple', [ImageController::class, 'fetchMultipleImages']);
 
     // ---- Live CCTV camera configuration ----
     // Reading the full config (incl. RTSP URLs) needs "view"; saving/applying
@@ -142,4 +150,19 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::match(['put', 'patch'], '/kartu/{kartu}', [KartuController::class, 'update']);
         Route::delete('/kartu/{kartu}', [KartuController::class, 'destroy']);
     });
+
+    // ---- Transactions ----
+    // Get active transaction by plate number for gate control validation
+    Route::get('/transactions/active', [TransactionController::class, 'getActiveTransaction']);
+    Route::get('/transactions/validate', [TransactionController::class, 'validatePlate']);
+    
+    // Complete a transaction (update status to COMPLETED)
+    Route::patch('/transactions/{id}/complete', [TransactionController::class, 'completeTransaction']);
+    
+    // Full CRUD for transactions
+    Route::get('/transactions', [TransactionController::class, 'index']);
+    Route::get('/transactions/{id}', [TransactionController::class, 'show']);
+    Route::post('/transactions', [TransactionController::class, 'store']);
+    Route::match(['put', 'patch'], '/transactions/{id}', [TransactionController::class, 'update']);
+    Route::delete('/transactions/{id}', [TransactionController::class, 'destroy']);
 });

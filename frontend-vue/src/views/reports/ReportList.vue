@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import reportApi from '@/api/report'
 import { useToast } from '@/composables/useToast'
 import { extractErrorMessage } from '@/utils/helper'
@@ -97,7 +97,10 @@ const detailColumns = [
 
 const selectedRow = ref(null)
 const showDetailModal = ref(false)
-const uploadBaseUrl = (import.meta.env.VITE_UPLOADS_BASE_URL || 'http://localhost:4000/api/uploads').replace(/\/+$/, '')
+const uploadApiUrl = (import.meta.env.VITE_UPLOADS_API_URL || import.meta.env.VITE_UPLOADS_BASE_URL || 'http://192.168.214.7:4000/api/uploads').replace(/\/+$/, '')
+const selectedImages = ref([])
+const loadingImages = ref(false)
+const imageError = ref('')
 
 const IMAGE_FIELDS = [
   { key: 'entry_image_1', label: 'Entry 1' },
@@ -112,21 +115,79 @@ const IMAGE_FIELDS = [
 
 function resolveUploadUrl(imagePath) {
   const raw = String(imagePath || '').trim()
-  if (!raw) return ''
-  if (/^https?:\/\//i.test(raw)) return raw
-  if (raw.startsWith('/')) return new URL(raw, uploadBaseUrl).toString()
-  if (raw.startsWith('api/uploads/')) return new URL(`/${raw}`, uploadBaseUrl).toString()
-  return new URL(raw, `${uploadBaseUrl}/`).toString()
+  return raw || ''
 }
 
-const selectedImages = computed(() =>
-  IMAGE_FIELDS
+function cleanupSelectedImages() {
+  selectedImages.value.forEach((image) => {
+    if (String(image.src || '').startsWith('blob:')) {
+      URL.revokeObjectURL(image.src)
+    }
+  })
+  selectedImages.value = []
+}
+
+function extractImagePath(row) {
+  return IMAGE_FIELDS
     .map((field) => {
-      const src = resolveUploadUrl(selectedRow.value?.[field.key])
-      return src ? { ...field, src } : null
+      const path = resolveUploadUrl(row?.[field.key])
+      return path ? { ...field, path } : null
     })
-    .filter(Boolean),
-)
+    .filter(Boolean)
+}
+
+async function fetchImageSource(path) {
+  const response = await fetch(uploadApiUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json, image/*, */*',
+    },
+    body: JSON.stringify({ path }),
+  })
+
+  if (!response.ok) {
+    throw new Error(`Upload API ${response.status}`)
+  }
+
+  const contentType = String(response.headers.get('content-type') || '')
+  if (contentType.includes('application/json')) {
+    const payload = await response.json()
+    const src = payload?.url || payload?.image || payload?.data?.url || payload?.data?.image
+    if (!src) throw new Error('Image URL not found in upload API response')
+    return src
+  }
+
+  const blob = await response.blob()
+  return URL.createObjectURL(blob)
+}
+
+async function loadDetailImages(row) {
+  cleanupSelectedImages()
+  imageError.value = ''
+  const imagePaths = extractImagePath(row)
+  if (!imagePaths.length) return
+
+  loadingImages.value = true
+  const resolved = await Promise.all(
+    imagePaths.map(async (item) => {
+      try {
+        const src = await fetchImageSource(item.path)
+        return { ...item, src }
+      } catch {
+        return null
+      }
+    }),
+  )
+  loadingImages.value = false
+
+  selectedImages.value = resolved.filter(Boolean)
+  if (!selectedImages.value.length) {
+    imageError.value = 'Gagal memuat gambar dari server.'
+  } else if (selectedImages.value.length < imagePaths.length) {
+    imageError.value = 'Sebagian gambar gagal dimuat.'
+  }
+}
 
 // Client-side pagination for the detail tab. The endpoint returns every row
 // at once, so we slice locally to keep rendering fast on large result sets.
@@ -152,9 +213,10 @@ function onDetailChangePerPage(perPage) {
   detailPage.value = 1
 }
 
-function openDetail(row) {
+async function openDetail(row) {
   selectedRow.value = row
   showDetailModal.value = true
+  await loadDetailImages(row)
 }
 
 const timelineHead = computed(() => ({
@@ -233,6 +295,17 @@ async function download(kind, { format = 'pdf', preview = false } = {}) {
 }
 
 onMounted(generate)
+
+watch(showDetailModal, (open) => {
+  if (!open) {
+    cleanupSelectedImages()
+    imageError.value = ''
+  }
+})
+
+onBeforeUnmount(() => {
+  cleanupSelectedImages()
+})
 </script>
 
 <template>
@@ -456,7 +529,11 @@ onMounted(generate)
     <Modal v-model="showDetailModal" title="Detail Transaksi">
       <div v-if="selectedRow" class="detail-modal">
         <div class="detail-image">
-          <div v-if="selectedImages.length" class="detail-image-grid">
+          <div v-if="loadingImages" class="detail-image-placeholder">
+            <span>⏳</span>
+            <small>Memuat gambar...</small>
+          </div>
+          <div v-else-if="selectedImages.length" class="detail-image-grid">
             <a
               v-for="image in selectedImages"
               :key="image.key"
@@ -471,7 +548,7 @@ onMounted(generate)
           </div>
           <div v-else class="detail-image-placeholder">
             <span>🚗</span>
-            <small>Gambar belum tersedia</small>
+            <small>{{ imageError || 'Gambar belum tersedia' }}</small>
           </div>
         </div>
         <dl class="detail-grid">

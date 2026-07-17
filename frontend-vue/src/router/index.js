@@ -122,6 +122,20 @@ const routes = [
         component: () => import('@/views/MqttTest.vue'),
         meta: { title: 'MQTT Test' },
       },
+      // Image Upload API Test (untuk development/testing)
+      {
+        path: 'image-test',
+        name: 'image.test',
+        component: () => import('@/views/ImageTest.vue'),
+        meta: { title: 'Image Upload Test' },
+      },
+      // Image Upload API Test - Debug Version
+      {
+        path: 'image-test-debug',
+        name: 'image.test.debug',
+        component: () => import('@/views/ImageTestDebug.vue'),
+        meta: { title: 'Image Test Debug' },
+      },
     ],
   },
   // Auth (guest only)

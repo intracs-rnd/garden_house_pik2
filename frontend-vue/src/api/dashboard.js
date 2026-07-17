@@ -8,4 +8,9 @@ export default {
   stats() {
     return api.get('/dashboard').then((res) => res.data)
   },
+
+  /** GET /api/dashboard/activity-trends */
+  activityTrends() {
+    return api.get('/dashboard/activity-trends').then((res) => res.data)
+  },
 }
