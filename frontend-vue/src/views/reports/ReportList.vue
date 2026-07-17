@@ -97,6 +97,36 @@ const detailColumns = [
 
 const selectedRow = ref(null)
 const showDetailModal = ref(false)
+const uploadBaseUrl = (import.meta.env.VITE_UPLOADS_BASE_URL || 'http://localhost:4000/api/uploads').replace(/\/+$/, '')
+
+const IMAGE_FIELDS = [
+  { key: 'entry_image_1', label: 'Entry 1' },
+  { key: 'entry_image_2', label: 'Entry 2' },
+  { key: 'entry_image_3', label: 'Entry 3' },
+  { key: 'entry_image_4', label: 'Entry 4' },
+  { key: 'exit_image_1', label: 'Exit 1' },
+  { key: 'exit_image_2', label: 'Exit 2' },
+  { key: 'exit_image_3', label: 'Exit 3' },
+  { key: 'exit_image_4', label: 'Exit 4' },
+]
+
+function resolveUploadUrl(imagePath) {
+  const raw = String(imagePath || '').trim()
+  if (!raw) return ''
+  if (/^https?:\/\//i.test(raw)) return raw
+  if (raw.startsWith('/')) return new URL(raw, uploadBaseUrl).toString()
+  if (raw.startsWith('api/uploads/')) return new URL(`/${raw}`, uploadBaseUrl).toString()
+  return new URL(raw, `${uploadBaseUrl}/`).toString()
+}
+
+const selectedImages = computed(() =>
+  IMAGE_FIELDS
+    .map((field) => {
+      const src = resolveUploadUrl(selectedRow.value?.[field.key])
+      return src ? { ...field, src } : null
+    })
+    .filter(Boolean),
+)
 
 // Client-side pagination for the detail tab. The endpoint returns every row
 // at once, so we slice locally to keep rendering fast on large result sets.
@@ -426,7 +456,20 @@ onMounted(generate)
     <Modal v-model="showDetailModal" title="Detail Transaksi">
       <div v-if="selectedRow" class="detail-modal">
         <div class="detail-image">
-          <div class="detail-image-placeholder">
+          <div v-if="selectedImages.length" class="detail-image-grid">
+            <a
+              v-for="image in selectedImages"
+              :key="image.key"
+              class="detail-image-item"
+              :href="image.src"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <img :src="image.src" :alt="image.label" loading="lazy" />
+              <small>{{ image.label }}</small>
+            </a>
+          </div>
+          <div v-else class="detail-image-placeholder">
             <span>🚗</span>
             <small>Gambar belum tersedia</small>
           </div>
@@ -600,6 +643,30 @@ onMounted(generate)
 }
 .detail-image-placeholder span {
   font-size: 40px;
+}
+.detail-image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+.detail-image-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-decoration: none;
+  color: inherit;
+}
+.detail-image-item img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--color-border, #e5e7eb);
+  background: #f8fafc;
+}
+.detail-image-item small {
+  font-size: 11px;
+  color: var(--color-text-muted);
 }
 .detail-grid {
   display: grid;

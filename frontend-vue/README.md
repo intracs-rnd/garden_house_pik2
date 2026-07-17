@@ -34,10 +34,12 @@ Salin `.env.example` menjadi `.env` bila belum ada, lalu sesuaikan:
 
 ```env
 VITE_API_BASE_URL=http://localhost:8000/api
+VITE_UPLOADS_BASE_URL=http://localhost:4000/api/uploads
 VITE_APP_NAME=GH PIK2
 ```
 
 > `VITE_API_BASE_URL` harus menyertakan akhiran `/api`.
+> `VITE_UPLOADS_BASE_URL` dipakai untuk menampilkan gambar transaksi pada halaman laporan.
 
 ## 🔌 Koneksi ke Backend
 
