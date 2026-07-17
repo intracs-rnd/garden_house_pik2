@@ -1,10 +1,10 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
-import { useKartuStore } from '@/stores/kartu'
-import { useAuthStore } from '@/stores/auth'
-import { useToast } from '@/composables/useToast'
-import { extractErrorMessage, kartuReasonMeta } from '@/utils/helper'
-import { formatDateTime } from '@/utils/formatter'
+import {computed, onMounted, reactive, ref} from 'vue'
+import {useKartuStore} from '@/stores/kartu'
+import {useAuthStore} from '@/stores/auth'
+import {useToast} from '@/composables/useToast'
+import {extractErrorMessage, kartuReasonMeta} from '@/utils/helper'
+import {formatDateTime} from '@/utils/formatter'
 import PageHeader from '@/components/layout/Header.vue'
 import Button from '@/components/common/Button.vue'
 import DataTable from '@/components/common/DataTable.vue'
@@ -27,14 +27,14 @@ const history = ref([])
 const loadingHistory = ref(false)
 
 // Meta paginasi server-side untuk riwayat tap.
-const historyMeta = reactive({ current_page: 1, per_page: 10, total: 0, last_page: 1 })
+const historyMeta = reactive({current_page: 1, per_page: 5, total: 0, last_page: 1})
 
 const historyColumns = [
-  { key: 'time', label: 'Waktu' },
-  { key: 'direction', label: 'Arah' },
-  { key: 'card_number', label: 'Kartu' },
-  { key: 'no_plat', label: 'No. Plat' },
-  { key: 'granted', label: 'Hasil' },
+  {key: 'time', label: 'Waktu'},
+  {key: 'direction', label: 'Arah'},
+  {key: 'card_number', label: 'Kartu'},
+  {key: 'no_plat', label: 'No. Plat'},
+  {key: 'granted', label: 'Hasil'},
 ]
 
 // Status posisi terakhir tiap kartu: 'in' (sedang di dalam) atau 'out'.
@@ -57,11 +57,11 @@ const canTabOut = computed(() => currentCardState.value === 'in')
  */
 const REASON_EXPLANATION = {
   blacklisted:
-    'Kartu masuk daftar blacklist sehingga akses masuk/keluar diblokir. Hubungi admin untuk membuka blokir.',
+      'Kartu masuk daftar blacklist sehingga akses masuk/keluar diblokir. Hubungi admin untuk membuka blokir.',
   inactive:
-    'Kartu berstatus Non Aktif sehingga tidak dapat digunakan untuk Tab In maupun Tab Out. Aktifkan kartu terlebih dahulu.',
+      'Kartu berstatus Non Aktif sehingga tidak dapat digunakan untuk Tab In maupun Tab Out. Aktifkan kartu terlebih dahulu.',
   outstanding_payment:
-    'Terdapat tunggakan pembayaran pada pemilik kartu. Selesaikan pembayaran untuk mengaktifkan akses.',
+      'Terdapat tunggakan pembayaran pada pemilik kartu. Selesaikan pembayaran untuk mengaktifkan akses.',
   not_yet_valid: 'Masa berlaku kartu belum dimulai, sehingga akses belum dapat diberikan.',
   expired: 'Masa berlaku kartu telah habis. Perpanjang masa berlaku untuk menggunakan kartu.',
   unknown_card: 'Nomor kartu tidak dikenali di sistem.',
@@ -79,7 +79,7 @@ function nowTime() {
   }).format(new Date())
 }
 
-function buildRow({ id, direction, cardNumber: card, noPlat: plat, owner, granted, reason, tappedAt }) {
+function buildRow({id, direction, cardNumber: card, noPlat: plat, owner, granted, reason, tappedAt}) {
   return {
     id,
     direction,
@@ -113,16 +113,16 @@ async function loadHistory() {
       per_page: historyMeta.per_page,
     })
     history.value = (res.data || []).map((log) =>
-      buildRow({
-        id: log.id,
-        direction: Number(log.direction) === 1 ? 'in' : 'out',
-        cardNumber: log.card_number,
-        noPlat: log.no_plat,
-        owner: log.kartu?.user?.name || log.user?.name,
-        granted: log.access_granted,
-        reason: log.reason,
-        tappedAt: log.tapped_at,
-      }),
+        buildRow({
+          id: log.id,
+          direction: Number(log.direction) === 1 ? 'in' : 'out',
+          cardNumber: log.card_number,
+          noPlat: log.no_plat,
+          owner: log.kartu?.user?.name || log.user?.name,
+          granted: log.access_granted,
+          reason: log.reason,
+          tappedAt: log.tapped_at,
+        }),
     )
     if (res.meta) {
       historyMeta.current_page = res.meta.current_page
@@ -178,20 +178,20 @@ async function tap(direction) {
     // ditolak karena Blacklist / Non Aktif / masa berlaku habis). Backend yang
     // menentukan & menyimpan keputusan akses ke database.
     const res =
-      direction === 'in'
-        ? await store.tabIn(key, gate.value, noPlat.value)
-        : await store.tabOut(key, gate.value, noPlat.value)
+        direction === 'in'
+            ? await store.tabIn(key, gate.value, noPlat.value)
+            : await store.tabOut(key, gate.value, noPlat.value)
 
     // Lengkapi label status kartu (Blacklist / Non Aktif) untuk ditampilkan.
     const statusLabel =
-      res.kartu?.status_label ||
-      (res.reason === 'blacklisted'
-        ? 'Blacklist'
-        : res.reason === 'inactive'
-          ? 'Non Aktif'
-          : undefined)
+        res.kartu?.status_label ||
+        (res.reason === 'blacklisted'
+            ? 'Blacklist'
+            : res.reason === 'inactive'
+                ? 'Non Aktif'
+                : undefined)
 
-    result.value = { ...res, direction, status_label: statusLabel }
+    result.value = {...res, direction, status_label: statusLabel}
     if (res.access_granted) {
       // Perbarui posisi kartu hanya ketika akses benar-benar diberikan.
       cardStatus[key] = direction
@@ -223,8 +223,8 @@ onMounted(loadHistory)
 <template>
   <div class="page">
     <PageHeader
-      title="Simulasi Gate"
-      subtitle="Uji tab in / tab out kartu akses dan lihat keputusannya"
+        title="Simulasi Gate"
+        subtitle="Uji tab in / tab out kartu akses dan lihat keputusannya"
     />
 
     <div class="row">
@@ -239,45 +239,45 @@ onMounted(loadHistory)
           <div class="form-group">
             <label class="form-label">Nomor Kartu (UID)</label>
             <input
-              v-model="cardNumber"
-              type="text"
-              class="form-control"
-              placeholder="Scan / ketik nomor kartu"
-              @keyup.enter="tap('in')"
+                v-model="cardNumber"
+                type="text"
+                class="form-control"
+                placeholder="Scan / ketik nomor kartu"
+                @keyup.enter="tap('in')"
             />
           </div>
           <div class="form-group">
             <label class="form-label">Gerbang (opsional)</label>
             <input
-              v-model="gate"
-              type="text"
-              class="form-control"
-              placeholder="Contoh: Gerbang Utama"
+                v-model="gate"
+                type="text"
+                class="form-control"
+                placeholder="Contoh: Gerbang Utama"
             />
           </div>
           <div class="form-group">
             <label class="form-label">Nomor Plat (opsional)</label>
             <input
-              v-model="noPlat"
-              type="text"
-              class="form-control"
-              placeholder="Contoh: B 1234 XYZ"
+                v-model="noPlat"
+                type="text"
+                class="form-control"
+                placeholder="Contoh: B 1234 XYZ"
             />
           </div>
           <div class="tap-actions">
             <Button
-              variant="primary"
-              :loading="processing === 'in'"
-              :disabled="!canOperate || !!processing || !canTabIn"
-              @click="tap('in')"
+                variant="primary"
+                :loading="processing === 'in'"
+                :disabled="!canOperate || !!processing || !canTabIn"
+                @click="tap('in')"
             >
               → Tab In
             </Button>
             <Button
-              variant="secondary"
-              :loading="processing === 'out'"
-              :disabled="!canOperate || !!processing || !canTabOut"
-              @click="tap('out')"
+                variant="secondary"
+                :loading="processing === 'out'"
+                :disabled="!canOperate || !!processing || !canTabOut"
+                @click="tap('out')"
             >
               Tab Out ←
             </Button>
@@ -292,9 +292,9 @@ onMounted(loadHistory)
 
           <!-- Decision result -->
           <div
-            v-if="result"
-            class="decision"
-            :class="result.access_granted ? 'decision-ok' : 'decision-deny'"
+              v-if="result"
+              class="decision"
+              :class="result.access_granted ? 'decision-ok' : 'decision-deny'"
           >
             <div class="decision-head">
               <span class="decision-icon">{{ result.access_granted ? '✓' : '✕' }}</span>
@@ -340,18 +340,18 @@ onMounted(loadHistory)
           <span class="muted-count">{{ historyMeta.total }}</span>
         </div>
         <DataTable
-          :columns="historyColumns"
-          :rows="history"
-          row-key="id"
-          :loading="loadingHistory"
-          :page="historyMeta.current_page"
-          :per-page="historyMeta.per_page"
-          :total="historyMeta.total"
-          :last-page="historyMeta.last_page"
-          empty-text="Belum ada aktivitas tap."
-          loading-text="Memuat riwayat tap..."
-          @change-page="changeHistoryPage"
-          @change-per-page="changeHistoryPerPage"
+            :columns="historyColumns"
+            :rows="history"
+            row-key="id"
+            :loading="loadingHistory"
+            :page="historyMeta.current_page"
+            :per-page="historyMeta.per_page"
+            :total="historyMeta.total"
+            :last-page="historyMeta.last_page"
+            empty-text="Belum ada aktivitas tap."
+            loading-text="Memuat riwayat tap..."
+            @change-page="changeHistoryPage"
+            @change-per-page="changeHistoryPerPage"
         >
           <template #cell-direction="{ row }">
             <span class="badge" :class="row.direction === 'in' ? 'badge-success' : 'badge-info'">
@@ -383,11 +383,13 @@ onMounted(loadHistory)
   gap: 20px;
   flex-wrap: wrap;
 }
+
 .tap-actions {
   display: flex;
   gap: 12px;
   margin-top: 4px;
 }
+
 .readonly-note {
   margin-bottom: 16px;
   padding: 10px 14px;
@@ -397,53 +399,67 @@ onMounted(loadHistory)
   color: #92400e;
   font-size: 13px;
 }
+
 .tap-actions :deep(button) {
   flex: 1;
 }
+
 .muted-count {
   color: var(--color-text-muted);
   font-size: 13px;
 }
+
 .card-state {
   margin: 12px 0 0;
   font-size: 13px;
   color: var(--color-text-muted);
 }
+
 .card-state .state-in {
   color: var(--color-success, #16a34a);
 }
+
 .card-state .state-out {
   color: var(--color-text, #334155);
-}.decision {
+}
+
+.decision {
   margin-top: 20px;
   padding: 16px;
   border-radius: var(--radius);
   border: 1px solid var(--color-border);
 }
+
 .decision-ok {
   background: rgba(22, 163, 74, 0.06);
   border-color: rgba(22, 163, 74, 0.35);
 }
+
 .decision-deny {
   background: rgba(220, 38, 38, 0.06);
   border-color: rgba(220, 38, 38, 0.35);
 }
+
 .decision-head {
   display: flex;
   align-items: center;
   gap: 12px;
 }
+
 .decision-head strong {
   display: block;
   font-size: 15px;
 }
+
 .decision-head small {
   color: var(--color-text-muted);
   font-size: 12px;
 }
+
 .decision-head .badge {
   margin-left: auto;
 }
+
 .decision-icon {
   display: grid;
   place-items: center;
@@ -455,16 +471,20 @@ onMounted(loadHistory)
   color: #fff;
   flex-shrink: 0;
 }
+
 .decision-ok .decision-icon {
   background: var(--color-success, #16a34a);
 }
+
 .decision-deny .decision-icon {
   background: var(--color-danger, #dc2626);
 }
+
 .decision-message {
   margin: 12px 0 0;
   font-size: 14px;
 }
+
 .decision-details {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -473,19 +493,23 @@ onMounted(loadHistory)
   padding-top: 14px;
   border-top: 1px dashed var(--color-border);
 }
+
 .detail {
   display: flex;
   flex-direction: column;
 }
+
 .detail span {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--color-text-muted);
 }
+
 .detail strong {
   font-size: 14px;
 }
+
 .decision-unknown {
   margin: 12px 0 0;
   color: var(--color-text-muted);

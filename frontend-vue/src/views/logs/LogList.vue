@@ -34,6 +34,7 @@ const clearing = ref(false)
 const detailOpen = ref(false)
 const detail = ref(null)
 const detailLoading = ref(false)
+const copied = ref(false)
 
 async function fetchLogs(page = meta.value.current_page, perPage = meta.value.per_page) {
   loading.value = true
@@ -69,6 +70,17 @@ async function openDetail(row) {
     detailOpen.value = false
   } finally {
     detailLoading.value = false
+  }
+}
+
+async function copyTrace() {
+  if (!detail.value?.trace) return
+  try {
+    await navigator.clipboard.writeText(detail.value.trace)
+    copied.value = true
+    setTimeout(() => (copied.value = false), 1500)
+  } catch {
+    toast.error('Gagal menyalin ke clipboard.')
   }
 }
 
@@ -190,29 +202,74 @@ onMounted(() => fetchLogs(1))
     </div>
 
     <Modal v-model="detailOpen" title="Detail Log Error">
-      <div v-if="detailLoading" class="detail-loading">Memuat...</div>
+      <div v-if="detailLoading" class="detail-loading">
+        <span class="spinner"></span>
+        Memuat detail...
+      </div>
       <div v-else-if="detail" class="detail">
-        <div class="detail-grid">
-          <div><span>Waktu</span><strong>{{ formatDateTime(detail.created_at) }}</strong></div>
-          <div><span>Status</span><strong>{{ detail.status_code || '-' }}</strong></div>
-          <div><span>Tipe</span><strong>{{ detail.type }}</strong></div>
-          <div><span>Level</span><strong>{{ detail.level }}</strong></div>
-          <div><span>Method</span><strong>{{ detail.method || '-' }}</strong></div>
-          <div><span>IP</span><strong>{{ detail.ip || '-' }}</strong></div>
-          <div><span>User</span><strong>{{ detail.user_name || '-' }}</strong></div>
-          <div><span>Lokasi</span><strong>{{ detail.file }}:{{ detail.line }}</strong></div>
+        <!-- Header ringkas (tetap terlihat, tidak ikut scroll) -->
+        <div class="detail-summary">
+          <span class="badge" :class="statusClass(detail.status_code)">
+            {{ detail.status_code || '-' }}
+          </span>
+          <code class="type-pill">{{ detail.type }}</code>
+          <span class="detail-time">{{ formatDateTime(detail.created_at) }}</span>
         </div>
-        <div class="detail-block">
-          <span>URL</span>
-          <p class="mono">{{ detail.url || '-' }}</p>
-        </div>
-        <div class="detail-block">
-          <span>Pesan</span>
-          <p class="mono">{{ detail.message }}</p>
-        </div>
-        <div class="detail-block">
-          <span>Stack Trace</span>
-          <pre class="trace">{{ detail.trace || '-' }}</pre>
+
+        <!-- Konten yang bisa discroll -->
+        <div class="detail-scroll">
+          <!-- Pesan error -->
+          <div class="detail-section">
+            <h4 class="section-title">Pesan</h4>
+            <p class="message-box">{{ detail.message }}</p>
+          </div>
+
+          <!-- Info request -->
+          <div class="detail-section">
+            <h4 class="section-title">Informasi Request</h4>
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="info-label">Method</span>
+                <strong class="info-value">{{ detail.method || '-' }}</strong>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Level</span>
+                <strong class="info-value">{{ detail.level || '-' }}</strong>
+              </div>
+              <div class="info-item">
+                <span class="info-label">IP Address</span>
+                <strong class="info-value">{{ detail.ip || '-' }}</strong>
+              </div>
+              <div class="info-item">
+                <span class="info-label">User</span>
+                <strong class="info-value">{{ detail.user_name || '-' }}</strong>
+              </div>
+              <div class="info-item info-item--wide">
+                <span class="info-label">Lokasi File</span>
+                <strong class="info-value mono-value">{{ detail.file }}<template v-if="detail.line">:{{ detail.line }}</template></strong>
+              </div>
+              <div class="info-item info-item--wide">
+                <span class="info-label">URL</span>
+                <strong class="info-value mono-value">{{ detail.url || '-' }}</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stack trace -->
+          <div class="detail-section">
+            <div class="section-title-row">
+              <h4 class="section-title">Stack Trace</h4>
+              <button
+                  v-if="detail.trace"
+                  type="button"
+                  class="copy-btn"
+                  @click="copyTrace"
+              >
+                {{ copied ? '✓ Disalin' : '⧉ Salin' }}
+              </button>
+            </div>
+            <pre class="trace">{{ detail.trace || 'Tidak ada stack trace.' }}</pre>
+          </div>
         </div>
       </div>
       <template #footer>
@@ -274,50 +331,178 @@ onMounted(() => fetchLogs(1))
   font-size: 12px;
   color: #64748b;
 }
+
+/* ---- Detail modal ---- */
 .detail-loading {
-  padding: 24px;
-  text-align: center;
-  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 40px;
+  color: var(--color-text-muted, #64748b);
+  font-size: 14px;
 }
-.detail-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 16px;
-  margin-bottom: 16px;
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e2e8f0;
+  border-top-color: #64748b;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
 }
-.detail-grid div {
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  /* Batasi tinggi total modal supaya tidak melebihi layar laptop */
+  max-height: min(72vh, 620px);
+}
+
+.detail-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.type-pill {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  background: #f1f5f9;
+  padding: 3px 10px;
+  border-radius: 6px;
+}
+.detail-time {
+  margin-left: auto;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+/* Area yang scroll, sementara header ringkas & footer tetap diam */
+.detail-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+  padding: 14px 4px 4px 0;
+  margin-right: -4px;
+}
+.detail-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.detail-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+.detail-section {
   display: flex;
   flex-direction: column;
 }
-.detail-grid span,
-.detail-block span {
+
+.section-title {
+  margin: 0 0 8px;
   font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #94a3b8;
+}
+.section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.section-title-row .section-title {
+  margin: 0;
+}
+
+.message-box {
+  margin: 0;
+  padding: 10px 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #991b1b;
+  font-size: 13px;
+  line-height: 1.45;
+  word-break: break-word;
+  max-height: 110px;
+  overflow-y: auto;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 18px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+@media (max-width: 560px) {
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.info-item--wide {
+  grid-column: 1 / -1;
+}
+.info-label {
+  font-size: 10.5px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: #94a3b8;
+  font-weight: 600;
 }
-.detail-grid strong {
-  font-size: 14px;
+.info-value {
+  font-size: 13.5px;
+  color: #1e293b;
   word-break: break-word;
 }
-.detail-block {
-  margin-bottom: 14px;
+.mono-value {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 12.5px;
+  font-weight: 500;
 }
-.mono {
-  font-family: monospace;
-  font-size: 13px;
-  word-break: break-all;
-  margin: 4px 0 0;
+
+.copy-btn {
+  font-size: 12px;
+  font-weight: 500;
+  color: #475569;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: background 0.15s ease;
 }
+.copy-btn:hover {
+  background: #e2e8f0;
+}
+
 .trace {
-  margin: 4px 0 0;
+  margin: 0;
   padding: 12px;
   background: #0f172a;
   color: #e2e8f0;
   border-radius: 8px;
-  font-size: 12px;
-  line-height: 1.5;
-  max-height: 320px;
+  font-size: 11.5px;
+  line-height: 1.55;
+  max-height: 200px;
   overflow: auto;
   white-space: pre-wrap;
   word-break: break-word;
