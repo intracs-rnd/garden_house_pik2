@@ -12,6 +12,7 @@ const toast = useToast()
 
 const loading = ref(true)
 const saving = ref(false)
+const reapplying = ref(false)
 const error = ref('')
 
 // Editable draft: [{ path, name, rtsp_url, enabled, stream_url }]
@@ -71,7 +72,7 @@ async function handleSave() {
     hasChanges.value = false
 
     const anyFailure = (res.data?.apply || []).some(
-      (a) => a.status === 'failed' || a.status === 'unreachable',
+        (a) => a.status === 'failed' || a.status === 'unreachable',
     )
     if (anyFailure) {
       toast.info('Konfigurasi tersimpan, tetapi sebagian gagal diterapkan ke go2rtc.')
@@ -86,19 +87,16 @@ async function handleSave() {
 }
 
 async function handleReapply() {
-  saving.value = true
+  reapplying.value = true
   try {
-    const res = await cameraApi.apply()
-    const status = {}
-    ;(res.data?.apply || []).forEach((a) => {
-      status[a.path] = a
-    })
-    applyStatus.value = status
-    toast.success('Konfigurasi diterapkan ulang ke go2rtc.')
+    await cameraApi.apply()
+    toast.success('Konfigurasi diterapkan ulang ke go2rtc. Memuat ulang halaman...')
+    // Reload halaman supaya semua preview live stream ikut ter-refresh
+    // dengan konfigurasi terbaru dari go2rtc.
+    window.location.reload()
   } catch (e) {
     toast.error(extractErrorMessage(e, 'Gagal menerapkan ke go2rtc.'))
-  } finally {
-    saving.value = false
+    reapplying.value = false
   }
 }
 
@@ -108,14 +106,14 @@ onMounted(load)
 <template>
   <div>
     <PageHeader
-      title="Pengaturan Kamera"
-      subtitle="Atur URL RTSP tiap kamera. Perubahan langsung diterapkan ke go2rtc (live CCTV)."
+        title="Pengaturan Kamera"
+        subtitle="Atur URL RTSP tiap kamera. Perubahan langsung diterapkan ke go2rtc (live CCTV)."
     >
       <template #actions>
-        <Button variant="secondary" :disabled="saving || loading" @click="handleReapply">
+        <Button variant="secondary" :disabled="saving || loading || reapplying" :loading="reapplying" @click="handleReapply">
           Terapkan Ulang
         </Button>
-        <Button variant="primary" :disabled="saving || loading" @click="handleSave">
+        <Button variant="primary" :disabled="saving || loading || reapplying" @click="handleSave">
           {{ saving ? 'Menyimpan...' : 'Simpan' }}
         </Button>
       </template>
@@ -152,23 +150,23 @@ onMounted(load)
           <label class="cam-field">
             <span>Nama Kamera</span>
             <input
-              type="text"
-              v-model="cam.name"
-              placeholder="mis. Gerbang Utama"
-              maxlength="100"
-              @input="markChanged"
+                type="text"
+                v-model="cam.name"
+                placeholder="mis. Gerbang Utama"
+                maxlength="100"
+                @input="markChanged"
             />
           </label>
 
           <label class="cam-field">
             <span>URL RTSP</span>
             <input
-              type="text"
-              v-model="cam.rtsp_url"
-              placeholder="rtsp://user:pass@ip:554/stream"
-              spellcheck="false"
-              autocomplete="off"
-              @input="markChanged"
+                type="text"
+                v-model="cam.rtsp_url"
+                placeholder="rtsp://user:pass@ip:554/stream"
+                spellcheck="false"
+                autocomplete="off"
+                @input="markChanged"
             />
           </label>
 

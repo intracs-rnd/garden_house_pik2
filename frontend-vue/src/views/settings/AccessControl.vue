@@ -81,7 +81,7 @@ onMounted(async () => {
       <div class="card-header role-tabs">
         <span class="role-tabs-label">Peran:</span>
         <button
-          v-for="role in store.roles"
+          v-for="role in store.roles.filter(r => r !== 'staff')"
           :key="role"
           type="button"
           class="role-tab"
