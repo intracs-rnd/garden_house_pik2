@@ -49,7 +49,7 @@ api.interceptors.response.use(
       setToken(null)
       localStorage.removeItem('gh_pik2_user')
       if (window.location.pathname !== '/login') {
-        window.location.assign('/login')
+        window.location.assign('/login?reason=session_expired')
       }
     }
 

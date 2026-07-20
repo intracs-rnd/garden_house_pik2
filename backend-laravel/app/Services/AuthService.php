@@ -57,6 +57,9 @@ class AuthService
             ]);
         }
 
+        // Putuskan sesi di perangkat lain
+        $this->logoutFromAllDevices($user);
+
         return [
             'user'  => $user,
             'token' => $user->createToken('auth_token')->plainTextToken,

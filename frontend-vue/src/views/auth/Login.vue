@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref } from 'vue'
+import { reactive, ref, onMounted } from 'vue'
 import { useRouter, useRoute, RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
@@ -32,6 +32,13 @@ async function handleSubmit() {
     generalError.value = auth.error
   }
 }
+
+onMounted(() => {
+  if (route.query.reason === 'session_expired') {
+    toast.error('Sesi Anda telah berakhir karena akun sedang digunakan di perangkat lain.')
+    router.replace({ query: { ...route.query, reason: undefined } })
+  }
+})
 </script>
 
 <template>
