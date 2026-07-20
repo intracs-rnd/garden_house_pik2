@@ -25,14 +25,14 @@ class TransactionController extends Controller
 
         // Find LATEST active transaction with the given plate number
         // Priority ordering:
-        // 1. ID DESC (most reliable - auto-increment)
-        // 2. entry_time DESC (fallback if IDs somehow same)
+        // 1. entry_time DESC (primary sort: newest entry_time)
+        // 2. ID DESC (secondary sort)
         // Include logCctv relation to get view_image_path
         $transaction = Transaction::with('logCctv')
             ->where('plate_number', $plateNumber)
             ->where('status', Transaction::STATUS_ACTIVE)
-            ->orderBy('id', 'desc') // Primary sort: newest ID first (most reliable)
-            ->orderBy('entry_time', 'desc') // Secondary sort: newest entry_time
+            ->orderBy('entry_time', 'desc') // Primary sort: newest entry_time
+            ->orderBy('id', 'desc') // Secondary sort: newest ID first
             ->first();
 
         if (!$transaction) {

@@ -308,6 +308,19 @@ const gateTransactionData = ref(null)
 const gateImages = ref([])
 const gateImageLoading = ref(false)
 
+const imagePreviewModal = ref(false)
+const previewImageUrl = ref('')
+
+function openImagePreview(image) {
+  if (image.url) {
+    previewImageUrl.value = image.url
+    imagePreviewModal.value = true
+  } else if (image.base64) {
+    previewImageUrl.value = `data:image/jpeg;base64,${image.base64}`
+    imagePreviewModal.value = true
+  }
+}
+
 const gateActionLabel = computed(() => (gateAction.value === 'open' ? 'Buka Gate' : 'Tutup Gate'))
 
 // Judul modal mengikuti step yang sedang berjalan:
@@ -393,17 +406,20 @@ async function searchPlateNumber() {
       imagePaths.push(...entryImages)
     }
 
-    console.log('📷 Total image paths to fetch:', imagePaths.length, imagePaths)
+    // Ambil maksimal 4 gambar saja yang paling terbaru
+    const finalImagePaths = imagePaths.slice(0, 4)
 
-    if (imagePaths.length > 0) {
+    console.log('📷 Total image paths to fetch:', finalImagePaths.length, finalImagePaths)
+
+    if (finalImagePaths.length > 0) {
       gateImageLoading.value = true
 
       // Fetch all images in parallel
-      const imagePromises = imagePaths.map(async (path, idx) => {
+      const imagePromises = finalImagePaths.map(async (path, idx) => {
         try {
-          console.log(`🌐 [${idx + 1}/${imagePaths.length}] Fetching image:`, path)
+          console.log(`🌐 [${idx + 1}/${finalImagePaths.length}] Fetching image:`, path)
           const imageData = await transactionApi.fetchImage(path)
-          console.log(`✅ [${idx + 1}/${imagePaths.length}] Image data received:`, {
+          console.log(`✅ [${idx + 1}/${finalImagePaths.length}] Image data received:`, {
             success: imageData.success,
             hasUrl: !!imageData.url,
             hasBase64: !!imageData.base64,
@@ -412,7 +428,7 @@ async function searchPlateNumber() {
           })
           return imageData
         } catch (err) {
-          console.error(`❌ [${idx + 1}/${imagePaths.length}] Failed to fetch:`, path, err)
+          console.error(`❌ [${idx + 1}/${finalImagePaths.length}] Failed to fetch:`, path, err)
           return { success: false, path, error: err.message }
         }
       })
@@ -972,7 +988,8 @@ onUnmounted(() => {
                      :alt="`Entry Image ${index + 1}`"
                      @error="handleImageError"
                      @load="() => console.log('Image loaded successfully:', index)"
-                     style="width: 100%; height: 100%; object-fit: cover;"
+                     style="width: 100%; height: 100%; object-fit: cover; cursor: pointer;"
+                     @click="openImagePreview(image)"
                 />
                 <!-- Display image from base64 (add data URI prefix) -->
                 <img v-else-if="image.base64"
@@ -980,7 +997,8 @@ onUnmounted(() => {
                      :alt="`Entry Image ${index + 1}`"
                      @error="handleImageError"
                      @load="() => console.log('Base64 image loaded:', index)"
-                     style="width: 100%; height: 100%; object-fit: cover;"
+                     style="width: 100%; height: 100%; object-fit: cover; cursor: pointer;"
+                     @click="openImagePreview(image)"
                 />
                 <!-- Fallback: Show placeholder with path info -->
                 <div v-else class="image-placeholder">
@@ -1206,6 +1224,16 @@ onUnmounted(() => {
 
         <template #footer>
           <Button variant="secondary" type="button" @click="mqttDetailModal = false">Tutup</Button>
+        </template>
+      </Modal>
+
+      <!-- Modal: Image Preview -->
+      <Modal v-model="imagePreviewModal" title="Preview Gambar">
+        <div style="display: flex; justify-content: center; align-items: center; max-height: 70vh;">
+          <img :src="previewImageUrl" style="max-width: 100%; max-height: 100%; object-fit: contain;" alt="Preview" />
+        </div>
+        <template #footer>
+          <Button variant="secondary" type="button" @click="imagePreviewModal = false">Tutup</Button>
         </template>
       </Modal>
     </template>
