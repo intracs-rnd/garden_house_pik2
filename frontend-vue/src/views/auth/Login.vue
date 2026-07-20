@@ -53,7 +53,7 @@ async function handleSubmit() {
             </svg>
           </div>
           <h2>Selamat Datang</h2>
-          <p>Kelola Perumahan PIK2 dengan mudah dan aman</p>
+          <p>Kelola Perumahan Garden House PIK2 dengan mudah dan aman</p>
           <div class="features">
             <div class="feature-item">
               <span class="check-icon">✓</span>
