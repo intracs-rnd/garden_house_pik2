@@ -61,13 +61,13 @@ const menu = [
     to: { name: 'logs.index' },
     label: 'Log Error',
     icon: 'M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z',
-    featureLevel: 'manage',
+    feature: 'log_error',
   },
   {
     to: { name: 'mqtt.test' },
     label: 'MQTT Test',
     icon: 'M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5zm0 18c-3.86-.96-7-5.04-7-9V8.3l7-3.11 7 3.11V11c0 3.96-3.14 8.04-7 9z M9 12l2 2 4-4',
-    featureLevel: 'manage',
+    feature: 'mqtty',
   },
 ]
 

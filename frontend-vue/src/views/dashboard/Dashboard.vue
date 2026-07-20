@@ -814,7 +814,7 @@ onUnmounted(() => {
               {{ activityError }}
             </div>
             <div v-else-if="!vehicleActivity.length" class="activity-empty">
-              {{ selectedDate ? 'Tidak ada aktivitas pada tanggal ini di dalam 200 log terakhir yang dimuat.' : 'Belum ada aktivitas tap.' }}
+              {{ selectedDate ? 'Tidak ada aktivitas pada tanggal ini.' : 'Belum ada aktivitas tap.' }}
             </div>
             <TransitionGroup v-else name="activity">
               <div
