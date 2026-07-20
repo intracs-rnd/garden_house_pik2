@@ -35,12 +35,25 @@ class DashboardController extends Controller
      */
     public function index(): JsonResponse
     {
+        $today = now()->startOfDay();
+
+        $vehiclesIn = \App\Models\KartuAccessLog::where('tapped_at', '>=', $today)
+            ->where('direction', \App\Models\KartuAccessLog::DIRECTION_IN)
+            ->where('access_granted', true)
+            ->count();
+
+        $vehiclesOut = \App\Models\KartuAccessLog::where('tapped_at', '>=', $today)
+            ->where('direction', \App\Models\KartuAccessLog::DIRECTION_OUT)
+            ->where('access_granted', true)
+            ->count();
+
         $stats = [
             'total_users'        => $this->userRepository->query()->count(),
             'total_kendaraan'    => $this->kendaraanRepository->query()->count(),
             'total_category'     => $this->categoryRepository->query()->count(),
             'total_kartu'        => $this->kartuRepository->query()->count(),
             'kartu_by_status'    => $this->kartuRepository->countByStatus(),
+            'kendaraan_di_dalam' => max($vehiclesIn - $vehiclesOut, 0),
         ];
 
         return $this->successResponse($stats, 'Dashboard statistics retrieved successfully.');

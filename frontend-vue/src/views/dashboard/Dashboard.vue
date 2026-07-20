@@ -582,7 +582,7 @@ const cards = computed(() => [
   },
   {
     label: 'Kendaraan Di Dalam',
-    value: Math.max(vehicleInCount.value - vehicleOutCount.value, 0),
+    value: stats.value?.kendaraan_di_dalam ?? Math.max(vehicleInCount.value - vehicleOutCount.value, 0),
     to: null,
     color: '#f59e0b',
     icon: 'M5 13l1.4-4.2A2 2 0 0 1 8.3 7.4h7.4a2 2 0 0 1 1.9 1.4L19 13M5 13a2 2 0 0 0-2 2v3.5a1 1 0 0 0 1 1h1.2M5 13h14M19 13a2 2 0 0 1 2 2v3.5a1 1 0 0 1-1 1h-1.2M7.5 19.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zM16.5 19.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z',
@@ -776,7 +776,7 @@ onUnmounted(() => {
             <button v-if="selectedDate" type="button" class="activity-filter-clear" @click="clearDateFilter">
               Reset
             </button>
-            <span class="activity-filter-hint">dari 200 log terakhir</span>
+            <span class="activity-filter-hint"></span>
           </div>
 
           <div class="activity-summary">
