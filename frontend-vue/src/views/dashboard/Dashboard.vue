@@ -192,13 +192,20 @@ const todayActivity = computed(() => {
   )
 })
 
-// Counter kendaraan masuk dan keluar HARI INI (bukan total dari 200 log)
-const vehicleInCount = computed(
-    () => todayActivity.value.filter((item) => item.type === 'in' && item.granted).length,
-)
-const vehicleOutCount = computed(
-    () => todayActivity.value.filter((item) => item.type === 'out' && item.granted).length,
-)
+// Counter kendaraan masuk dan keluar (mengikuti filter tanggal, default hari ini)
+const vehicleInCount = computed(() => {
+  const targetDate = selectedDate.value || todayDateStr.value
+  return vehicleActivityAll.value.filter(
+      (item) => item.rawTappedAt && toLocalDateStr(new Date(item.rawTappedAt)) === targetDate && item.type === 'in' && item.granted
+  ).length
+})
+
+const vehicleOutCount = computed(() => {
+  const targetDate = selectedDate.value || todayDateStr.value
+  return vehicleActivityAll.value.filter(
+      (item) => item.rawTappedAt && toLocalDateStr(new Date(item.rawTappedAt)) === targetDate && item.type === 'out' && item.granted
+  ).length
+})
 
 const activityPagination = computed(() => ({
   total: filteredActivity.value.length,
@@ -582,7 +589,9 @@ const cards = computed(() => [
   },
   {
     label: 'Kendaraan Di Dalam',
-    value: stats.value?.kendaraan_di_dalam ?? Math.max(vehicleInCount.value - vehicleOutCount.value, 0),
+    value: stats.value?.kendaraan_di_dalam ?? Math.max(
+        todayActivity.value.filter(i => i.type === 'in' && i.granted).length - 
+        todayActivity.value.filter(i => i.type === 'out' && i.granted).length, 0),
     to: null,
     color: '#f59e0b',
     icon: 'M5 13l1.4-4.2A2 2 0 0 1 8.3 7.4h7.4a2 2 0 0 1 1.9 1.4L19 13M5 13a2 2 0 0 0-2 2v3.5a1 1 0 0 0 1 1h1.2M5 13h14M19 13a2 2 0 0 1 2 2v3.5a1 1 0 0 1-1 1h-1.2M7.5 19.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zM16.5 19.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z',
