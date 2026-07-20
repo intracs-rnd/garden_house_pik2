@@ -1,8 +1,21 @@
 <template>
   <div class="chart-container">
-    <div class="chart-header">
-      <h3 class="chart-title">Trend Aktivitas 7 Hari Terakhir</h3>
-      <p class="chart-subtitle">Data kendaraan masuk, keluar, dan total aktivitas</p>
+    <div class="chart-header-row">
+      <div class="chart-header">
+        <h3 class="chart-title">Trend Aktivitas 7 Hari Terakhir</h3>
+        <p class="chart-subtitle">Data kendaraan masuk, keluar, dan total aktivitas</p>
+      </div>
+      <div class="chart-filter">
+        <input 
+          type="date" 
+          v-model="selectedEndDate" 
+          @change="handleDateChange" 
+          class="date-input"
+          :max="todayDateStr"
+          title="Pilih tanggal akhir untuk 7 hari"
+        />
+        <button v-if="selectedEndDate && selectedEndDate !== todayDateStr" @click="resetDate" class="reset-btn" title="Reset ke hari ini">Reset</button>
+      </div>
     </div>
 
     <div v-if="loading" class="chart-loading">
@@ -26,7 +39,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import {
   Chart,
   LineController,
@@ -76,6 +89,22 @@ const props = defineProps({
   }
 })
 
+function toLocalDateStr(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+const todayDateStr = computed(() => toLocalDateStr(new Date()))
+const selectedEndDate = ref(todayDateStr.value)
+
+function handleDateChange() {
+  loadData()
+}
+
+function resetDate() {
+  selectedEndDate.value = todayDateStr.value
+  loadData()
+}
+
 let refreshTimer = null
 
 async function loadData() {
@@ -83,7 +112,11 @@ async function loadData() {
   error.value = ''
 
   try {
-    const res = await dashboardApi.activityTrends()
+    const params = {}
+    if (selectedEndDate.value) {
+      params.end_date = selectedEndDate.value
+    }
+    const res = await dashboardApi.activityTrends(params)
     console.log('Activity Trends Response:', res)
     trendsData.value = res.data || []
     console.log('Trends Data:', trendsData.value)
@@ -311,8 +344,16 @@ watch(() => props.autoRefresh, (newVal) => {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.chart-header {
+.chart-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 20px;
+  gap: 16px;
+}
+
+.chart-header {
+  margin-bottom: 0;
 }
 
 .chart-title {
@@ -326,6 +367,45 @@ watch(() => props.autoRefresh, (newVal) => {
   font-size: 14px;
   color: #6b7280;
   margin: 0;
+}
+
+.chart-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.date-input {
+  padding: 6px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #374151;
+  background-color: #f9fafb;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.date-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.reset-btn {
+  padding: 6px 12px;
+  background: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.reset-btn:hover {
+  background: #e5e7eb;
+  color: #1f2937;
 }
 
 .chart-wrapper {

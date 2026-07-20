@@ -10,7 +10,7 @@ export default {
   },
 
   /** GET /api/dashboard/activity-trends */
-  activityTrends() {
-    return api.get('/dashboard/activity-trends').then((res) => res.data)
+  activityTrends(params) {
+    return api.get('/dashboard/activity-trends', { params }).then((res) => res.data)
   },
 }

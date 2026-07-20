@@ -50,16 +50,20 @@ class DashboardController extends Controller
      * Return activity trends for the last 7 days.
      * Returns daily aggregated data: vehicles in, vehicles out, and total activities.
      */
-    public function activityTrends(): JsonResponse
+    public function activityTrends(\Illuminate\Http\Request $request): JsonResponse
     {
-        // Get data for last 7 days
+        $endDateParam = $request->input('end_date');
+        $endDate = $endDateParam ? \Carbon\Carbon::parse($endDateParam)->endOfDay() : now()->endOfDay();
+        $startDate = $endDate->copy()->subDays(6)->startOfDay();
+
+        // Get data for 7 days ending at endDate
         $trends = KartuAccessLog::select(
             DB::raw('DATE(tapped_at) as date'),
             DB::raw('SUM(CASE WHEN direction = ' . KartuAccessLog::DIRECTION_IN . ' AND access_granted = true THEN 1 ELSE 0 END) as vehicles_in'),
             DB::raw('SUM(CASE WHEN direction = ' . KartuAccessLog::DIRECTION_OUT . ' AND access_granted = true THEN 1 ELSE 0 END) as vehicles_out'),
             DB::raw('COUNT(*) as total_activities')
         )
-            ->where('tapped_at', '>=', now()->subDays(6)->startOfDay())
+            ->whereBetween('tapped_at', [$startDate, $endDate])
             ->groupBy(DB::raw('DATE(tapped_at)'))
             ->orderBy('date', 'asc')
             ->get();
@@ -67,7 +71,7 @@ class DashboardController extends Controller
         // Fill in missing dates with zero values
         $result = [];
         for ($i = 6; $i >= 0; $i--) {
-            $date = now()->subDays($i)->format('Y-m-d');
+            $date = $endDate->copy()->subDays($i)->format('Y-m-d');
             $dayData = $trends->firstWhere('date', $date);
 
             $result[] = [
