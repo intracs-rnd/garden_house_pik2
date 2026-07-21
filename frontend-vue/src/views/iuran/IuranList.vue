@@ -327,7 +327,12 @@ onMounted(() => {
       >
         <!-- No KK (admin only) -->
         <template #cell-no_kk="{ row }">
-          <span class="nokk-badge">{{ row.no_kk }}</span>
+          <div>
+            <span class="nokk-badge">{{ row.no_kk }}</span>
+            <div v-if="row.kartus && row.kartus.length" class="kartu-list mt-8">
+              <small v-for="k in row.kartus" :key="k.id" class="kartu-item">{{ k.card_number }}<span v-if="k.is_blacklisted" class="kartu-flag"> ⚠️</span></small>
+            </div>
+          </div>
         </template>
 
         <!-- Periode -->
@@ -679,6 +684,11 @@ onMounted(() => {
   padding: 2px 6px;
   border-radius: 4px;
 }
+
+/* Kartu list under No. KK */
+.kartu-list { margin-top: 6px; display:flex; gap:6px; flex-wrap:wrap }
+.kartu-item { display:inline-block; font-size:12px; color:var(--color-text-muted); background:var(--color-bg); border:1px solid var(--color-border); padding:2px 6px; border-radius:4px }
+.kartu-flag { color:var(--color-danger); margin-left:4px; font-weight:700 }
 
 .periode-text {
   font-weight: 600;

@@ -29,7 +29,7 @@ class IuranController extends Controller
         $user    = $request->user();
         $isAdmin = in_array($user->role, ['admin', 'superadmin'], true);
 
-        $query = IuranPerumahan::with('pembayaran.paidByUser')
+        $query = IuranPerumahan::with(['pembayaran.paidByUser', 'kartus'])
             ->withCount(['kartus as kartus_active_count' => function ($q) {
                 $q->where('status', Kartu::STATUS_AKTIF)
                   ->where('is_blacklisted', false);
