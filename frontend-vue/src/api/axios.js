@@ -40,21 +40,21 @@ api.interceptors.request.use((config) => {
 
 // Handle common error cases in one place.
 api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    const status = error.response?.status
+    (response) => response,
+    (error) => {
+      const status = error.response?.status
 
-    // Session expired / invalid token -> force a clean logout.
-    if (status === 401) {
-      setToken(null)
-      localStorage.removeItem('gh_pik2_user')
-      if (window.location.pathname !== '/login') {
-        window.location.assign('/login?reason=session_expired')
+      // Session expired / invalid token -> force a clean logout.
+      if (status === 401) {
+        setToken(null)
+        localStorage.removeItem('gh_pik2_user')
+        if (window.location.pathname !== '/login') {
+          window.location.assign('/login?reason=session_expired')
+        }
       }
-    }
 
-    return Promise.reject(error)
-  },
+      return Promise.reject(error)
+    },
 )
 
 export default api

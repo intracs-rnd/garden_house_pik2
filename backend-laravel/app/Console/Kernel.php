@@ -18,6 +18,10 @@ class Kernel extends ConsoleKernel
         // Non-aktifkan kartu yang masa berlakunya sudah habis setiap jam,
         // sehingga kartu otomatis nonaktif pada jam kedaluwarsanya.
         $schedule->command('kartu:deactivate-expired')->hourly();
+
+        // Blacklist kartu dengan tunggakan yang melewati masa tenggang + 1 hari
+        // dijalankan setiap hari pada jam 00:00
+        $schedule->command('kartu:blacklist-overdue')->dailyAt('00:00');
     }
 
     /**

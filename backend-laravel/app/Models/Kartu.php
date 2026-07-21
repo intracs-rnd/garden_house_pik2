@@ -248,7 +248,9 @@ class Kartu extends Model
      *  2. Not yet valid            -> deny
      *  3. Past grace period        -> deny + kartu otomatis di-non-aktifkan
      *  4. Not active               -> deny
-     *  5. Outstanding payment      -> deny (blocked because of tunggakan) [TEMPORARILY DISABLED]
+     *  5. Outstanding payment      -> deny (blocked because of tunggakan)
+     *     If outstanding persists beyond (grace end + 1 day) the card is
+     *     escalated to blacklist automatically.
      *  6. Inside grace period      -> allow
      *  7. Otherwise                -> allow
      *
@@ -276,6 +278,11 @@ class Kartu extends Model
         }
 
         if ($this->hasOutstanding()) {
+            // If outstanding persists beyond (grace end + 1 day), escalate to blacklist.
+            if ($this->blacklistIfOutstandingPastDue()) {
+                return $this->decision(false, self::REASON_BLACKLISTED);
+            }
+
             return $this->decision(false, self::REASON_OUTSTANDING);
         }
 
@@ -309,6 +316,60 @@ class Kartu extends Model
         $this->status = self::STATUS_NONAKTIF;
 
         // Persist without firing model events to avoid unintended side effects.
+        if ($this->exists) {
+            $this->saveQuietly();
+        }
+
+        return true;
+    }
+
+    /**
+     * Blacklist a card automatically when the owner's outstanding iuran
+     * persists beyond (deadline + grace_days + 1 day).
+     *
+     * This helper is deliberately conservative: it only acts when there is a
+     * known outstanding iuran with a parsable deadline and the computed
+     * blacklist threshold has already passed. The change is persisted
+     * quietly to avoid triggering unrelated model events.
+     *
+     * @return bool True when the card was flagged as blacklisted.
+     */
+    public function blacklistIfOutstandingPastDue(): bool
+    {
+        // Check if already blacklisted BEFORE making any changes
+        if ($this->isBlacklisted()) {
+            return false;
+        }
+
+        if (! $this->hasOutstanding()) {
+            return false;
+        }
+
+        $iuran = $this->iuran;
+
+        if (! isset($iuran['exists']) || ! $iuran['exists'] || empty($iuran['deadline'])) {
+            return false;
+        }
+
+        try {
+            $deadline = Carbon::parse($iuran['deadline']);
+        } catch (\Exception $e) {
+            return false;
+        }
+
+        $graceDays = (int) $this->grace_days;
+        $graceEnd = $deadline->copy()->addDays($graceDays);
+        $blacklistAt = $graceEnd->copy()->addDay(); // +1 day after grace end
+
+        if (Carbon::now()->lte($blacklistAt)) {
+            return false;
+        }
+
+        // Set both status and flag together
+        $this->status = self::STATUS_BLACKLIST;
+        $this->is_blacklisted = true;
+        $this->blacklist_reason = 'Blacklist otomatis: tunggakan melewati masa tenggang +1 hari.';
+
         if ($this->exists) {
             $this->saveQuietly();
         }

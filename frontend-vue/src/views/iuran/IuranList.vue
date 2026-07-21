@@ -69,6 +69,7 @@ const riwayatColumns = computed(() => {
     { key: 'periode', label: 'Periode' },
     { key: 'jumlah_bayar', label: 'Jumlah Bayar (Rp)' },
     { key: 'metode_bayar', label: 'Metode' },
+    { key: 'bukti', label: 'Bukti' },
     { key: 'dibayar_oleh', label: 'Dibayar Oleh' },
     { key: 'paid_at', label: 'Waktu Bayar' },
     { key: 'catatan', label: 'Catatan' },
@@ -97,6 +98,62 @@ function statusVariant(status) {
 
 function statusLabel(status) {
   return { belum_bayar: 'Belum Bayar', lunas: 'Lunas', terlambat: 'Terlambat' }[status] || '-'
+}
+
+function isPdf(url) {
+  if (!url) return false
+  try {
+    const u = String(url).toLowerCase()
+    return u.endsWith('.pdf') || u.includes('application/pdf')
+  } catch (e) {
+    return false
+  }
+}
+
+function openImage(url) {
+  if (!url) return
+  window.open(url, '_blank')
+}
+
+function getBuktiUrl(row) {
+  const candidates = [
+    row?.bukti_url,
+    row?.bukti,
+    row?.bukti_bayar,
+    row?.bukti_path,
+    row?.bukti_file,
+  ]
+  let v = candidates.find((x) => x)
+  if (!v) return null
+  try {
+    v = String(v)
+    // Normalize Windows backslashes
+    v = v.replace(/\\\\/g, '/').replace(/\\/g, '/')
+
+    // If already absolute URL, return as-is
+    if (/^https?:\/\//i.test(v)) return v
+
+    // Remove common Laravel storage prefixes that might be returned by backend
+    v = v.replace(/^public\//, '').replace(/^storage\/app\/public\//, '').replace(/^\/+/, '')
+
+    const apiBase = import.meta.env.VITE_API_BASE_URL || window.location.origin
+    let origin = apiBase
+    if (origin.endsWith('/api')) origin = origin.slice(0, -4)
+    origin = origin.replace(/\/$/, '')
+
+    // If value already points to storage/..., use it directly
+    if (v.startsWith('storage/')) {
+      return origin + '/' + v.replace(/^\/+/, '')
+    }
+
+    // If value looks like an absolute server path (/something), attach to origin
+    if (v.startsWith('/')) return origin + v
+
+    // Otherwise assume it's a path under storage and prefix accordingly
+    return origin + '/storage/' + v
+  } catch (e) {
+    return String(v)
+  }
 }
 
 // ─── Form buat/edit tagihan (admin) ──────────────────────────────────────────
@@ -185,6 +242,25 @@ function openPay(item) {
 
 function onBuktiChange(e) {
   const file = e.target.files && e.target.files[0] ? e.target.files[0] : null
+  // Client-side validation: file type and size (max 5MB)
+  if (!file) {
+    payForm.value.bukti_file = null
+    return
+  }
+  const maxBytes = 5 * 1024 * 1024
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf']
+  if (file.type && !allowedTypes.includes(file.type)) {
+    toast.error('Format file tidak didukung. Mohon upload JPG/JPEG/PNG atau PDF.')
+    e.target.value = ''
+    payForm.value.bukti_file = null
+    return
+  }
+  if (file.size > maxBytes) {
+    toast.error('Ukuran file maksimal 5MB.')
+    e.target.value = ''
+    payForm.value.bukti_file = null
+    return
+  }
   payForm.value.bukti_file = file
 }
 
@@ -206,38 +282,60 @@ async function handlePay() {
     if (payForm.value.rekening_tujuan) fd.append('rekening_tujuan', payForm.value.rekening_tujuan)
     if (payForm.value.bukti_file) fd.append('bukti_bayar', payForm.value.bukti_file)
 
-    const res = await store.pay(payTarget.value.id, fd)
-    toast.success('Pembayaran iuran berhasil! Terima kasih.')
-    payTarget.value = null
+  // Debug info: log file details to help diagnose server-side validation
+  try {
+    console.log('Uploading bukti_bayar', payForm.value.bukti_file ? {
+      name: payForm.value.bukti_file.name,
+      size: payForm.value.bukti_file.size,
+      type: payForm.value.bukti_file.type,
+    } : null)
+  } catch (e) { /* ignore logging errors */ }
 
-    // Jika backend mengembalikan daftar kartu yang diaktifkan, sinkronkan status kartu di frontend
-    if (res && Array.isArray(res.activated_kartu_ids) && res.activated_kartu_ids.length > 0) {
-      try {
-        const kartuApi = (await import('@/api/kartu')).default
-        for (const id of res.activated_kartu_ids) {
-          try { await kartuApi.update(id, { status: 1 }) } catch (e) { /* ignore per-card failure */ }
-        }
-        // Refresh kartu list UI
-        kartuStore.fetchList(1)
-      } catch (e) {
-        // Ignore sync errors, not critical for payment flow
+  const res = await store.pay(payTarget.value.id, fd)
+  toast.success('Pembayaran iuran berhasil! Terima kasih.')
+  payTarget.value = null
+  // Refresh riwayat pembayaran agar bukti baru tampil
+  try { await store.fetchHistory(1) } catch (e) { /* ignore */ }
+
+  // Jika backend mengembalikan daftar kartu yang diaktifkan, sinkronkan status kartu di frontend
+  if (res && Array.isArray(res.activated_kartu_ids) && res.activated_kartu_ids.length > 0) {
+    try {
+      const kartuApi = (await import('@/api/kartu')).default
+      for (const id of res.activated_kartu_ids) {
+        try { await kartuApi.update(id, { status: 1 }) } catch (e) { /* ignore per-card failure */ }
       }
+      // Refresh kartu list UI
+      kartuStore.fetchList(1)
+    } catch (e) {
+      // Ignore sync errors, not critical for payment flow
     }
+  }
   } catch (error) {
-    // Prefer showing server-side validation message when available
-    const serverErrors = error?.response?.data?.errors
-    if (serverErrors) {
-      const firstKey = Object.keys(serverErrors)[0]
-      let firstMsg = serverErrors[firstKey][0]
-      // If backend returned a translation key like "validation.uploaded",
-      // show a friendlier local message instead of the raw key.
-      if (typeof firstMsg === 'string' && firstMsg.startsWith('validation.')) {
+  // Log full server response to console to help debugging (not shown to users)
+  try { console.error('Pay error response:', error?.response?.data || error) } catch (e) { /* ignore */ }
+
+  const serverErrors = error?.response?.data?.errors
+  if (serverErrors) {
+    const firstKey = Object.keys(serverErrors)[0]
+    let firstMsg = serverErrors[firstKey][0]
+
+    // Map common Laravel translation keys to friendlier messages and hint server-side causes
+    if (typeof firstMsg === 'string' && firstMsg.startsWith('validation.')) {
+      if (firstMsg.includes('uploaded') || firstKey.includes('bukti')) {
+        firstMsg = 'Upload bukti gagal di server. Cek konfigurasi server (upload_max_filesize / post_max_size) atau coba file lebih kecil.'
+      } else if (firstMsg.includes('max')) {
+        firstMsg = 'Ukuran file melebihi batas server.'
+      } else {
         firstMsg = 'Upload bukti gagal. Pastikan file berformat JPG/JPEG/PNG/PDF dan berukuran maksimal 5MB.'
       }
-      toast.error(firstMsg)
-    } else {
-      toast.error(extractErrorMessage(error, 'Gagal melakukan pembayaran.'))
     }
+
+    toast.error(firstMsg)
+  } else if (error?.response?.data?.message) {
+    toast.error(error.response.data.message)
+  } else {
+    toast.error(extractErrorMessage(error, 'Gagal melakukan pembayaran.'))
+  }
   }
 }
 
@@ -452,6 +550,17 @@ onMounted(() => {
           <span class="method-badge" :class="`method-${row.metode_bayar}`">
             {{ row.metode_bayar === 'transfer' ? '🏦 Transfer' : '💵 Cash' }}
           </span>
+        </template>
+        <template #cell-bukti="{ row }">
+          <div v-if="getBuktiUrl(row)">
+            <template v-if="isPdf(getBuktiUrl(row))">
+              <a :href="getBuktiUrl(row)" target="_blank" rel="noopener">Lihat PDF</a>
+            </template>
+            <template v-else>
+              <img :src="getBuktiUrl(row)" alt="Bukti" class="bukti-thumb" @click="openImage(getBuktiUrl(row))" />
+            </template>
+          </div>
+          <span v-else class="text-muted">-</span>
         </template>
         <template #cell-dibayar_oleh="{ row }">
           {{ row.paid_by_user?.name || '-' }}
@@ -912,6 +1021,15 @@ onMounted(() => {
 
 .mt-16 {
   margin-top: 16px;
+}
+
+.bukti-thumb {
+  max-width: 80px;
+  max-height: 60px;
+  object-fit: cover;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid var(--color-border);
 }
 
 /* ─── Responsive ────────────────────────────────────────────────────────────── */

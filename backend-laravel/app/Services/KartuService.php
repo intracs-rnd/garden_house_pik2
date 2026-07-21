@@ -337,4 +337,31 @@ class KartuService
 
         return $deactivated;
     }
+
+    /**
+     * Automatically blacklist cards with outstanding payments that exceed
+     * the grace period + 1 day.
+     *
+     * Intended to be triggered by a scheduled task (daily) so cards are
+     * blacklisted automatically even when they are never tapped.
+     *
+     * @return int Number of cards that were blacklisted.
+     */
+    public function blacklistOverdue(): int
+    {
+        $blacklisted = 0;
+
+        $kandidat = Kartu::where('status', Kartu::STATUS_AKTIF)
+            ->where('is_blacklisted', false)
+            ->with('user')
+            ->get();
+
+        foreach ($kandidat as $kartu) {
+            if ($kartu->blacklistIfOutstandingPastDue()) {
+                $blacklisted++;
+            }
+        }
+
+        return $blacklisted;
+    }
 }
