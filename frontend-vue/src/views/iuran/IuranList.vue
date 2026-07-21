@@ -54,11 +54,10 @@ const tagihanColumns = computed(() => {
     { key: 'status', label: 'Status' },
     { key: 'keterangan', label: 'Keterangan' },
   ]
-  // Warga tidak perlu kolom no_kk (sudah fix KK mereka)
   if (isWarga.value) {
-    base.splice(0, 1) // hapus kolom no_kk
+    base.splice(0, 1)
   }
-  base.push({ key: 'aksi', label: 'Aksi', align: 'right' })
+  base.push({ key: 'aksi', label: 'Aksi' }) // hapus align: 'right'
   return base
 })
 
@@ -481,7 +480,7 @@ onMounted(() => {
 
         <!-- Aksi -->
         <template #cell-aksi="{ row }">
-          <div class="table-actions" style="justify-content: flex-end">
+          <div class="table-actions">
             <!-- Warga: tombol bayar kalau belum lunas -->
             <template v-if="isWarga">
               <Button
@@ -499,7 +498,14 @@ onMounted(() => {
             <!-- Admin: edit & hapus -->
             <template v-if="isAdmin">
               <Button variant="secondary" size="sm" @click="openEdit(row)">Edit</Button>
-              <Button variant="danger" size="sm" @click="confirmDelete(row)">Hapus</Button>
+              <Button
+                  v-if="row.status !== 'lunas'"
+                  variant="danger"
+                  size="sm"
+                  @click="confirmDelete(row)"
+              >
+                Hapus
+              </Button>
             </template>
           </div>
         </template>
