@@ -294,6 +294,9 @@ async function handlePay() {
   toast.success('Pembayaran iuran berhasil! Terima kasih.')
   payTarget.value = null
   // Refresh riwayat pembayaran agar bukti baru tampil
+  if (isWarga.value && auth.user?.no_kk) {
+    store.historyFilters.no_kk = auth.user.no_kk
+  }
   try { await store.fetchHistory(1) } catch (e) { /* ignore */ }
 
   // Jika backend mengembalikan daftar kartu yang diaktifkan, sinkronkan status kartu di frontend
@@ -349,8 +352,15 @@ function applyHistoryFilters() { store.fetchHistory(1) }
 
 function switchTab(tab) {
   activeTab.value = tab
-  if (tab === 'riwayat' && store.history.length === 0) {
-    store.fetchHistory(1)
+  if (tab === 'riwayat') {
+    // For warga (non-admin), automatically filter by their own KK
+    if (isWarga.value && auth.user?.no_kk) {
+      store.historyFilters.no_kk = auth.user.no_kk
+    }
+    // Always fetch for warga to ensure they only see their own data
+    if (store.history.length === 0 || isWarga.value) {
+      store.fetchHistory(1)
+    }
   }
 }
 
@@ -367,9 +377,9 @@ onMounted(() => {
         :subtitle="isAdmin ? 'Kelola tagihan iuran dan lihat riwayat pembayaran warga' : 'Lihat dan bayar iuran perumahan keluarga Anda'"
     >
       <template #actions>
-        <Button v-if="isAdmin" variant="secondary" @click="openGenerate">
-          ⚡ Generate Batch
-        </Button>
+<!--        <Button v-if="isAdmin" variant="secondary" @click="openGenerate">-->
+<!--          ⚡ Generate Batch-->
+<!--        </Button>-->
         <Button v-if="isAdmin" variant="primary" @click="openCreate">
           + Tambah Tagihan
         </Button>

@@ -50,9 +50,27 @@ const columns = computed(() => {
   return base
 })
 
+// Active filter count, used to show/hide the "reset filter" affordance
+const activeFilterCount = computed(() => {
+  let count = 0
+  if (store.filters.search) count++
+  if (store.filters.status !== '' && store.filters.status !== undefined && store.filters.status !== null) count++
+  if (store.filters.is_blacklisted !== '' && store.filters.is_blacklisted !== undefined && store.filters.is_blacklisted !== null) count++
+  return count
+})
+
+const blacklistedCount = computed(() => store.items.filter((i) => i.is_blacklisted).length)
+
 const onSearch = debounce(() => store.fetchList(1), 400)
 
 function applyFilters() {
+  store.fetchList(1)
+}
+
+function resetFilters() {
+  store.filters.search = ''
+  store.filters.status = ''
+  store.filters.is_blacklisted = ''
   store.fetchList(1)
 }
 
@@ -199,24 +217,43 @@ onMounted(() => {
 
     <div class="card">
       <div class="card-header toolbar">
-        <input
-            v-model="store.filters.search"
-            type="text"
-            class="form-control search-input"
-            placeholder="Cari nomor kartu, nama, pemilik..."
-            @input="onSearch"
-        />
-        <select v-model="store.filters.status" class="form-control filter-select" @change="applyFilters">
-          <option value="">Semua Status</option>
-          <option v-for="opt in KARTU_STATUS_OPTIONS" :key="opt.value" :value="opt.value">
-            {{ opt.label }}
-          </option>
-        </select>
-        <select v-model="store.filters.is_blacklisted" class="form-control filter-select" @change="applyFilters">
-          <option value="">Semua Kartu</option>
-          <option value="true">Hanya Blacklist</option>
-          <option value="false">Tanpa Blacklist</option>
-        </select>
+        <div class="toolbar-fields">
+          <div class="search-wrap">
+            <svg class="search-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="9" cy="9" r="6.5" stroke="currentColor" stroke-width="1.6" />
+              <path d="M17 17L13.5 13.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+            </svg>
+            <input
+                v-model="store.filters.search"
+                type="text"
+                class="form-control search-input"
+                placeholder="Cari nomor kartu, nama, pemilik..."
+                @input="onSearch"
+            />
+          </div>
+          <select v-model="store.filters.status" class="form-control filter-select" @change="applyFilters">
+            <option value="">Semua Status</option>
+            <option v-for="opt in KARTU_STATUS_OPTIONS" :key="opt.value" :value="opt.value">
+              {{ opt.label }}
+            </option>
+          </select>
+          <select v-model="store.filters.is_blacklisted" class="form-control filter-select" @change="applyFilters">
+            <option value="">Semua Kartu</option>
+            <option value="true">Hanya Blacklist</option>
+            <option value="false">Tanpa Blacklist</option>
+          </select>
+          <button v-if="activeFilterCount > 0" type="button" class="reset-filter" @click="resetFilters">
+            Reset filter
+          </button>
+        </div>
+
+        <div class="toolbar-summary">
+          <span class="summary-total">{{ store.meta.total ?? 0 }} kartu</span>
+          <span v-if="blacklistedCount > 0" class="summary-blacklist">
+            <span class="dot dot-danger"></span>
+            {{ blacklistedCount }} diblacklist
+          </span>
+        </div>
       </div>
 
       <DataTable
@@ -236,44 +273,70 @@ onMounted(() => {
           @change-per-page="changePerPage"
       >
         <template #cell-nama="{ row }">{{ row.nama || '-' }}</template>
-        <template #cell-rfid_tag="{ row }">{{ row.rfid_tag || '-' }}</template>
+        <template #cell-rfid_tag="{ row }">
+          <code v-if="row.rfid_tag" class="rfid-chip">{{ row.rfid_tag }}</code>
+          <span v-else class="text-muted">-</span>
+        </template>
         <template #cell-pemilik="{ row }">{{ row.user?.name || '-' }}</template>
         <template #cell-masa_berlaku="{ row }">
           <template v-if="row.valid_until">
-            {{ formatDateTime(row.valid_from) }} – {{ formatDateTime(row.valid_until) }}
+            <div class="date-range">
+              <span>{{ formatDateTime(row.valid_from) }}</span>
+              <span class="date-range-sep">→</span>
+              <span>{{ formatDateTime(row.valid_until) }}</span>
+            </div>
           </template>
-          <template v-else>-</template>
+          <template v-else><span class="text-muted">-</span></template>
         </template>
         <template #cell-tenggang="{ row }">
-          {{ row.grace_days ? `${row.grace_days} hari` : '-' }}
+          <span v-if="row.grace_days" class="text-muted">{{ row.grace_days }} hari</span>
+          <span v-else class="text-muted">-</span>
         </template>
         <template #cell-iuran="{ row }">
-          <template v-if="row.iuran && row.iuran.exists">
-            <span :class="{ 'text-danger': row.iuran.status === 'terlambat' }">
-              {{ row.iuran.status_label }} · {{ formatDateTime(row.iuran.deadline) || '-' }}
+          <div v-if="row.iuran && row.iuran.exists" class="iuran-cell">
+            <span class="badge" :class="row.iuran.status === 'terlambat' ? 'badge-danger' : 'badge-success'">
+              <span class="badge-dot"></span>
+              {{ row.iuran.status_label }}
             </span>
-          </template>
+            <span v-if="row.iuran.deadline" class="iuran-deadline">
+              <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="2" y="3" width="12" height="11" rx="1.5" stroke="currentColor" stroke-width="1.2"/>
+                <path d="M2 6.5h12" stroke="currentColor" stroke-width="1.2"/>
+                <path d="M5 1.5v3M11 1.5v3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+              </svg>
+              <span>{{ row.iuran.status === 'terlambat' ? 'Lewat' : 'Jatuh tempo' }} {{ formatDateTime(row.iuran.deadline) }}</span>
+            </span>
+          </div>
           <span v-else class="text-muted">Tidak ada</span>
         </template>
         <template #cell-status="{ row }">
           <span class="badge" :class="`badge-${statusMetaWithIuran(row).variant}`">
+            <span class="badge-dot"></span>
             {{ statusMetaWithIuran(row).label }}
           </span>
         </template>
         <template #cell-akses="{ row }">
-          <span class="badge" :class="`badge-${accessMeta(row).variant}`" :title="row.access?.message">
+          <span
+              class="badge badge-outline"
+              :class="`badge-${accessMeta(row).variant}`"
+              :title="row.access?.message"
+          >
+            <span class="badge-dot"></span>
             {{ accessMeta(row).allowed ? 'Boleh' : 'Ditolak' }} · {{ accessMeta(row).label }}
           </span>
         </template>
         <template #cell-blacklist_reason="{ row }">
-          <Button
+          <button
               v-if="row.is_blacklisted && row.blacklist_reason"
-              variant="secondary"
-              size="sm"
+              type="button"
+              class="reason-link"
               @click="openReason(row)"
           >
+            <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M2 3.5C2 2.67 2.67 2 3.5 2h9c.83 0 1.5.67 1.5 1.5v7c0 .83-.67 1.5-1.5 1.5H6l-3 2.5v-2.5h-.5C1.67 12 1 11.33 1 10.5v-7z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
+            </svg>
             Lihat Keterangan
-          </Button>
+          </button>
           <span v-else-if="row.is_blacklisted" class="text-muted">Tanpa keterangan</span>
           <span v-else class="text-muted">-</span>
         </template>
@@ -301,23 +364,35 @@ onMounted(() => {
 
     <!-- Delete confirmation -->
     <Modal :model-value="!!deleteTarget" title="Hapus Kartu Akses" @update:model-value="deleteTarget = null">
-      <p>
-        Yakin ingin menghapus kartu
+      <div class="modal-notice modal-notice-danger">
+        <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M10 2 1.5 17h17L10 2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+          <path d="M10 8v4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          <circle cx="10" cy="14.5" r="0.9" fill="currentColor"/>
+        </svg>
+        <p>Tindakan ini tidak dapat dibatalkan. Kartu akan dihapus secara permanen.</p>
+      </div>
+      <div class="target-box">
+        <span class="target-label">Nomor Kartu</span>
         <strong>{{ deleteTarget?.card_number }}</strong>
-        milik {{ deleteTarget?.user?.name || 'pengguna ini' }}?
-      </p>
+        <span class="target-owner">{{ deleteTarget?.user?.name || 'Tanpa pemilik' }}</span>
+      </div>
       <template #footer>
         <Button variant="secondary" @click="deleteTarget = null">Batal</Button>
-        <Button variant="danger" :loading="deleting" @click="handleDelete">Hapus</Button>
+        <Button variant="danger" :loading="deleting" @click="handleDelete">Hapus Kartu</Button>
       </template>
     </Modal>
 
     <!-- Blacklist confirmation -->
     <Modal :model-value="!!blacklistTarget" title="Blacklist Kartu" @update:model-value="blacklistTarget = null">
-      <p>
-        Blokir kartu <strong>{{ blacklistTarget?.card_number }}</strong> sehingga tidak dapat
-        digunakan untuk tab in / tab out.
+      <p class="modal-lead">
+        Kartu berikut akan diblokir dan tidak dapat digunakan untuk tab in / tab out sampai diaktifkan kembali.
       </p>
+      <div class="target-box">
+        <span class="target-label">Nomor Kartu</span>
+        <strong>{{ blacklistTarget?.card_number }}</strong>
+        <span class="target-owner">{{ blacklistTarget?.user?.name || 'Tanpa pemilik' }}</span>
+      </div>
       <div class="form-group">
         <label class="form-label">Alasan (opsional)</label>
         <input
@@ -329,16 +404,17 @@ onMounted(() => {
       </div>
       <template #footer>
         <Button variant="secondary" @click="blacklistTarget = null">Batal</Button>
-        <Button variant="warning" :loading="blacklisting" @click="handleBlacklist">Blacklist</Button>
+        <Button variant="warning" :loading="blacklisting" @click="handleBlacklist">Blacklist Kartu</Button>
       </template>
     </Modal>
 
     <!-- Blacklist reason detail -->
     <Modal :model-value="!!reasonTarget" title="Keterangan Blacklist" @update:model-value="reasonTarget = null">
-      <p class="reason-meta">
-        Kartu <strong>{{ reasonTarget?.card_number }}</strong>
-        milik {{ reasonTarget?.user?.name || 'pengguna ini' }}
-      </p>
+      <div class="target-box">
+        <span class="target-label">Nomor Kartu</span>
+        <strong>{{ reasonTarget?.card_number }}</strong>
+        <span class="target-owner">{{ reasonTarget?.user?.name || 'Tanpa pemilik' }}</span>
+      </div>
       <div class="reason-box">
         {{ reasonTarget?.blacklist_reason || 'Tanpa keterangan.' }}
       </div>
@@ -350,35 +426,270 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* ===== Toolbar ===== */
 .toolbar {
   display: flex;
-  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   flex-wrap: wrap;
 }
-.search-input {
-  max-width: 280px;
+.toolbar-fields {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
   flex: 1;
+  min-width: 0;
+}
+.search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 220px;
+  max-width: 300px;
+}
+.search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: var(--color-text-muted, #8a8f98);
+  pointer-events: none;
+}
+.search-input {
+  width: 100%;
+  padding-left: 32px;
 }
 .filter-select {
-  max-width: 180px;
+  max-width: 170px;
+  flex-shrink: 0;
 }
-.reason-meta {
-  margin: 0 0 12px;
+.reset-filter {
+  border: none;
+  background: none;
+  color: var(--color-primary, #3b6fe0);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 4px;
+  white-space: nowrap;
+}
+.reset-filter:hover {
+  text-decoration: underline;
+}
+.toolbar-summary {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 13px;
+  color: var(--color-text-muted, #8a8f98);
+  white-space: nowrap;
+}
+.summary-total {
+  font-weight: 600;
+  color: var(--color-text, #1f2328);
+}
+.summary-blacklist {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== Small status dots ===== */
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.dot-danger { background: var(--color-danger, #e5484d); }
+.dot-success { background: var(--color-success, #30a46c); }
+.dot-muted { background: var(--color-text-muted, #8a8f98); }
+
+/* ===== Badges (status / akses) ===== */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+.badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+  flex-shrink: 0;
+}
+.badge-success { background: rgba(48, 164, 108, 0.12); color: var(--color-success, #1a7f4e); }
+.badge-danger { background: rgba(229, 72, 77, 0.12); color: var(--color-danger, #c53030); }
+.badge-warning { background: rgba(245, 166, 35, 0.14); color: var(--color-warning, #b7791f); }
+.badge-muted { background: rgba(138, 143, 152, 0.14); color: var(--color-text-muted, #626871); }
+.badge-outline {
+  background: transparent;
+  border: 1px solid currentColor;
+}
+
+/* ===== RFID chip ===== */
+.rfid-chip {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  background: var(--color-bg, #f5f6f8);
+  border: 1px solid var(--color-border, #e3e5e9);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm, 6px);
+  color: var(--color-text, #1f2328);
+}
+
+/* ===== Date range ===== */
+.date-range {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.date-range-sep {
+  color: var(--color-text-muted, #8a8f98);
+}
+
+/* ===== Iuran cell ===== */
+.iuran-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+}
+.iuran-deadline {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--color-text-muted, #8a8f98);
+  white-space: nowrap;
+}
+.iuran-deadline svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+/* ===== Blacklist reason link ===== */
+.reason-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--color-border, #e3e5e9);
+  background: var(--color-surface, #fff);
+  color: var(--color-text, #1f2328);
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.reason-link svg {
+  width: 14px;
+  height: 14px;
+  color: var(--color-text-muted, #8a8f98);
+}
+.reason-link:hover {
+  background: var(--color-bg, #f5f6f8);
+  border-color: var(--color-text-muted, #c7cad0);
+}
+
+/* ===== Modal content ===== */
+.modal-lead {
+  margin: 0 0 14px;
   font-size: 14px;
-  color: var(--color-text-muted);
+  color: var(--color-text, #1f2328);
+  line-height: 1.6;
+}
+.modal-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm, 8px);
+  margin-bottom: 16px;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.modal-notice p { margin: 0; }
+.modal-notice-danger {
+  background: rgba(229, 72, 77, 0.08);
+  color: var(--color-danger, #c53030);
+}
+.modal-notice svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.target-box {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  background: var(--color-bg, #f5f6f8);
+  border: 1px solid var(--color-border, #e3e5e9);
+  border-radius: var(--radius-sm, 8px);
+  margin-bottom: 16px;
+}
+.target-label {
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted, #8a8f98);
+}
+.target-box strong {
+  font-size: 15px;
+  color: var(--color-text, #1f2328);
+}
+.target-owner {
+  font-size: 13px;
+  color: var(--color-text-muted, #8a8f98);
 }
 .reason-box {
   padding: 12px 14px;
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  background: var(--color-bg, #f5f6f8);
+  border: 1px solid var(--color-border, #e3e5e9);
+  border-radius: var(--radius-sm, 6px);
   font-size: 14px;
   line-height: 1.6;
-  color: var(--color-text);
+  color: var(--color-text, #1f2328);
   white-space: pre-wrap;
   word-break: break-word;
 }
 .text-muted {
-  color: var(--color-text-muted);
+  color: var(--color-text-muted, #8a8f98);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 720px) {
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .toolbar-fields {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .search-wrap,
+  .filter-select {
+    max-width: none;
+  }
+  .toolbar-summary {
+    justify-content: space-between;
+  }
 }
 </style>
