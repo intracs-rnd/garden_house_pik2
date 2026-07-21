@@ -24,6 +24,7 @@ const menu = [
     label: 'Kartu Akses',
     icon: 'M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm-1 5h20M6 15h4',
     feature: 'kartu',
+    adminOnly: true,
   },
   {
     to: { name: 'kartu.gate' },
@@ -80,6 +81,7 @@ const menu = [
 const visibleMenu = computed(() =>
   menu.filter((item) => {
     if (item.superAdmin) return auth.isSuperAdmin
+    if (item.adminOnly) return auth.isAdmin
     if (!item.feature) return true
     if (item.featureLevel === 'manage') return auth.canManage(item.feature)
     return auth.hasFeature(item.feature)
