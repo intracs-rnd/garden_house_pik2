@@ -70,6 +70,12 @@ const filteredItems = computed(() => {
   return store.items.filter((i) => !i.is_deleted)
 })
 
+const searchPlaceholder = computed(() =>
+    store.activeTab === 'deleted'
+        ? 'Cari di kartu yang telah dihapus...'
+        : 'Cari nomor kartu, nama, pemilik...'
+)
+
 const onSearch = debounce(() => store.fetchList(1), 400)
 
 function applyFilters() {
@@ -84,6 +90,7 @@ function resetFilters() {
 }
 
 function switchTab(tab) {
+  if (store.activeTab === tab) return
   store.setActiveTab(tab)
   store.fetchList(1)
 }
@@ -233,20 +240,32 @@ onMounted(() => {
       <!-- Tabs -->
       <div class="tabs-header">
         <button
+            type="button"
             :class="['tab-btn', { active: store.activeTab === 'active' }]"
             @click="switchTab('active')"
         >
+          <svg class="tab-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="1.5" y="3.5" width="13" height="9" rx="1.5" stroke="currentColor" stroke-width="1.2"/>
+            <path d="M1.5 6.5h13" stroke="currentColor" stroke-width="1.2"/>
+          </svg>
           Aktif
         </button>
         <button
-            :class="['tab-btn', { active: store.activeTab === 'deleted' }]"
+            type="button"
+            :class="['tab-btn', 'tab-btn-danger', { active: store.activeTab === 'deleted' }]"
             @click="switchTab('deleted')"
         >
+          <svg class="tab-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+                d="M2.5 4.5h11M6 4.5V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5M6.5 7.5v4M9.5 7.5v4M3.5 4.5l.6 8.1a1 1 0 0 0 1 .9h5.8a1 1 0 0 0 1-.9l.6-8.1"
+                stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"
+            />
+          </svg>
           Dihapus
         </button>
       </div>
 
-      <div class="card-header toolbar" v-if="store.activeTab === 'active'">
+      <div class="card-header toolbar">
         <div class="toolbar-fields">
           <div class="search-wrap">
             <svg class="search-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -257,31 +276,37 @@ onMounted(() => {
                 v-model="store.filters.search"
                 type="text"
                 class="form-control search-input"
-                placeholder="Cari nomor kartu, nama, pemilik..."
+                :placeholder="searchPlaceholder"
                 @input="onSearch"
             />
           </div>
-          <select v-model="store.filters.status" class="form-control filter-select" @change="applyFilters">
-            <option value="">Semua Status</option>
-            <option v-for="opt in KARTU_STATUS_OPTIONS" :key="opt.value" :value="opt.value">
-              {{ opt.label }}
-            </option>
-          </select>
-          <select v-model="store.filters.is_blacklisted" class="form-control filter-select" @change="applyFilters">
-            <option value="">Semua Kartu</option>
-            <option value="true">Hanya Blacklist</option>
-            <option value="false">Tanpa Blacklist</option>
-          </select>
-          <button v-if="activeFilterCount > 0" type="button" class="reset-filter" @click="resetFilters">
-            Reset filter
-          </button>
+          <template v-if="store.activeTab === 'active'">
+            <select v-model="store.filters.status" class="form-control filter-select" @change="applyFilters">
+              <option value="">Semua Status</option>
+              <option v-for="opt in KARTU_STATUS_OPTIONS" :key="opt.value" :value="opt.value">
+                {{ opt.label }}
+              </option>
+            </select>
+            <select v-model="store.filters.is_blacklisted" class="form-control filter-select" @change="applyFilters">
+              <option value="">Semua Kartu</option>
+              <option value="true">Hanya Blacklist</option>
+              <option value="false">Tanpa Blacklist</option>
+            </select>
+            <button v-if="activeFilterCount > 0" type="button" class="reset-filter" @click="resetFilters">
+              Reset filter
+            </button>
+          </template>
         </div>
 
         <div class="toolbar-summary">
           <span class="summary-total">{{ store.meta.total ?? 0 }} kartu</span>
-          <span v-if="blacklistedCount > 0" class="summary-blacklist">
+          <span v-if="store.activeTab === 'active' && blacklistedCount > 0" class="summary-blacklist">
             <span class="dot dot-danger"></span>
             {{ blacklistedCount }} diblacklist
+          </span>
+          <span v-else-if="store.activeTab === 'deleted'" class="summary-deleted">
+            <span class="dot dot-muted"></span>
+            Riwayat kartu yang telah dihapus
           </span>
         </div>
       </div>
@@ -302,9 +327,14 @@ onMounted(() => {
           @change-page="changePage"
           @change-per-page="changePerPage"
       >
-        <template #cell-nama="{ row }">{{ row.nama || '-' }}</template>
+        <template #cell-card_number="{ row }">
+          <span :class="{ 'is-deleted-text': row.is_deleted }">{{ row.card_number }}</span>
+        </template>
+        <template #cell-nama="{ row }">
+          <span :class="{ 'is-deleted-text': row.is_deleted }">{{ row.nama || '-' }}</span>
+        </template>
         <template #cell-rfid_tag="{ row }">
-          <code v-if="row.rfid_tag" class="rfid-chip">{{ row.rfid_tag }}</code>
+          <code v-if="row.rfid_tag" class="rfid-chip" :class="{ 'is-deleted-chip': row.is_deleted }">{{ row.rfid_tag }}</code>
           <span v-else class="text-muted">-</span>
         </template>
         <template #cell-pemilik="{ row }">{{ row.user?.name || '-' }}</template>
@@ -340,13 +370,22 @@ onMounted(() => {
           <span v-else class="text-muted">Tidak ada</span>
         </template>
         <template #cell-status="{ row }">
-          <span class="badge" :class="`badge-${statusMetaWithIuran(row).variant}`">
+          <span v-if="row.is_deleted" class="badge badge-muted">
+            <span class="badge-dot"></span>
+            Dihapus
+          </span>
+          <span v-else class="badge" :class="`badge-${statusMetaWithIuran(row).variant}`">
             <span class="badge-dot"></span>
             {{ statusMetaWithIuran(row).label }}
           </span>
         </template>
         <template #cell-akses="{ row }">
+          <span v-if="row.is_deleted" class="badge badge-outline badge-muted">
+            <span class="badge-dot"></span>
+            Tidak berlaku
+          </span>
           <span
+              v-else
               class="badge badge-outline"
               :class="`badge-${accessMeta(row).variant}`"
               :title="row.access?.message"
@@ -460,12 +499,17 @@ onMounted(() => {
 .tabs-header {
   display: flex;
   align-items: center;
+  gap: 4px;
+  padding: 0 12px;
   border-bottom: 1px solid var(--color-border, #e3e5e9);
   background: var(--color-surface, #fff);
 }
 .tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   flex: 0 0 auto;
-  padding: 12px 16px;
+  padding: 12px 14px;
   border: none;
   background: transparent;
   color: var(--color-text-muted, #8a8f98);
@@ -477,12 +521,22 @@ onMounted(() => {
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
 }
+.tab-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
 .tab-btn:hover {
   color: var(--color-text, #1f2328);
 }
 .tab-btn.active {
   color: var(--color-primary, #3b6fe0);
   border-bottom-color: var(--color-primary, #3b6fe0);
+}
+.tab-btn-danger.active {
+  color: var(--color-danger, #c53030);
+  border-bottom-color: var(--color-danger, #c53030);
 }
 
 /* ===== Toolbar ===== */
@@ -550,7 +604,8 @@ onMounted(() => {
   font-weight: 600;
   color: var(--color-text, #1f2328);
 }
-.summary-blacklist {
+.summary-blacklist,
+.summary-deleted {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -605,6 +660,14 @@ onMounted(() => {
   padding: 2px 8px;
   border-radius: var(--radius-sm, 6px);
   color: var(--color-text, #1f2328);
+}
+.is-deleted-chip {
+  opacity: 0.6;
+}
+.is-deleted-text {
+  color: var(--color-text-muted, #8a8f98);
+  text-decoration: line-through;
+  text-decoration-color: var(--color-border, #d7dae0);
 }
 
 /* ===== Date range ===== */
