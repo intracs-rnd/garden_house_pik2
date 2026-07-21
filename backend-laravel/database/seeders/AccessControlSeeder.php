@@ -46,6 +46,7 @@ class AccessControlSeeder extends Seeder
             ],
             'user' => [
                 'dashboard' => RoleFeaturePermission::ACCESS_VIEW,
+                'kartu'     => RoleFeaturePermission::ACCESS_VIEW,
             ],
         ];
 

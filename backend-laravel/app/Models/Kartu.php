@@ -148,6 +148,14 @@ class Kartu extends Model
     }
 
     /**
+     * Access card (card reader device record) linked to this kartu.
+     */
+    public function card(): HasMany
+    {
+        return $this->hasMany(Card::class, 'kartus_id');
+    }
+
+    /**
      * Scope a query to a given status.
      */
     public function scopeStatus($query, ?int $status)
