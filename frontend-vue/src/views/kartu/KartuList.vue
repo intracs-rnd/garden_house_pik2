@@ -39,10 +39,10 @@ const columns = computed(() => {
     { key: 'pemilik', label: 'Pemilik' },
     { key: 'masa_berlaku', label: 'Masa Berlaku' },
     { key: 'tenggang', label: 'Tenggang' },
-  { key: 'iuran', label: 'Iuran' },
-  { key: 'status', label: 'Status' },
-  { key: 'akses', label: 'Akses' },
-  { key: 'blacklist_reason', label: 'Keterangan Blacklist' },
+    { key: 'iuran', label: 'Iuran' },
+    { key: 'status', label: 'Status' },
+    { key: 'akses', label: 'Akses' },
+    { key: 'blacklist_reason', label: 'Keterangan Blacklist' },
   ]
   if (auth.canManage('kartu')) {
     base.push({ key: 'aksi', label: 'Aksi', align: 'right' })
@@ -69,6 +69,30 @@ function statusMeta(status) {
 }
 
 function accessMeta(item) {
+  // New policy: if there's an outstanding payment (iuran.status === 'terlambat')
+  // but the current date is still within the grace period (row.grace_days after deadline),
+  // access should be allowed with reason "Masa tenggang". If grace expired, access denied with "Ada tunggakan".
+  const iuran = item.iuran
+  const graceDays = Number(item.grace_days || 0)
+  if (iuran && iuran.exists && iuran.status === 'terlambat') {
+    const deadline = iuran.deadline ? new Date(iuran.deadline) : null
+    if (deadline && graceDays > 0) {
+      const graceEnd = new Date(deadline)
+      graceEnd.setDate(graceEnd.getDate() + graceDays)
+      const now = new Date()
+      if (now <= graceEnd) {
+        const meta = kartuReasonMeta('grace_period')
+        return { allowed: true, label: meta.label, variant: meta.variant }
+      }
+      // grace expired => deny due to outstanding payment
+      const meta = kartuReasonMeta('outstanding_payment')
+      return { allowed: false, label: meta.label, variant: meta.variant }
+    }
+    // no deadline/grace info -> deny by default for outstanding payment
+    const meta = kartuReasonMeta('outstanding_payment')
+    return { allowed: false, label: meta.label, variant: meta.variant }
+  }
+  // fallback to gate-provided decision
   const reason = item.access?.reason
   const meta = kartuReasonMeta(reason)
   return {
@@ -76,6 +100,25 @@ function accessMeta(item) {
     label: meta.label,
     variant: item.access?.allowed ? meta.variant : 'danger',
   }
+}
+
+// Compute status display taking into account expired grace -> show Non Aktif when grace passed
+function statusMetaWithIuran(row) {
+  const iuran = row.iuran
+  const graceDays = Number(row.grace_days || 0)
+  if (iuran && iuran.exists && iuran.status === 'terlambat') {
+    const deadline = iuran.deadline ? new Date(iuran.deadline) : null
+    if (deadline && graceDays > 0) {
+      const graceEnd = new Date(deadline)
+      graceEnd.setDate(graceEnd.getDate() + graceDays)
+      const now = new Date()
+      if (now > graceEnd) {
+        // return Non Aktif
+        return KARTU_STATUS[2] || { label: 'Non Aktif', variant: 'muted' }
+      }
+    }
+  }
+  return statusMeta(row.status)
 }
 
 function confirmDelete(item) {
@@ -94,9 +137,9 @@ async function handleDelete() {
     toast.success('Kartu akses berhasil dihapus.')
     deleteTarget.value = null
     const page =
-      store.items.length === 1 && store.meta.current_page > 1
-        ? store.meta.current_page - 1
-        : store.meta.current_page
+        store.items.length === 1 && store.meta.current_page > 1
+            ? store.meta.current_page - 1
+            : store.meta.current_page
     store.fetchList(page)
   } catch (error) {
     toast.error(extractErrorMessage(error, 'Gagal menghapus kartu akses.'))
@@ -157,11 +200,11 @@ onMounted(() => {
     <div class="card">
       <div class="card-header toolbar">
         <input
-          v-model="store.filters.search"
-          type="text"
-          class="form-control search-input"
-          placeholder="Cari nomor kartu, nama, pemilik..."
-          @input="onSearch"
+            v-model="store.filters.search"
+            type="text"
+            class="form-control search-input"
+            placeholder="Cari nomor kartu, nama, pemilik..."
+            @input="onSearch"
         />
         <select v-model="store.filters.status" class="form-control filter-select" @change="applyFilters">
           <option value="">Semua Status</option>
@@ -177,20 +220,20 @@ onMounted(() => {
       </div>
 
       <DataTable
-        :columns="columns"
-        :rows="store.items"
-        :loading="store.loading"
-        :refreshing="store.refreshing"
-        :error="store.error"
-        loading-text="Memuat kartu akses..."
-        empty-text="Belum ada data kartu akses."
-        :page="store.meta.current_page"
-        :per-page="store.meta.per_page"
-        :total="store.meta.total"
-        :last-page="store.meta.last_page"
-        :per-page-options="[10, 15, 25, 50, 100]"
-        @change-page="changePage"
-        @change-per-page="changePerPage"
+          :columns="columns"
+          :rows="store.items"
+          :loading="store.loading"
+          :refreshing="store.refreshing"
+          :error="store.error"
+          loading-text="Memuat kartu akses..."
+          empty-text="Belum ada data kartu akses."
+          :page="store.meta.current_page"
+          :per-page="store.meta.per_page"
+          :total="store.meta.total"
+          :last-page="store.meta.last_page"
+          :per-page-options="[10, 15, 25, 50, 100]"
+          @change-page="changePage"
+          @change-per-page="changePerPage"
       >
         <template #cell-nama="{ row }">{{ row.nama || '-' }}</template>
         <template #cell-rfid_tag="{ row }">{{ row.rfid_tag || '-' }}</template>
@@ -213,8 +256,8 @@ onMounted(() => {
           <span v-else class="text-muted">Tidak ada</span>
         </template>
         <template #cell-status="{ row }">
-          <span class="badge" :class="`badge-${statusMeta(row.status).variant}`">
-            {{ statusMeta(row.status).label }}
+          <span class="badge" :class="`badge-${statusMetaWithIuran(row).variant}`">
+            {{ statusMetaWithIuran(row).label }}
           </span>
         </template>
         <template #cell-akses="{ row }">
@@ -224,10 +267,10 @@ onMounted(() => {
         </template>
         <template #cell-blacklist_reason="{ row }">
           <Button
-            v-if="row.is_blacklisted && row.blacklist_reason"
-            variant="secondary"
-            size="sm"
-            @click="openReason(row)"
+              v-if="row.is_blacklisted && row.blacklist_reason"
+              variant="secondary"
+              size="sm"
+              @click="openReason(row)"
           >
             Lihat Keterangan
           </Button>
@@ -240,10 +283,10 @@ onMounted(() => {
               <Button variant="secondary" size="sm">Edit</Button>
             </RouterLink>
             <Button
-              v-if="row.is_blacklisted || row.status === 3"
-              variant="secondary"
-              size="sm"
-              @click="handleClearBlacklist(row)"
+                v-if="row.is_blacklisted || row.status === 3"
+                variant="secondary"
+                size="sm"
+                @click="handleClearBlacklist(row)"
             >
               Aktifkan
             </Button>
@@ -278,10 +321,10 @@ onMounted(() => {
       <div class="form-group">
         <label class="form-label">Alasan (opsional)</label>
         <input
-          v-model="blacklistReason"
-          type="text"
-          class="form-control"
-          placeholder="Contoh: Tunggakan pembayaran belum diselesaikan"
+            v-model="blacklistReason"
+            type="text"
+            class="form-control"
+            placeholder="Contoh: Tunggakan pembayaran belum diselesaikan"
         />
       </div>
       <template #footer>

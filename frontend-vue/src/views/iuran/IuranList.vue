@@ -2,6 +2,7 @@
 import { onMounted, ref, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useIuranStore } from '@/stores/iuran'
+import { useKartuStore } from '@/stores/kartu'
 import { useToast } from '@/composables/useToast'
 import { extractErrorMessage } from '@/utils/helper'
 import { formatDate } from '@/utils/formatter'
@@ -12,6 +13,7 @@ import Modal from '@/components/common/Modal.vue'
 
 const auth = useAuthStore()
 const store = useIuranStore()
+const kartuStore = useKartuStore()
 const toast = useToast()
 
 // ─── Role helpers ─────────────────────────────────────────────────────────────
@@ -204,9 +206,23 @@ async function handlePay() {
     if (payForm.value.rekening_tujuan) fd.append('rekening_tujuan', payForm.value.rekening_tujuan)
     if (payForm.value.bukti_file) fd.append('bukti_bayar', payForm.value.bukti_file)
 
-    await store.pay(payTarget.value.id, fd)
+    const res = await store.pay(payTarget.value.id, fd)
     toast.success('Pembayaran iuran berhasil! Terima kasih.')
     payTarget.value = null
+
+    // Jika backend mengembalikan daftar kartu yang diaktifkan, sinkronkan status kartu di frontend
+    if (res && Array.isArray(res.activated_kartu_ids) && res.activated_kartu_ids.length > 0) {
+      try {
+        const kartuApi = (await import('@/api/kartu')).default
+        for (const id of res.activated_kartu_ids) {
+          try { await kartuApi.update(id, { status: 1 }) } catch (e) { /* ignore per-card failure */ }
+        }
+        // Refresh kartu list UI
+        kartuStore.fetchList(1)
+      } catch (e) {
+        // Ignore sync errors, not critical for payment flow
+      }
+    }
   } catch (error) {
     // Prefer showing server-side validation message when available
     const serverErrors = error?.response?.data?.errors
