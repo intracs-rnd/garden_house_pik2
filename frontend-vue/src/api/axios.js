@@ -31,6 +31,12 @@ export function setToken(token) {
 
 // Attach the bearer token to every outgoing request.
 api.interceptors.request.use((config) => {
+  // If payload is FormData, let browser/axios set Content-Type (including boundary)
+  if (config && config.data && typeof FormData !== 'undefined' && config.data instanceof FormData) {
+    if (config.headers && config.headers['Content-Type']) {
+      delete config.headers['Content-Type']
+    }
+  }
   const token = getToken()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
