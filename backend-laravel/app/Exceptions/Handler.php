@@ -153,7 +153,7 @@ class Handler extends ExceptionHandler
         if ($e instanceof ValidationException) {
             return response()->json([
                 'success' => false,
-                'message' => 'Username dan password anda salah.',
+                'message' => 'Validation failed.',
                 'errors'  => $e->errors(),
             ], 422);
         }

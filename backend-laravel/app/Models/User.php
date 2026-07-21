@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use App\Models\IuranPerumahan;
 
 class User extends Authenticatable
 {
@@ -94,11 +95,31 @@ class User extends Authenticatable
     }
 
     /**
+     * Riwayat pembayaran iuran yang dilakukan oleh user ini.
+     */
+    public function iuranPembayaran(): HasMany
+    {
+        return $this->hasMany(IuranPembayaran::class, 'paid_by_user_id');
+    }
+
+    /**
      * Determine whether the user has unpaid dues (tunggakan).
+     *
+     * For gate access purposes we only consider an outstanding condition when
+     * there are overdue invoices (status == 'terlambat'). Future invoices
+     * (belum_bayar with a future deadline) should not block access. The
+     * outstanding_balance field is retained for accounting but does not by
+     * itself deny gate access.
      */
     public function hasOutstanding(): bool
     {
-        return (float) $this->outstanding_balance > 0;
+        if (empty($this->no_kk)) {
+           return false;
+        }
+
+        return IuranPerumahan::where('no_kk', $this->no_kk)
+           ->where('status', IuranPerumahan::STATUS_TERLAMBAT)
+           ->exists();
     }
 
     /**

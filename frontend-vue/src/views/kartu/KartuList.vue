@@ -39,9 +39,10 @@ const columns = computed(() => {
     { key: 'pemilik', label: 'Pemilik' },
     { key: 'masa_berlaku', label: 'Masa Berlaku' },
     { key: 'tenggang', label: 'Tenggang' },
-    { key: 'status', label: 'Status' },
-    { key: 'akses', label: 'Akses' },
-    { key: 'blacklist_reason', label: 'Keterangan Blacklist' },
+  { key: 'iuran', label: 'Iuran' },
+  { key: 'status', label: 'Status' },
+  { key: 'akses', label: 'Akses' },
+  { key: 'blacklist_reason', label: 'Keterangan Blacklist' },
   ]
   if (auth.canManage('kartu')) {
     base.push({ key: 'aksi', label: 'Aksi', align: 'right' })
@@ -202,6 +203,14 @@ onMounted(() => {
         </template>
         <template #cell-tenggang="{ row }">
           {{ row.grace_days ? `${row.grace_days} hari` : '-' }}
+        </template>
+        <template #cell-iuran="{ row }">
+          <template v-if="row.iuran && row.iuran.exists">
+            <span :class="{ 'text-danger': row.iuran.status === 'terlambat' }">
+              {{ row.iuran.status_label }} · {{ formatDateTime(row.iuran.deadline) || '-' }}
+            </span>
+          </template>
+          <span v-else class="text-muted">Tidak ada</span>
         </template>
         <template #cell-status="{ row }">
           <span class="badge" :class="`badge-${statusMeta(row.status).variant}`">

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use App\Models\IuranPerumahan;
 
 class Kartu extends Model
 {
@@ -113,7 +114,8 @@ class Kartu extends Model
     protected $appends = [
         'status_label',
         'access',
-    ];
+            'iuran',
+        ];
 
     /**
      * The "booted" method of the model.
@@ -273,10 +275,9 @@ class Kartu extends Model
             return $this->decision(false, self::REASON_INACTIVE);
         }
 
-        // TODO: Re-enable outstanding payment check when payment system is ready
-        // if ($this->hasOutstanding()) {
-        //     return $this->decision(false, self::REASON_OUTSTANDING);
-        // }
+        if ($this->hasOutstanding()) {
+            return $this->decision(false, self::REASON_OUTSTANDING);
+        }
 
         if ($this->isInGracePeriod()) {
             return $this->decision(true, self::REASON_GRACE_PERIOD);
@@ -351,6 +352,46 @@ class Kartu extends Model
     public function getAccessAttribute(): array
     {
         return $this->evaluateAccess();
+    }
+
+    /**
+     * Current outstanding iuran information for the card owner's KK (if available).
+     *
+     * Returns array with keys: exists (bool), periode, deadline (ISO date), status, status_label
+     */
+    public function getIuranAttribute(): array
+    {
+        if (! $this->user || empty($this->user->no_kk)) {
+            return ['exists' => false];
+        }
+
+        $noKk = $this->user->no_kk;
+
+        // Cache per-request to avoid N+1 queries when serializing many cards
+        static $iuranCache = [];
+
+        if (array_key_exists($noKk, $iuranCache)) {
+            $iuran = $iuranCache[$noKk];
+        } else {
+            $iuran = IuranPerumahan::where('no_kk', $noKk)
+                ->whereIn('status', [IuranPerumahan::STATUS_BELUM_BAYAR, IuranPerumahan::STATUS_TERLAMBAT])
+                ->orderBy('deadline', 'asc')
+                ->first();
+
+            $iuranCache[$noKk] = $iuran;
+        }
+
+        if (! $iuran) {
+            return ['exists' => false];
+        }
+
+        return [
+            'exists' => true,
+            'periode' => $iuran->periode,
+            'deadline' => $iuran->deadline ? $iuran->deadline->toDateString() : null,
+            'status' => $iuran->status,
+            'status_label' => $iuran->status_label,
+        ];
     }
 
     /*

@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ErrorLogController;
 use App\Http\Controllers\Api\GateController;
 use App\Http\Controllers\Api\ImageController;
+use App\Http\Controllers\Api\IuranController;
 use App\Http\Controllers\Api\KartuController;
 use App\Http\Controllers\Api\KendaraanController;
 use App\Http\Controllers\Api\LogRfidConnController;
@@ -165,4 +166,21 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/transactions', [TransactionController::class, 'store']);
     Route::match(['put', 'patch'], '/transactions/{id}', [TransactionController::class, 'update']);
     Route::delete('/transactions/{id}', [TransactionController::class, 'destroy']);
+
+    // ---- Iuran Perumahan ----
+    // Semua user terautentikasi dapat melihat tagihan (warga: KK sendiri, admin: semua).
+    Route::get('/iuran', [IuranController::class, 'index']);
+    Route::get('/iuran/history', [IuranController::class, 'history']);
+    Route::get('/iuran/{id}', [IuranController::class, 'show']);
+
+    // Warga membayar tagihan iuran KK-nya sendiri.
+    Route::post('/iuran/{id}/pay', [IuranController::class, 'pay']);
+
+    // Admin / Super Admin: kelola tagihan dan generate batch per periode.
+    Route::middleware('superadmin')->group(function () {
+        Route::post('/iuran', [IuranController::class, 'store']);
+        Route::put('/iuran/{id}', [IuranController::class, 'update']);
+        Route::delete('/iuran/{id}', [IuranController::class, 'destroy']);
+        Route::post('/iuran/generate', [IuranController::class, 'generate']);
+    });
 });

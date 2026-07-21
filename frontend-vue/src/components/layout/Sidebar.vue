@@ -38,6 +38,12 @@ const menu = [
     feature: 'users',
   },
   {
+    to: { name: 'iuran.index' },
+    label: 'Iuran Perumahan',
+    icon: 'M9 14l-4-4 4-4m-4 4h15M5 19h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2z',
+    feature: null,
+  },
+  {
     to: { name: 'reports.index' },
     label: 'Laporan',
     icon: 'M9 17v-6m3 6V7m3 10v-3M6 3h9l5 5v11a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z',

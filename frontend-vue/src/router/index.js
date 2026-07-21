@@ -87,6 +87,13 @@ const routes = [
         meta: { title: 'Edit Kartu Akses', feature: 'kartu', featureLevel: 'manage' },
         props: true,
       },
+      // Iuran Perumahan — semua role yang login dapat akses
+      {
+        path: 'iuran',
+        name: 'iuran.index',
+        component: () => import('@/views/iuran/IuranList.vue'),
+        meta: { title: 'Iuran Perumahan' },
+      },
       // Laporan (rekap & detail transaksi: harian / bulanan / tahunan, PDF)
       {
         path: 'laporan',
