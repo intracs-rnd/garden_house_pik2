@@ -23,10 +23,12 @@ class KartuController extends Controller
     public function index(Request $request): JsonResponse
     {
         $filters = $request->only(['search', 'status', 'user_id', 'is_blacklisted']);
+        $includeDeleted = filter_var($request->query('include_deleted', false), FILTER_VALIDATE_BOOLEAN);
 
         $kartus = $this->kartuService->list(
             $filters,
-            (int) $request->query('per_page', 15)
+            (int) $request->query('per_page', 15),
+            $includeDeleted
         );
 
         return $this->paginatedResponse($kartus, 'Access cards retrieved successfully.');

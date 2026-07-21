@@ -44,7 +44,7 @@ const columns = computed(() => {
     { key: 'akses', label: 'Akses' },
     { key: 'blacklist_reason', label: 'Keterangan Blacklist' },
   ]
-  if (auth.canManage('kartu')) {
+  if (auth.canManage('kartu') && store.activeTab === 'active') {
     base.push({ key: 'aksi', label: 'Aksi', align: 'right' })
   }
   return base
@@ -52,6 +52,7 @@ const columns = computed(() => {
 
 // Active filter count, used to show/hide the "reset filter" affordance
 const activeFilterCount = computed(() => {
+  if (store.activeTab !== 'active') return 0
   let count = 0
   if (store.filters.search) count++
   if (store.filters.status !== '' && store.filters.status !== undefined && store.filters.status !== null) count++
@@ -60,6 +61,14 @@ const activeFilterCount = computed(() => {
 })
 
 const blacklistedCount = computed(() => store.items.filter((i) => i.is_blacklisted).length)
+
+// Filtered items based on active tab
+const filteredItems = computed(() => {
+  if (store.activeTab === 'deleted') {
+    return store.items.filter((i) => i.is_deleted)
+  }
+  return store.items.filter((i) => !i.is_deleted)
+})
 
 const onSearch = debounce(() => store.fetchList(1), 400)
 
@@ -71,6 +80,11 @@ function resetFilters() {
   store.filters.search = ''
   store.filters.status = ''
   store.filters.is_blacklisted = ''
+  store.fetchList(1)
+}
+
+function switchTab(tab) {
+  store.setActiveTab(tab)
   store.fetchList(1)
 }
 
@@ -216,7 +230,23 @@ onMounted(() => {
     </PageHeader>
 
     <div class="card">
-      <div class="card-header toolbar">
+      <!-- Tabs -->
+      <div class="tabs-header">
+        <button
+            :class="['tab-btn', { active: store.activeTab === 'active' }]"
+            @click="switchTab('active')"
+        >
+          Aktif
+        </button>
+        <button
+            :class="['tab-btn', { active: store.activeTab === 'deleted' }]"
+            @click="switchTab('deleted')"
+        >
+          Dihapus
+        </button>
+      </div>
+
+      <div class="card-header toolbar" v-if="store.activeTab === 'active'">
         <div class="toolbar-fields">
           <div class="search-wrap">
             <svg class="search-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -258,12 +288,12 @@ onMounted(() => {
 
       <DataTable
           :columns="columns"
-          :rows="store.items"
+          :rows="filteredItems"
           :loading="store.loading"
           :refreshing="store.refreshing"
           :error="store.error"
           loading-text="Memuat kartu akses..."
-          empty-text="Belum ada data kartu akses."
+          :empty-text="store.activeTab === 'deleted' ? 'Belum ada kartu yang dihapus.' : 'Belum ada data kartu akses.'"
           :page="store.meta.current_page"
           :per-page="store.meta.per_page"
           :total="store.meta.total"
@@ -426,6 +456,35 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* ===== Tabs ===== */
+.tabs-header {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--color-border, #e3e5e9);
+  background: var(--color-surface, #fff);
+}
+.tab-btn {
+  flex: 0 0 auto;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted, #8a8f98);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.15s ease;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.tab-btn:hover {
+  color: var(--color-text, #1f2328);
+}
+.tab-btn.active {
+  color: var(--color-primary, #3b6fe0);
+  border-bottom-color: var(--color-primary, #3b6fe0);
+}
+
 /* ===== Toolbar ===== */
 .toolbar {
   display: flex;

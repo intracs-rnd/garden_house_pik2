@@ -15,6 +15,8 @@ export const useKartuStore = defineStore('kartu', {
     refreshing: false,
     saving: false,
     error: null,
+    // Tab filter: 'active' or 'deleted'
+    activeTab: 'active',
     // Cache of already-fetched pages keyed by the active filters + per_page +
     // page so navigating back to a page does not trigger a heavy full reload.
     pageCache: new Map(),
@@ -23,7 +25,8 @@ export const useKartuStore = defineStore('kartu', {
   actions: {
     _cacheKey(page) {
       const { search, status, is_blacklisted } = this.filters
-      return `${search || ''}|${status || ''}|${is_blacklisted}|${this.meta.per_page}|${page}`
+      const includeDeleted = this.activeTab === 'deleted' ? '1' : '0'
+      return `${search || ''}|${status || ''}|${is_blacklisted}|${this.meta.per_page}|${page}|${includeDeleted}`
     },
 
     _requestParams(page) {
@@ -34,6 +37,7 @@ export const useKartuStore = defineStore('kartu', {
         status: this.filters.status || undefined,
         is_blacklisted:
           this.filters.is_blacklisted !== '' ? this.filters.is_blacklisted : undefined,
+        include_deleted: this.activeTab === 'deleted' ? true : undefined,
       }
     },
 
@@ -207,6 +211,13 @@ export const useKartuStore = defineStore('kartu', {
     resetFilters() {
       this.filters = { search: '', status: '', is_blacklisted: '' }
       this.clearCache()
+    },
+
+    setActiveTab(tab) {
+      if (this.activeTab !== tab) {
+        this.activeTab = tab
+        this.clearCache()
+      }
     },
   },
 })

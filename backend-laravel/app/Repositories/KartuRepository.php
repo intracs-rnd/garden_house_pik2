@@ -13,10 +13,21 @@ class KartuRepository extends BaseRepository
 
     /**
      * Paginate cards with optional filters and eager-loaded owner.
+     * 
+     * @param  array<string, mixed>  $filters
+     * @param  int  $perPage
+     * @param  bool  $includeDeleted  Include soft-deleted cards (is_deleted = true)
      */
-    public function filter(array $filters = [], int $perPage = 15)
+    public function filter(array $filters = [], int $perPage = 15, bool $includeDeleted = false)
     {
-        return $this->model->newQuery()
+        $query = $this->model->newQuery();
+
+        // Include deleted cards if requested
+        if ($includeDeleted) {
+            $query->withDeleted();
+        }
+
+        return $query
             ->with('user')
             ->when($filters['search'] ?? null, function ($query, $search) {
                 $query->where(function ($q) use ($search) {

@@ -25,10 +25,14 @@ class KartuService
 
     /**
      * Paginated, filterable list of cards.
+     * 
+     * @param  array<string, mixed>  $filters
+     * @param  int  $perPage
+     * @param  bool  $includeDeleted  Include soft-deleted cards (is_deleted = true)
      */
-    public function list(array $filters = [], int $perPage = 15)
+    public function list(array $filters = [], int $perPage = 15, bool $includeDeleted = false)
     {
-        return $this->kartuRepository->filter($filters, $perPage);
+        return $this->kartuRepository->filter($filters, $perPage, $includeDeleted);
     }
 
     /**
