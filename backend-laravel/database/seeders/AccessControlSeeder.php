@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Feature;
 use App\Models\RoleFeaturePermission;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class AccessControlSeeder extends Seeder
 {
@@ -23,11 +24,14 @@ class AccessControlSeeder extends Seeder
             ['key' => 'kartu',          'label' => 'Kartu Akses',            'sort_order' => 2],
             ['key' => 'kartu_gate',     'label' => 'Simulasi Gate',          'sort_order' => 3],
             ['key' => 'users',          'label' => 'Data Warga',             'sort_order' => 4],
-            ['key' => 'kendaraan',      'label' => 'Kendaraan',              'sort_order' => 5],
-            ['key' => 'reports',        'label' => 'Laporan',                'sort_order' => 6],
-            ['key' => 'access_control', 'label' => 'Pengaturan Hak Akses',   'sort_order' => 7],
-            ['key' => 'cameras',        'label' => 'Pengaturan Kamera',      'sort_order' => 8],
+            ['key' => 'iuran',          'label' => 'Iuran Perumahan',       'sort_order' => 5],
+            ['key' => 'kendaraan',      'label' => 'Kendaraan',              'sort_order' => 6],
+            ['key' => 'reports',        'label' => 'Laporan',                'sort_order' => 7],
+            ['key' => 'access_control', 'label' => 'Pengaturan Hak Akses',   'sort_order' => 8],
+            ['key' => 'cameras',        'label' => 'Pengaturan Kamera',      'sort_order' => 9],
         ];
+
+        DB::statement("SELECT setval(pg_get_serial_sequence('features','id'), (SELECT COALESCE(MAX(id), 1) FROM features))");
 
         foreach ($features as $feature) {
             Feature::updateOrCreate(['key' => $feature['key']], $feature);
@@ -41,12 +45,14 @@ class AccessControlSeeder extends Seeder
                 'dashboard' => RoleFeaturePermission::ACCESS_VIEW,
                 'kartu'     => RoleFeaturePermission::ACCESS_VIEW,
                 'users'     => RoleFeaturePermission::ACCESS_VIEW,
+                'iuran'     => RoleFeaturePermission::ACCESS_VIEW,
                 'kendaraan' => RoleFeaturePermission::ACCESS_VIEW,
                 'reports'   => RoleFeaturePermission::ACCESS_VIEW,
             ],
             'user' => [
                 'dashboard' => RoleFeaturePermission::ACCESS_VIEW,
                 'kartu'     => RoleFeaturePermission::ACCESS_VIEW,
+                'iuran'     => RoleFeaturePermission::ACCESS_VIEW,
             ],
         ];
 

@@ -19,6 +19,9 @@ const toast = useToast()
 // ─── Role helpers ─────────────────────────────────────────────────────────────
 const isAdmin = computed(() => auth.isAdmin)
 const isWarga = computed(() => !auth.isAdmin)
+// Feature-level permissions (tied to AccessControl)
+const canViewIuran = computed(() => auth.hasFeature('iuran'))
+const canManageIuran = computed(() => auth.canManage('iuran'))
 
 // ─── Tab aktif: 'tagihan' | 'riwayat' ────────────────────────────────────────
 const activeTab = ref('tagihan')
@@ -157,6 +160,10 @@ function getBuktiUrl(row) {
 
 // ─── Form buat/edit tagihan (admin) ──────────────────────────────────────────
 function openCreate() {
+  if (!canManageIuran.value) {
+    toast.error('Anda tidak memiliki izin untuk membuat tagihan.')
+    return
+  }
   editTarget.value = null
   form.value = { no_kk: '', periode: currentPeriode(), jumlah: '', deadline: '', keterangan: '' }
   formErrors.value = {}
@@ -164,6 +171,10 @@ function openCreate() {
 }
 
 function openEdit(item) {
+  if (!canManageIuran.value) {
+    toast.error('Anda tidak memiliki izin untuk mengedit tagihan.')
+    return
+  }
   editTarget.value = item
   form.value = {
     no_kk: item.no_kk,
@@ -177,6 +188,10 @@ function openEdit(item) {
 }
 
 async function handleSave() {
+  if (!canManageIuran.value) {
+    toast.error('Anda tidak memiliki izin untuk melakukan aksi ini.')
+    return
+  }
   formErrors.value = {}
   try {
     if (editTarget.value) {
@@ -198,10 +213,18 @@ async function handleSave() {
 
 // ─── Hapus tagihan (admin) ────────────────────────────────────────────────────
 function confirmDelete(item) {
+  if (!canManageIuran.value) {
+    toast.error('Anda tidak memiliki izin untuk menghapus tagihan.')
+    return
+  }
   deleteTarget.value = item
 }
 
 async function handleDelete() {
+  if (!canManageIuran.value) {
+    toast.error('Anda tidak memiliki izin untuk melakukan aksi ini.')
+    return
+  }
   if (!deleteTarget.value) return
   deleting.value = true
   try {
@@ -217,12 +240,20 @@ async function handleDelete() {
 
 // ─── Generate batch (admin) ───────────────────────────────────────────────────
 function openGenerate() {
+  if (!canManageIuran.value) {
+    toast.error('Anda tidak memiliki izin untuk melakukan aksi ini.')
+    return
+  }
   generateForm.value = { periode: currentPeriode(), jumlah: '', deadline: '', keterangan: '' }
   generateResult.value = null
   generateModal.value = true
 }
 
 async function handleGenerate() {
+  if (!canManageIuran.value) {
+    toast.error('Anda tidak memiliki izin untuk melakukan aksi ini.')
+    return
+  }
   generateResult.value = null
   try {
     const res = await store.generate(generateForm.value)
@@ -380,7 +411,7 @@ onMounted(() => {
 <!--        <Button v-if="isAdmin" variant="secondary" @click="openGenerate">-->
 <!--          ⚡ Generate Batch-->
 <!--        </Button>-->
-        <Button v-if="isAdmin" variant="primary" @click="openCreate">
+<Button v-if="canManageIuran" variant="primary" @click="openCreate">
           + Tambah Tagihan
         </Button>
       </template>
@@ -505,8 +536,8 @@ onMounted(() => {
               <span v-else class="paid-badge">✅ Lunas</span>
             </template>
 
-            <!-- Admin: edit & hapus -->
-            <template v-if="isAdmin">
+            <!-- Admin: edit & hapus (requires manage permission) -->
+            <template v-if="canManageIuran">
               <Button variant="secondary" size="sm" @click="openEdit(row)">Edit</Button>
               <Button
                   v-if="row.status !== 'lunas'"

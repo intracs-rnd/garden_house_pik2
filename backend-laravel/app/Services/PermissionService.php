@@ -68,7 +68,7 @@ class PermissionService
         }
 
         // 'view' is satisfied by both 'view' and 'manage'.
-        return true;
+        return in_array($granted, [RoleFeaturePermission::ACCESS_VIEW, RoleFeaturePermission::ACCESS_MANAGE], true);
     }
 
     /**

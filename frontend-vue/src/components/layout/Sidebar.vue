@@ -42,7 +42,7 @@ const menu = [
     to: { name: 'iuran.index' },
     label: 'Iuran Perumahan',
     icon: 'M9 14l-4-4 4-4m-4 4h15M5 19h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2z',
-    feature: null,
+    feature: 'iuran',
   },
   {
     to: { name: 'reports.index' },
