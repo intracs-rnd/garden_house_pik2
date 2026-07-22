@@ -70,6 +70,14 @@ const filteredItems = computed(() => {
   return store.items.filter((i) => !i.is_deleted)
 })
 
+// Display total based on active tab
+const displayTotal = computed(() => {
+  if (store.activeTab === 'deleted') {
+    return filteredItems.value.length
+  }
+  return store.meta.total
+})
+
 const searchPlaceholder = computed(() =>
     store.activeTab === 'deleted'
         ? 'Cari di kartu yang telah dihapus...'
@@ -299,7 +307,7 @@ onMounted(() => {
         </div>
 
         <div class="toolbar-summary">
-          <span class="summary-total">{{ store.meta.total ?? 0 }} kartu</span>
+          <span class="summary-total">{{ displayTotal ?? 0 }} kartu</span>
           <span v-if="store.activeTab === 'active' && blacklistedCount > 0" class="summary-blacklist">
             <span class="dot dot-danger"></span>
             {{ blacklistedCount }} diblacklist
@@ -321,7 +329,7 @@ onMounted(() => {
           :empty-text="store.activeTab === 'deleted' ? 'Belum ada kartu yang dihapus.' : 'Belum ada data kartu akses.'"
           :page="store.meta.current_page"
           :per-page="store.meta.per_page"
-          :total="store.meta.total"
+          :total="displayTotal"
           :last-page="store.meta.last_page"
           :per-page-options="[10, 15, 25, 50, 100]"
           @change-page="changePage"
