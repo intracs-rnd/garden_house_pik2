@@ -346,7 +346,6 @@ const summaryCards = computed(() => {
     return [
       { label: 'Total Event', value: s.total, color: '#4f46e5' },
       { label: 'Buka Gate', value: s.open, color: '#16a34a' },
-      { label: 'Tutup Gate', value: s.close, color: '#dc2626' },
     ]
   }
   const s = summary.value
