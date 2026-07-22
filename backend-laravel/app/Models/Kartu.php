@@ -91,6 +91,11 @@ class Kartu extends Model
         'valid_until',
         'grace_days',
         'keterangan',
+        // Persisted access snapshot (last gate decision)
+        'access_allowed',
+        'access_reason',
+        'access_message',
+        'access_at',
     ];
 
     /**
@@ -106,6 +111,9 @@ class Kartu extends Model
         // Simpan tanggal + jam sehingga masa berlaku bisa habis pada jam tertentu.
         'valid_from'     => 'datetime',
         'valid_until'    => 'datetime',
+        // Casts for persisted access snapshot
+        'access_allowed' => 'boolean',
+        'access_at'      => 'datetime',
     ];
 
     /**
@@ -460,6 +468,19 @@ class Kartu extends Model
      */
     public function getAccessAttribute(): array
     {
+        // If a persisted access snapshot exists (written by gate or simulator), prefer it.
+        if ($this->access_at !== null) {
+            $reason = $this->access_reason ?? ($this->access_allowed ? self::REASON_OK : 'unknown');
+            $message = $this->access_message ?? (self::REASON_MESSAGES[$reason] ?? $reason);
+
+            return [
+                'allowed' => (bool) ($this->access_allowed ?? false),
+                'reason'  => $reason,
+                'message' => $message,
+                'at'      => $this->access_at ? $this->access_at->toDateTimeString() : null,
+            ];
+        }
+
         return $this->evaluateAccess();
     }
 
