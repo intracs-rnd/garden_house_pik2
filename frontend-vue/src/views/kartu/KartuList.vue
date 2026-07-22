@@ -100,7 +100,12 @@ function resetFilters() {
 function switchTab(tab) {
   if (store.activeTab === tab) return
   store.setActiveTab(tab)
-  store.fetchList(1)
+  // Reset per_page to default 10 when switching to deleted tab
+  if (tab === 'deleted' && store.meta.per_page !== 10) {
+    store.setPerPage(10)
+  } else {
+    store.fetchList(1)
+  }
 }
 
 function changePage(page) {
@@ -330,7 +335,7 @@ onMounted(() => {
           :page="store.meta.current_page"
           :per-page="store.meta.per_page"
           :total="displayTotal"
-          :last-page="store.meta.last_page"
+          :last-page="store.activeTab === 'deleted' ? Math.ceil(displayTotal / store.meta.per_page) || 1 : store.meta.last_page"
           :per-page-options="[10, 15, 25, 50, 100]"
           @change-page="changePage"
           @change-per-page="changePerPage"

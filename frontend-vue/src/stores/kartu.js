@@ -26,13 +26,16 @@ export const useKartuStore = defineStore('kartu', {
     _cacheKey(page) {
       const { search, status, is_blacklisted } = this.filters
       const includeDeleted = this.activeTab === 'deleted' ? '1' : '0'
-      return `${search || ''}|${status || ''}|${is_blacklisted}|${this.meta.per_page}|${page}|${includeDeleted}`
+      const perPage = this.activeTab === 'deleted' ? 10 : this.meta.per_page
+      return `${search || ''}|${status || ''}|${is_blacklisted}|${perPage}|${page}|${includeDeleted}`
     },
 
     _requestParams(page) {
+      // For deleted tab, fetch more items to ensure we have enough deleted items to display
+      const perPage = this.activeTab === 'deleted' ? 10 : this.meta.per_page
       return {
         page,
-        per_page: this.meta.per_page,
+        per_page: perPage,
         search: this.filters.search || undefined,
         status: this.filters.status || undefined,
         is_blacklisted:
