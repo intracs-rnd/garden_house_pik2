@@ -128,7 +128,7 @@ onMounted(load)
     <template v-else>
       <p class="cam-hint">
         URL RTSP wajib diawali <code>rtsp://</code>. Contoh:
-        <code>rtsp://root:cctv123456@192.168.203.119:554/live2.sdp</code>.
+        <code>rtsp://root:cctv123456@192.xxx.xxx.xxx:554/live2.sdp</code>.
         Kredensial kamera hanya disimpan di server dan tidak pernah dikirim ke pemutar di browser.
       </p>
 
