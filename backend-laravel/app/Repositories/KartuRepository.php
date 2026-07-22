@@ -22,9 +22,9 @@ class KartuRepository extends BaseRepository
     {
         $query = $this->model->newQuery();
 
-        // Include deleted cards if requested
+        // When the deleted tab is requested, return only deleted cards
         if ($includeDeleted) {
-            $query->withDeleted();
+            $query->onlyDeleted();
         }
 
         return $query

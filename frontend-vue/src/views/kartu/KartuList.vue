@@ -72,9 +72,8 @@ const filteredItems = computed(() => {
 
 // Display total based on active tab
 const displayTotal = computed(() => {
-  if (store.activeTab === 'deleted') {
-    return filteredItems.value.length
-  }
+  // Use the paginated total from the API so the deleted tab shows the full
+  // count across all pages instead of only the current page's items.
   return store.meta.total
 })
 
