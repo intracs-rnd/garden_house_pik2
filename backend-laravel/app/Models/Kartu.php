@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 use App\Models\IuranPerumahan;
+use App\Models\Card;
+use Illuminate\Support\Facades\Log;
 
 class Kartu extends Model
 {
@@ -129,6 +131,44 @@ class Kartu extends Model
         static::addGlobalScope('notDeleted', function (Builder $builder) {
             $builder->where($builder->getModel()->getTable() . '.is_deleted', false);
         });
+
+        // When a Kartu is created or updated, sync the corresponding Card record.
+        $syncCard = static function ($kartu) {
+            try {
+                if (! $kartu->rfid_tag) {
+                    return;
+                }
+
+                // Map kartus integer status to cards varchar status.
+                $statusMap = [
+                    self::STATUS_AKTIF     => 'Active',
+                    self::STATUS_NONAKTIF  => 'Inactive',
+                    self::STATUS_BLACKLIST => 'Suspended',
+                ];
+
+                $cardData = [
+                    'uid'        => $kartu->rfid_tag,
+                    'name'       => $kartu->user ? $kartu->user->name : null,
+                    'unit'       => $kartu->nama,
+                    'status'     => $statusMap[$kartu->status] ?? 'Active',
+                    'expiry'     => $kartu->valid_until ? $kartu->valid_until->toDateString() : null,
+                    'grace_days' => $kartu->grace_days,
+                    'kartus_id'  => $kartu->id,
+                ];
+
+                $cardData = array_filter($cardData, function ($v) { return $v !== null; });
+
+                Card::updateOrCreate(
+                    ['kartus_id' => $kartu->id],
+                    $cardData
+                );
+            } catch (\Throwable $e) {
+                Log::error(sprintf('Failed to sync Card for Kartu id %s: %s', $kartu->id ?? 'n/a', $e->getMessage()));
+            }
+        };
+
+        static::created($syncCard);
+        static::updated($syncCard);
     }
 
     /**

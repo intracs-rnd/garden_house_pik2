@@ -15,6 +15,11 @@ class Card extends Model
     protected $table = 'cards';
 
     /**
+     * Cards table has no created_at / updated_at columns.
+     */
+    public $timestamps = false;
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
@@ -35,9 +40,8 @@ class Card extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'expiry' => 'datetime',
+        'expiry' => 'date',
         'grace_days' => 'integer',
-        'status' => 'integer',
     ];
 
     /**
