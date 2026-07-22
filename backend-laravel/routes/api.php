@@ -89,6 +89,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/reports/detail/pdf', [ReportController::class, 'detailPdf']);
         Route::get('/reports/recap/excel', [ReportController::class, 'recapExcel']);
         Route::get('/reports/detail/excel', [ReportController::class, 'detailExcel']);
+        // Laporan kontrol gate (log_gate + gate_manual_control per periode)
+        Route::get('/reports/gate-control', [GateController::class, 'getLogsReport']);
+        Route::get('/reports/gate-control/pdf', [GateController::class, 'gateControlPdf']);
+        Route::get('/reports/gate-control/excel', [GateController::class, 'gateControlExcel']);
     });
 
     // Categories (read-only)

@@ -484,9 +484,15 @@ function submitGateAction() {
 
   gateSubmitting.value = true
 
-  // Publish gate action ke MQTT dan log dengan nomor plat
+  // Publish gate action ke MQTT dan log dengan nomor plat + gambar
   publishGateAction(gateCamera.value.gate_id, gateAction.value === 'open', {
     nomor_plat: gateForm.value.nomor_plat,
+    // Sertakan path gambar yang sudah ada di data transaksi agar tersimpan di log
+    view_image_path: gateTransactionData.value?.view_image_path || null,
+    entry_image_1: gateTransactionData.value?.entry_image_1 ?? gateTransactionData.value?.entry_image1 ?? null,
+    entry_image_2: gateTransactionData.value?.entry_image_2 ?? gateTransactionData.value?.entry_image2 ?? null,
+    entry_image_3: gateTransactionData.value?.entry_image_3 ?? gateTransactionData.value?.entry_image3 ?? null,
+    entry_image_4: gateTransactionData.value?.entry_image_4 ?? gateTransactionData.value?.entry_image4 ?? null,
   })
       .then(async (success) => {
         if (success) {

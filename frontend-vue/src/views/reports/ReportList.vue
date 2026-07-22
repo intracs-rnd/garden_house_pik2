@@ -49,11 +49,17 @@ const filters = ref({
 })
 
 const activeTab = ref('rekap') // 'rekap' | 'detail'
+const activeDetailType = ref('tap') // 'tap' | 'gate'
 const loading = ref(false)
 const downloading = ref('') // '' | '<kind>-<format>' | '<kind>-preview'
 const error = ref('')
 const recap = ref(null)
 const detail = ref(null)
+
+// Gate control report (loaded lazily when the user opens the "Kontrol Gate" sub-tab)
+const gateControlData = ref(null)
+const gateControlLoading = ref(false)
+const gateControlError = ref('')
 
 const yearOptions = computed(() => {
   const current = now.getFullYear()
@@ -93,6 +99,17 @@ const detailColumns = [
   { key: 'reason_label', label: 'Alasan' },
   { key: 'gate', label: 'Gate' },
   { key: 'actions', label: 'Aksi', align: 'center', width: '72px' },
+]
+
+const gateColumns = [
+  { key: 'no', label: 'No', align: 'center', width: '56px' },
+  { key: 'event_ts', label: 'Waktu' },
+  { key: 'gate_id', label: 'Gate' },
+  { key: 'action_label', label: 'Aksi' },
+  { key: 'nomor_plat', label: 'No. Plat' },
+  { key: 'user_name', label: 'Operator' },
+  { key: 'result', label: 'Hasil' },
+  { key: 'detail_action', label: 'Detail', align: 'center', width: '72px' },
 ]
 
 const selectedRow = ref(null)
@@ -213,6 +230,99 @@ function onDetailChangePerPage(perPage) {
   detailPage.value = 1
 }
 
+// Client-side pagination for the gate control sub-tab.
+const gateControlPage = ref(1)
+const gateControlPerPage = ref(10)
+
+const gateRows = computed(() => gateControlData.value?.rows || [])
+const gateTotal = computed(() => gateRows.value.length)
+const gateLastPage = computed(() =>
+  Math.max(1, Math.ceil(gateTotal.value / gateControlPerPage.value)),
+)
+const pagedGateRows = computed(() => {
+  const start = (gateControlPage.value - 1) * gateControlPerPage.value
+  return gateRows.value.slice(start, start + gateControlPerPage.value).map((row) => ({
+    ...row,
+    action_label: row.action === 'OPEN' ? 'Buka' : row.action === 'CLOSE' ? 'Tutup' : row.action,
+  }))
+})
+
+function onGateChangePage(page) {
+  gateControlPage.value = page
+}
+
+function onGateChangePerPage(perPage) {
+  gateControlPerPage.value = perPage
+  gateControlPage.value = 1
+}
+
+const gateControlSummary = computed(() => gateControlData.value?.summary || null)
+
+// Gate control detail modal
+const selectedGateRow = ref(null)
+const showGateDetailModal = ref(false)
+
+// Gate detail modal image state (reuses fetchImageSource from the tap detail logic)
+const gateDetailImages = ref([])
+const gateDetailLoadingImages = ref(false)
+const gateDetailImageError = ref('')
+
+function cleanupGateDetailImages() {
+  gateDetailImages.value.forEach((img) => {
+    if (String(img.src || '').startsWith('blob:')) URL.revokeObjectURL(img.src)
+  })
+  gateDetailImages.value = []
+}
+
+async function openGateDetail(row) {
+  selectedGateRow.value = row
+  cleanupGateDetailImages()
+  gateDetailImageError.value = ''
+  showGateDetailModal.value = true
+
+  const paths = Array.isArray(row.image_paths) ? row.image_paths : []
+  if (paths.length === 0) return
+
+  gateDetailLoadingImages.value = true
+  const labels = ['CCTV', 'Gambar 2', 'Gambar 3', 'Gambar 4']
+  const resolved = await Promise.all(
+    paths.map(async (path, idx) => {
+      try {
+        const src = await fetchImageSource(path)
+        return { key: `img-${idx}`, label: labels[idx] || `Gambar ${idx + 1}`, src }
+      } catch {
+        return null
+      }
+    }),
+  )
+  gateDetailLoadingImages.value = false
+  gateDetailImages.value = resolved.filter(Boolean)
+  if (!gateDetailImages.value.length) {
+    gateDetailImageError.value = 'Gagal memuat gambar CCTV.'
+  }
+}
+
+async function loadGateControl() {
+  if (gateControlData.value !== null) return // already loaded for current filters
+  gateControlLoading.value = true
+  gateControlError.value = ''
+  try {
+    const params = buildParams()
+    const res = await reportApi.gateControl(params)
+    gateControlData.value = res.data
+    gateControlPage.value = 1
+  } catch (err) {
+    gateControlError.value = extractErrorMessage(err, 'Gagal memuat data kontrol gate.')
+  } finally {
+    gateControlLoading.value = false
+  }
+}
+
+function switchDetailType(type) {
+  activeDetailType.value = type
+  if (type === 'gate') loadGateControl()
+}
+
 async function openDetail(row) {
   selectedRow.value = row
   showDetailModal.value = true
@@ -230,6 +340,15 @@ const summary = computed(() =>
 )
 
 const summaryCards = computed(() => {
+  // When viewing the gate control sub-tab, show gate-specific stats
+  if (activeTab.value === 'detail' && activeDetailType.value === 'gate' && gateControlSummary.value) {
+    const s = gateControlSummary.value
+    return [
+      { label: 'Total Event', value: s.total, color: '#4f46e5' },
+      { label: 'Buka Gate', value: s.open, color: '#16a34a' },
+      { label: 'Tutup Gate', value: s.close, color: '#dc2626' },
+    ]
+  }
   const s = summary.value
   if (!s) return []
   return [
@@ -244,6 +363,9 @@ const summaryCards = computed(() => {
 async function generate() {
   loading.value = true
   error.value = ''
+  // Reset gate control cache so it reloads with new filters
+  gateControlData.value = null
+  gateControlError.value = ''
   try {
     const params = buildParams()
     const [recapRes, detailRes] = await Promise.all([
@@ -253,6 +375,10 @@ async function generate() {
     recap.value = recapRes.data
     detail.value = detailRes.data
     detailPage.value = 1
+    // If the gate sub-tab is already open, eagerly reload its data too
+    if (activeDetailType.value === 'gate') {
+      loadGateControl()
+    }
   } catch (err) {
     error.value = extractErrorMessage(err, 'Gagal memuat laporan.')
     recap.value = null
@@ -266,6 +392,23 @@ async function download(kind, { format = 'pdf', preview = false } = {}) {
   downloading.value = preview ? `${kind}-preview` : `${kind}-${format}`
   try {
     const stamp = new Date().toISOString().slice(0, 10)
+
+    if (kind === 'gate-control') {
+      const params = { ...buildParams(), download: preview ? undefined : 1 }
+      if (format === 'excel') {
+        const blob = await reportApi.gateControlExcel(buildParams())
+        downloadBlob(blob, `laporan-kontrol-gate-${filters.value.period}-${stamp}.xlsx`)
+        toast.success('Excel berhasil diunduh.')
+      } else if (preview) {
+        const blob = await reportApi.gateControlPdf(params)
+        openBlob(blob)
+      } else {
+        const blob = await reportApi.gateControlPdf(params)
+        downloadBlob(blob, `laporan-kontrol-gate-${filters.value.period}-${stamp}.pdf`)
+        toast.success('PDF berhasil diunduh.')
+      }
+      return
+    }
 
     if (format === 'excel') {
       const blob = kind === 'rekap'
@@ -303,8 +446,16 @@ watch(showDetailModal, (open) => {
   }
 })
 
+watch(showGateDetailModal, (open) => {
+  if (!open) {
+    cleanupGateDetailImages()
+    gateDetailImageError.value = ''
+  }
+})
+
 onBeforeUnmount(() => {
   cleanupSelectedImages()
+  cleanupGateDetailImages()
 })
 </script>
 
@@ -423,7 +574,7 @@ onBeforeUnmount(() => {
         <button :class="['tab', { active: activeTab === 'rekap' }]" @click="activeTab = 'rekap'">Rekap</button>
         <button :class="['tab', { active: activeTab === 'detail' }]" @click="activeTab = 'detail'">Detail</button>
         <span class="tabs-spacer"></span>
-        <Button variant="ghost" size="sm" @click="download(activeTab, { preview: true })">👁 Pratinjau PDF</Button>
+        <Button v-if="activeTab !== 'detail' || activeDetailType === 'tap'" variant="ghost" size="sm" @click="download(activeTab, { preview: true })">👁 Pratinjau PDF</Button>
       </div>
 
       <!-- Rekap tab -->
@@ -501,27 +652,82 @@ onBeforeUnmount(() => {
 
       <!-- Detail tab -->
       <template v-else>
-        <DataTable
-          :columns="detailColumns"
-          :rows="pagedDetailRows"
-          :paginated="true"
-          :page="detailPage"
-          :per-page="detailPerPage"
-          :total="detailTotal"
-          :last-page="detailLastPage"
-          empty-text="Tidak ada transaksi pada periode ini."
-          @change-page="onDetailChangePage"
-          @change-per-page="onDetailChangePerPage"
-        >
-          <template #cell-result_label="{ row }">
-            <span class="badge" :class="row.access_granted ? 'badge-success' : 'badge-danger'">
-              {{ row.result_label }}
-            </span>
+        <!-- Detail sub-tabs -->
+        <div class="sub-tabs">
+          <button :class="['sub-tab', { active: activeDetailType === 'tap' }]" @click="activeDetailType = 'tap'">
+            🪪 Tap Kartu
+          </button>
+          <button :class="['sub-tab', { active: activeDetailType === 'gate' }]" @click="switchDetailType('gate')">
+            🚧 Kontrol Gate
+          </button>
+        </div>
+
+        <!-- Tap Kartu sub-tab -->
+        <template v-if="activeDetailType === 'tap'">
+          <DataTable
+            :columns="detailColumns"
+            :rows="pagedDetailRows"
+            :paginated="true"
+            :page="detailPage"
+            :per-page="detailPerPage"
+            :total="detailTotal"
+            :last-page="detailLastPage"
+            empty-text="Tidak ada transaksi pada periode ini."
+            @change-page="onDetailChangePage"
+            @change-per-page="onDetailChangePerPage"
+          >
+            <template #cell-result_label="{ row }">
+              <span class="badge" :class="row.access_granted ? 'badge-success' : 'badge-danger'">
+                {{ row.result_label }}
+              </span>
+            </template>
+            <template #cell-actions="{ row }">
+              <button class="icon-btn" type="button" title="Lihat detail" @click="openDetail(row)">👁</button>
+            </template>
+          </DataTable>
+        </template>
+
+        <!-- Kontrol Gate sub-tab -->
+        <template v-else>
+          <!-- Gate control download toolbar -->
+          <div class="gate-toolbar">
+            <Button variant="secondary" size="sm" :loading="downloading === 'gate-control-pdf'" @click="download('gate-control', { format: 'pdf' })">
+              ⬇ PDF
+            </Button>
+            <Button variant="secondary" size="sm" :loading="downloading === 'gate-control-excel'" @click="download('gate-control', { format: 'excel' })">
+              ⬇ Excel
+            </Button>
+            <Button variant="ghost" size="sm" :loading="downloading === 'gate-control-preview'" @click="download('gate-control', { preview: true })">
+              👁 Pratinjau PDF
+            </Button>
+          </div>
+
+          <Loader v-if="gateControlLoading" text="Memuat data kontrol gate..." />
+          <div v-else-if="gateControlError" class="alert alert-danger">{{ gateControlError }}</div>
+          <template v-else>
+            <DataTable
+              :columns="gateColumns"
+              :rows="pagedGateRows"
+              :paginated="true"
+              :page="gateControlPage"
+              :per-page="gateControlPerPage"
+              :total="gateTotal"
+              :last-page="gateLastPage"
+              empty-text="Tidak ada event kontrol gate pada periode ini."
+              @change-page="onGateChangePage"
+              @change-per-page="onGateChangePerPage"
+            >
+              <template #cell-action_label="{ row }">
+                <span class="badge" :class="row.action === 'OPEN' ? 'badge-success' : 'badge-secondary'">
+                  {{ row.action_label }}
+                </span>
+              </template>
+              <template #cell-detail_action="{ row }">
+                <button class="icon-btn" type="button" title="Lihat detail" @click="openGateDetail(row)">👁</button>
+              </template>
+            </DataTable>
           </template>
-          <template #cell-actions="{ row }">
-            <button class="icon-btn" type="button" title="Lihat detail" @click="openDetail(row)">👁</button>
-          </template>
-        </DataTable>
+        </template>
       </template>
     </template>
 
@@ -567,6 +773,51 @@ onBeforeUnmount(() => {
           </div>
           <div><dt>Alasan</dt><dd>{{ selectedRow.reason_label || '-' }}</dd></div>
           <div><dt>Gate</dt><dd>{{ selectedRow.gate || '-' }}</dd></div>
+        </dl>
+      </div>
+    </Modal>
+
+    <!-- Gate control detail popup -->
+    <Modal v-model="showGateDetailModal" title="Detail Kontrol Gate">
+      <div v-if="selectedGateRow" class="detail-modal">
+        <!-- CCTV image section (only for manual rows with view_image_path) -->
+        <div class="detail-image">
+          <div v-if="gateDetailLoadingImages" class="detail-image-placeholder">
+            <span>⏳</span>
+            <small>Memuat gambar CCTV...</small>
+          </div>
+          <div v-else-if="gateDetailImages.length" class="detail-image-grid">
+            <a
+              v-for="img in gateDetailImages"
+              :key="img.key"
+              class="detail-image-item"
+              :href="img.src"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <img :src="img.src" :alt="img.label" loading="lazy" />
+              <small>{{ img.label }}</small>
+            </a>
+          </div>
+          <div v-else class="detail-image-placeholder">
+            <span>🚗</span>
+            <small>{{ gateDetailImageError || 'Gambar tidak tersedia' }}</small>
+          </div>
+        </div>
+        <dl class="detail-grid">
+          <div><dt>Waktu</dt><dd>{{ selectedGateRow.event_ts }}</dd></div>
+          <div><dt>Gate</dt><dd>{{ selectedGateRow.gate_id }}</dd></div>
+          <div>
+            <dt>Aksi</dt>
+            <dd>
+              <span class="badge" :class="selectedGateRow.action === 'OPEN' ? 'badge-success' : 'badge-secondary'">
+                {{ selectedGateRow.action_label }}
+              </span>
+            </dd>
+          </div>
+          <div><dt>No. Plat</dt><dd>{{ selectedGateRow.nomor_plat }}</dd></div>
+          <div><dt>Operator</dt><dd>{{ selectedGateRow.user_name }}</dd></div>
+          <div><dt>Hasil</dt><dd>{{ selectedGateRow.result }}</dd></div>
         </dl>
       </div>
     </Modal>
@@ -760,5 +1011,39 @@ onBeforeUnmount(() => {
 .detail-grid dd {
   margin: 0;
   font-size: 14px;
+}
+/* Sub-tabs (inside the Detail tab) */
+.sub-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  border-bottom: 2px solid var(--color-border, #e5e7eb);
+  padding-bottom: 4px;
+}
+.sub-tab {
+  border: none;
+  background: transparent;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm, 8px) var(--radius-sm, 8px) 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.sub-tab:hover {
+  background: #f3f4f6;
+  color: var(--color-text, #111827);
+}
+.sub-tab.active {
+  background: var(--color-primary, #4f46e5);
+  color: #fff;
+}
+/* Gate control download toolbar */
+.gate-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
 }
 </style>

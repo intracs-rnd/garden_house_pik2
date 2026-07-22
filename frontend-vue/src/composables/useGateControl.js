@@ -54,12 +54,17 @@ export function useGateControl() {
         open: open,
       })
 
-      // Jika ada nomor_plat, log ke manual control table
+      // Jika ada nomor_plat, log ke manual control table (beserta gambar jika tersedia)
       if (options.nomor_plat) {
         await gateApi.logManualControl({
           gate_id: gateId,
           nomor_plat: options.nomor_plat,
           action: open ? 'OPEN' : 'CLOSE',
+          view_image_path: options.view_image_path || null,
+          entry_image_1: options.entry_image_1 || null,
+          entry_image_2: options.entry_image_2 || null,
+          entry_image_3: options.entry_image_3 || null,
+          entry_image_4: options.entry_image_4 || null,
         })
       }
 

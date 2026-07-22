@@ -16,6 +16,11 @@ class GateManualControl extends Model
         'user_id',
         'user_name',
         'event_ts',
+        'view_image_path',
+        'entry_image_1',
+        'entry_image_2',
+        'entry_image_3',
+        'entry_image_4',
     ];
 
     protected $casts = [

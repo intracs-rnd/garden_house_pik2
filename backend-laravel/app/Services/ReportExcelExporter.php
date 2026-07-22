@@ -49,6 +49,46 @@ class ReportExcelExporter
         return $xlsx->output();
     }
 
+    /**
+     * Build the gate control workbook (single sheet).
+     */
+    public function gateControl(array $report): string
+    {
+        $xlsx = new SimpleXlsxWriter();
+
+        // Summary sheet
+        $s = $report['summary'] ?? [];
+        $summaryRows = [
+            ['Metrik', 'Nilai'],
+            ['Periode', $report['period_label'] ?? '-'],
+            ['Rentang', $report['range_label'] ?? '-'],
+            ['Filter Gate', $report['gate_filter'] ?: 'Semua gate'],
+            ['Dicetak', $report['generated_at'] ?? '-'],
+            [],
+            ['Total Event', (int) ($s['total'] ?? 0)],
+            ['Buka Gate', (int) ($s['open'] ?? 0)],
+            ['Tutup Gate', (int) ($s['close'] ?? 0)],
+        ];
+        $xlsx->addSheet('Ringkasan', $summaryRows, ['headerRow' => true]);
+
+        // Detail sheet
+        $detailRows = [['No', 'Waktu', 'Gate', 'Aksi', 'No. Plat', 'Operator', 'Hasil']];
+        foreach ($report['rows'] ?? [] as $row) {
+            $detailRows[] = [
+                (int)    $row['no'],
+                (string) $row['event_ts'],
+                (string) $row['gate_id'],
+                (string) ($row['action_label'] ?? $row['action']),
+                (string) $row['nomor_plat'],
+                (string) $row['user_name'],
+                (string) $row['result'],
+            ];
+        }
+        $xlsx->addSheet('Kontrol Gate', $detailRows, ['headerRow' => true]);
+
+        return $xlsx->output();
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Sheet builders
