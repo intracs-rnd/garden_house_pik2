@@ -186,5 +186,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/iuran/{id}', [IuranController::class, 'update']);
         Route::delete('/iuran/{id}', [IuranController::class, 'destroy']);
         Route::post('/iuran/generate', [IuranController::class, 'generate']);
+        // Approve pembayaran (SUPERADMIN)
+        Route::post('/iuran/pembayaran/{id}/approve', [IuranController::class, 'approvePayment']);
     });
 });

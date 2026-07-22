@@ -33,6 +33,10 @@ class IuranPembayaran extends Model
         'paid_at',
         'nominal_transfer',
         'rekening_tujuan',
+        // Approval fields
+        'is_approved',
+        'approved_by',
+        'approved_at',
     ];
 
     /**
@@ -41,9 +45,11 @@ class IuranPembayaran extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'jumlah_bayar'    => 'decimal:2',
+        'jumlah_bayar'     => 'decimal:2',
         'nominal_transfer' => 'decimal:2',
-        'paid_at'         => 'datetime',
+        'paid_at'          => 'datetime',
+        'is_approved'      => 'boolean',
+        'approved_at'      => 'datetime',
     ];
 
     /*

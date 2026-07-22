@@ -9,6 +9,7 @@ use App\Models\Kartu;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Schema;
 
 class IuranController extends Controller
 {
@@ -145,7 +146,7 @@ class IuranController extends Controller
             'periode'    => ['sometimes', 'required', 'string', 'regex:/^\d{4}-(0[1-9]|1[0-2])$/'],
             'jumlah'     => ['sometimes', 'required', 'numeric', 'min:0'],
             'deadline'   => ['sometimes', 'required', 'date'],
-            'status'     => ['sometimes', 'required', 'in:belum_bayar,lunas,terlambat'],
+            'status'     => ['sometimes', 'required', 'in:belum_bayar,menunggu_approval,lunas,terlambat'],
             'keterangan' => ['nullable', 'string'],
         ]);
 
@@ -232,8 +233,8 @@ class IuranController extends Controller
             $buktiPath = $request->file('bukti_bayar')->store('iuran_bukti', 'public');
         }
 
-        // Simpan riwayat pembayaran
-        $pembayaran = IuranPembayaran::create([
+        // Simpan riwayat pembayaran (menunggu approval)
+        $pembayaranData = [
             'iuran_perumahan_id' => $iuran->id,
             'no_kk'              => $iuran->no_kk,
             'paid_by_user_id'    => $user->id,
@@ -244,14 +245,57 @@ class IuranController extends Controller
             'nominal_transfer'   => $data['nominal_transfer'] ?? null,
             'rekening_tujuan'    => $data['rekening_tujuan'] ?? null,
             'paid_at'            => Carbon::now(),
-        ]);
+        ];
 
-        // Update status tagihan menjadi lunas
-        $iuran->update(['status' => IuranPerumahan::STATUS_LUNAS]);
+        // Only include is_approved when DB column exists (migration may not have been run yet)
+        if (Schema::hasColumn('iuran_pembayaran', 'is_approved')) {
+            $pembayaranData['is_approved'] = false;
+        }
 
-        // Kurangi / clear outstanding_balance untuk semua akun yang memiliki KK sama.
-        // Menggunakan CASE untuk mencegah nilai negatif.
-        try {
+        $pembayaran = IuranPembayaran::create($pembayaranData);
+
+        // Set status tagihan menjadi menunggu approval — approval hanya oleh Super Admin
+        $iuran->update(['status' => IuranPerumahan::STATUS_MENUNGGU_APPROVAL]);
+
+        return $this->successResponse(
+            $iuran->fresh('pembayaran.paidByUser'),
+            'Pembayaran diterima. Menunggu approval dari Super Admin.'
+        );
+    }
+
+    /**
+     * Approve satu pembayaran iuran (SUPERADMIN only).
+     */
+    public function approvePayment(Request $request, int $pembayaranId): JsonResponse
+    {
+        $user = $request->user();
+        if ($user->role !== 'superadmin') {
+            return response()->json(['success' => false, 'message' => 'Tidak diizinkan.'], 403);
+        }
+
+        $pembayaran = IuranPembayaran::with('iuranPerumahan')->findOrFail($pembayaranId);
+
+        if ($pembayaran->is_approved) {
+            return $this->successResponse($pembayaran->fresh('iuranPerumahan.pembayaran.paidByUser'), 'Pembayaran sudah disetujui.');
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($pembayaran, $user) {
+            // Guard for DB schema: only set approval fields if columns exist
+            if (Schema::hasColumn('iuran_pembayaran', 'is_approved')) {
+                $pembayaran->is_approved = true;
+            }
+            if (Schema::hasColumn('iuran_pembayaran', 'approved_by')) {
+                $pembayaran->approved_by = $user->id;
+            }
+            if (Schema::hasColumn('iuran_pembayaran', 'approved_at')) {
+                $pembayaran->approved_at = Carbon::now();
+            }
+            $pembayaran->save();
+
+            $iuran = $pembayaran->iuranPerumahan;
+            $iuran->update(['status' => IuranPerumahan::STATUS_LUNAS]);
+
+            // Update outstanding_balance untuk semua akun dengan no_kk yang sama.
             $amount = (float) $iuran->jumlah;
             if (! empty($iuran->no_kk) && $amount > 0) {
                 \Illuminate\Support\Facades\DB::table('users')
@@ -262,15 +306,9 @@ class IuranController extends Controller
                         ),
                     ]);
             }
-        } catch (\Exception $e) {
-            // Jangan gagalkan pembayaran hanya karena update saldo pengguna gagal.
-            // Log error jika perlu (logger tidak di-inject di controller ini).
-        }
+        });
 
-        return $this->successResponse(
-            $iuran->fresh('pembayaran.paidByUser'),
-            'Pembayaran iuran berhasil. Terima kasih!'
-        );
+        return $this->successResponse($pembayaran->fresh('iuranPerumahan.pembayaran.paidByUser'), 'Pembayaran disetujui dan tagihan ditandai lunas.');
     }
 
     /*

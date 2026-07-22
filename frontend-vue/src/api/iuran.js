@@ -48,6 +48,11 @@ export default {
     return api.post(`/iuran/${id}/pay`, payload).then((res) => res.data)
   },
 
+  /** POST /api/iuran/pembayaran/{id}/approve — superadmin approve pembayaran */
+  approvePayment(id) {
+    return api.post(`/iuran/pembayaran/${id}/approve`).then((res) => res.data)
+  },
+
   /** POST /api/iuran/generate — generate batch tagihan per periode (admin only) */
   generate(payload) {
     return api.post('/iuran/generate', payload).then((res) => res.data)

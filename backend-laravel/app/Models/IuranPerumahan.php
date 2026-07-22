@@ -17,9 +17,10 @@ class IuranPerumahan extends Model
     /**
      * Status constants.
      */
-    public const STATUS_BELUM_BAYAR = 'belum_bayar';
-    public const STATUS_LUNAS       = 'lunas';
-    public const STATUS_TERLAMBAT   = 'terlambat';
+    public const STATUS_BELUM_BAYAR      = 'belum_bayar';
+    public const STATUS_MENUNGGU_APPROVAL = 'menunggu_approval';
+    public const STATUS_LUNAS            = 'lunas';
+    public const STATUS_TERLAMBAT        = 'terlambat';
 
     /**
      * Human-readable label per status.
@@ -28,6 +29,7 @@ class IuranPerumahan extends Model
      */
     public const STATUS_LABELS = [
         self::STATUS_BELUM_BAYAR => 'Belum Bayar',
+        self::STATUS_MENUNGGU_APPROVAL => 'Menunggu Approval',
         self::STATUS_LUNAS       => 'Lunas',
         self::STATUS_TERLAMBAT   => 'Terlambat',
     ];
@@ -39,6 +41,7 @@ class IuranPerumahan extends Model
      */
     public const STATUS_VARIANTS = [
         self::STATUS_BELUM_BAYAR => 'warning',
+        self::STATUS_MENUNGGU_APPROVAL => 'info',
         self::STATUS_LUNAS       => 'success',
         self::STATUS_TERLAMBAT   => 'danger',
     ];

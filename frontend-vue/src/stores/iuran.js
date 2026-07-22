@@ -168,6 +168,22 @@ export const useIuranStore = defineStore('iuran', {
       } finally {
         this.historyLoading = false
       }
+
+    },
+
+    // -----------------------------------------------------------------------
+    // Approve pembayaran (superadmin)
+    // -----------------------------------------------------------------------
+    async approvePembayaran(id) {
+      try {
+        const res = await iuranApi.approvePayment(id)
+        // Refresh lists so status updates in UI
+        await Promise.all([this.fetchList(this.meta.current_page), this.fetchHistory(this.historyMeta.current_page)])
+        return res
+      } catch (error) {
+        this.error = extractErrorMessage(error, 'Gagal menyetujui pembayaran.')
+        throw error
+      }
     },
 
     setHistoryPerPage(perPage) {

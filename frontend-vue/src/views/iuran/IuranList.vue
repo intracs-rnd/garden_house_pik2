@@ -18,6 +18,7 @@ const toast = useToast()
 
 // ─── Role helpers ─────────────────────────────────────────────────────────────
 const isAdmin = computed(() => auth.isAdmin)
+const isSuperadmin = computed(() => auth.user?.role === 'superadmin')
 const isWarga = computed(() => !auth.isAdmin)
 // Feature-level permissions (tied to AccessControl)
 const canViewIuran = computed(() => auth.hasFeature('iuran'))
@@ -79,6 +80,9 @@ const riwayatColumns = computed(() => {
   if (isWarga.value) {
     base.splice(0, 1) // hapus kolom no_kk
   }
+  if (isAdmin.value) {
+    base.push({ key: 'aksi', label: 'Aksi' })
+  }
   return base
 })
 
@@ -95,11 +99,11 @@ function formatRupiah(val) {
 }
 
 function statusVariant(status) {
-  return { belum_bayar: 'warning', lunas: 'success', terlambat: 'danger' }[status] || 'muted'
+  return { belum_bayar: 'warning', menunggu_approval: 'info', lunas: 'success', terlambat: 'danger' }[status] || 'muted'
 }
 
 function statusLabel(status) {
-  return { belum_bayar: 'Belum Bayar', lunas: 'Lunas', terlambat: 'Terlambat' }[status] || '-'
+  return { belum_bayar: 'Belum Bayar', menunggu_approval: 'Menunggu Approval', lunas: 'Lunas', terlambat: 'Terlambat' }[status] || '-'
 }
 
 function isPdf(url) {
@@ -268,6 +272,29 @@ async function handleGenerate() {
 function openPay(item) {
   payTarget.value = item
   payForm.value = { metode_bayar: 'transfer', catatan: '', nominal_transfer: '', rekening_tujuan: '', bukti_file: null }
+}
+
+// Approve pembayaran (superadmin)
+const approving = ref(false)
+const approvingId = ref(null)
+
+async function approveRow(row) {
+  if (!isSuperadmin.value) {
+    toast.error('Hanya Super Admin yang dapat menyetujui pembayaran.')
+    return
+  }
+  if (!confirm(`Yakin menyetujui pembayaran untuk KK ${row.no_kk} periode ${row.iuran_perumahan?.periode || '-'}?`)) return
+  try {
+    approving.value = true
+    approvingId.value = row.id
+    await store.approvePembayaran(row.id)
+    toast.success('Pembayaran disetujui.')
+  } catch (error) {
+    toast.error(extractErrorMessage(error, 'Gagal menyetujui pembayaran.'))
+  } finally {
+    approving.value = false
+    approvingId.value = null
+  }
 }
 
 function onBuktiChange(e) {
@@ -458,6 +485,7 @@ onMounted(() => {
         <select v-model="store.filters.status" class="form-control filter-select" @change="applyFilters">
           <option value="">Semua Status</option>
           <option value="belum_bayar">Belum Bayar</option>
+          <option value="menunggu_approval">Menunggu Approval</option>
           <option value="lunas">Lunas</option>
           <option value="terlambat">Terlambat</option>
         </select>
@@ -525,7 +553,7 @@ onMounted(() => {
             <!-- Warga: tombol bayar kalau belum lunas -->
             <template v-if="isWarga">
               <Button
-                  v-if="row.status !== 'lunas'"
+                  v-if="row.status !== 'lunas' && row.status !== 'menunggu_approval'"
                   variant="primary"
                   size="sm"
                   :loading="store.paying && payTarget?.id === row.id"
@@ -617,6 +645,13 @@ onMounted(() => {
         </template>
         <template #cell-catatan="{ row }">
           <span class="text-muted">{{ row.catatan || '-' }}</span>
+        </template>
+        <template #cell-aksi="{ row }">
+          <div class="table-actions">
+            <Button v-if="isSuperadmin && !row.is_approved" variant="primary" size="sm" :loading="approving && approvingId === row.id" @click="approveRow(row)">✔️ Setujui</Button>
+            <span v-else-if="row.is_approved" class="paid-badge">✅ Disetujui</span>
+            <span v-else class="text-muted">-</span>
+          </div>
         </template>
       </DataTable>
     </div>
