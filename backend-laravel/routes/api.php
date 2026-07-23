@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\LogRfidConnController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\UserMrController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -52,6 +53,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/error-logs', [ErrorLogController::class, 'index']);
         Route::get('/error-logs/{errorLog}', [ErrorLogController::class, 'show']);
         Route::delete('/error-logs', [ErrorLogController::class, 'clear']);
+    });
+
+    // ---- User MR management (SUPER ADMIN ONLY) ----
+    // CRUD operations for managing MR users with bcrypt password hashing.
+    Route::middleware('superadmin')->group(function () {
+        Route::get('/user-mr', [UserMrController::class, 'index']);
+        Route::post('/user-mr', [UserMrController::class, 'store']);
+        Route::get('/user-mr/{uuid}', [UserMrController::class, 'show']);
+        Route::match(['put', 'patch'], '/user-mr/{uuid}', [UserMrController::class, 'update']);
+        Route::delete('/user-mr/{uuid}', [UserMrController::class, 'destroy']);
     });
 
     // ---- Gate logs (MQTT integration) ----

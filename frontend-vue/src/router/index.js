@@ -41,6 +41,26 @@ const routes = [
         meta: { title: 'Edit Data Warga', feature: 'users', featureLevel: 'manage' },
         props: true,
       },
+      // User MR (superadmin only)
+      {
+        path: 'user-mr',
+        name: 'user-mr.index',
+        component: () => import('@/views/user-mr/UserMrList.vue'),
+        meta: { title: 'User MR', superAdmin: true },
+      },
+      {
+        path: 'user-mr/create',
+        name: 'user-mr.create',
+        component: () => import('@/views/user-mr/UserMrCreate.vue'),
+        meta: { title: 'Tambah User MR', superAdmin: true },
+      },
+      {
+        path: 'user-mr/:uuid/edit',
+        name: 'user-mr.edit',
+        component: () => import('@/views/user-mr/UserMrEdit.vue'),
+        meta: { title: 'Edit User MR', superAdmin: true },
+        props: true,
+      },
       // Kendaraan
       {
         path: 'kendaraan',

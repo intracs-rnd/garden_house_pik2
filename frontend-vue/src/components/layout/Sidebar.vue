@@ -39,6 +39,12 @@ const menu = [
     feature: 'users',
   },
   {
+    to: { name: 'user-mr.index' },
+    label: 'User MR',
+    icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
+    superAdmin: true,
+  },
+  {
     to: { name: 'iuran.index' },
     label: 'Iuran Perumahan',
     icon: 'M9 14l-4-4 4-4m-4 4h15M5 19h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2z',
