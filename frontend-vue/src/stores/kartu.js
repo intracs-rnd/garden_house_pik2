@@ -127,8 +127,9 @@ export const useKartuStore = defineStore('kartu', {
       }
     },
 
-    async fetchUsers() {
-      if (this.users.length) return this.users
+    async fetchUsers({ force = false } = {}) {
+      // If users already loaded, skip unless caller requested a forced refresh.
+      if (this.users.length && !force) return this.users
       try {
         const res = await userApi.list({ per_page: 100 })
         this.users = res.data
@@ -138,6 +139,7 @@ export const useKartuStore = defineStore('kartu', {
         return []
       }
     },
+
 
     async create(payload) {
       this.saving = true
