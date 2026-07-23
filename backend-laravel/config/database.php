@@ -52,6 +52,23 @@ return [
             'timezone' => 'Asia/Jakarta',
         ],
 
+        // Koneksi langsung ke Server/Replica (192.168.214.7)
+        // Digunakan untuk monitoring & testing replication dari sisi subscriber
+        'pgsql_replica' => [
+            'driver' => 'pgsql',
+            'host' => env('DB_REPLICA_HOST', '192.168.214.7'),
+            'port' => env('DB_REPLICA_PORT', '5432'),
+            'database' => env('DB_REPLICA_DATABASE', env('DB_DATABASE', 'dashboard')),
+            'username' => env('DB_REPLICA_USERNAME', env('DB_USERNAME', 'postgres')),
+            'password' => env('DB_REPLICA_PASSWORD', env('DB_PASSWORD', '')),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'schema' => 'public',
+            'sslmode' => 'prefer',
+            'timezone' => 'Asia/Jakarta',
+        ],
+
     ],
 
     'migrations' => 'migrations',

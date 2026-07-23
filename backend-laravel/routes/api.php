@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AccessControlController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CameraController;
+use App\Http\Controllers\Api\CardReplicationController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ErrorLogController;
@@ -188,5 +189,25 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/iuran/generate', [IuranController::class, 'generate']);
         // Approve pembayaran (SUPERADMIN)
         Route::post('/iuran/pembayaran/{id}/approve', [IuranController::class, 'approvePayment']);
+    });
+
+    // ---- CARD REPLICATION (Cards sync antara Admin & Server) ----
+    // Status replication (public untuk monitoring)
+    Route::get('/cards/replication/status', [CardReplicationController::class, 'getReplicationStatus']);
+    Route::get('/cards/replication/lag', [CardReplicationController::class, 'getReplicationLag']);
+    Route::get('/cards/replication/changes', [CardReplicationController::class, 'getChangesSummary']);
+    Route::get('/cards/replication/audit-logs', [CardReplicationController::class, 'getAuditLogs']);
+
+    // Card CRUD dengan automatic audit logging
+    Route::middleware('feature:cards,manage')->group(function () {
+        Route::post('/cards', [CardReplicationController::class, 'createCard']);
+        Route::put('/cards/{card}', [CardReplicationController::class, 'updateCard']);
+        Route::delete('/cards/{card}', [CardReplicationController::class, 'deleteCard']);
+    });
+
+    // Admin: manage replication
+    Route::middleware('superadmin')->group(function () {
+        Route::post('/cards/replication/retry-failed', [CardReplicationController::class, 'retryFailedSyncs']);
+        Route::post('/cards/replication/refresh-status', [CardReplicationController::class, 'refreshReplicationStatus']);
     });
 });
