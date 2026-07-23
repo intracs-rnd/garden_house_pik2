@@ -66,7 +66,18 @@ class KartuService
             $data['rfid_tag'] = $this->generateRfidTag();
         }
 
-        return $this->kartuRepository->create($data)->load('user');
+        $kartu = $this->kartuRepository->create($data)->load('user');
+
+        // Capture and persist the current access decision
+        $decision = $kartu->evaluateAccess();
+        $kartu->update([
+            'access_allowed' => (bool) ($decision['allowed'] ?? false),
+            'access_reason'  => $decision['reason'] ?? null,
+            'access_message' => $decision['message'] ?? null,
+            'access_at'      => Carbon::now(),
+        ]);
+
+        return $kartu->refresh();
     }
 
     /**
@@ -138,7 +149,18 @@ class KartuService
             $this->assertKkCardLimit($data['user_id'], $id);
         }
 
-        return $this->kartuRepository->update($id, $data)->load('user');
+        $kartu = $this->kartuRepository->update($id, $data)->load('user');
+
+        // Refresh access snapshot when card is updated
+        $decision = $kartu->evaluateAccess();
+        $kartu->update([
+            'access_allowed' => (bool) ($decision['allowed'] ?? false),
+            'access_reason'  => $decision['reason'] ?? null,
+            'access_message' => $decision['message'] ?? null,
+            'access_at'      => Carbon::now(),
+        ]);
+
+        return $kartu->refresh();
     }
 
     /**
@@ -188,6 +210,13 @@ class KartuService
             ];
         } else {
             $decision = $kartu->evaluateAccess();
+            // Persist this access decision so the UI always shows the latest gate verdict
+            $kartu->update([
+                'access_allowed' => (bool) ($decision['allowed'] ?? false),
+                'access_reason'  => $decision['reason'] ?? null,
+                'access_message' => $decision['message'] ?? null,
+                'access_at'      => Carbon::now(),
+            ]);
         }
 
         $log = $this->accessLogRepository->create([
@@ -281,11 +310,22 @@ class KartuService
      */
     public function blacklist($id, ?string $reason = null)
     {
-        return $this->kartuRepository->update($id, [
+        $kartu = $this->kartuRepository->update($id, [
             'status'           => Kartu::STATUS_BLACKLIST,
             'is_blacklisted'   => true,
             'blacklist_reason' => $reason,
         ])->load('user');
+
+        // Refresh access snapshot when blacklisting
+        $decision = $kartu->evaluateAccess();
+        $kartu->update([
+            'access_allowed' => (bool) ($decision['allowed'] ?? false),
+            'access_reason'  => $decision['reason'] ?? null,
+            'access_message' => $decision['message'] ?? null,
+            'access_at'      => Carbon::now(),
+        ]);
+
+        return $kartu->refresh();
     }
 
     /**
@@ -295,11 +335,22 @@ class KartuService
      */
     public function clearBlacklist($id)
     {
-        return $this->kartuRepository->update($id, [
+        $kartu = $this->kartuRepository->update($id, [
             'status'           => Kartu::STATUS_AKTIF,
             'is_blacklisted'   => false,
             'blacklist_reason' => null,
         ])->load('user');
+
+        // Refresh access snapshot when clearing blacklist
+        $decision = $kartu->evaluateAccess();
+        $kartu->update([
+            'access_allowed' => (bool) ($decision['allowed'] ?? false),
+            'access_reason'  => $decision['reason'] ?? null,
+            'access_message' => $decision['message'] ?? null,
+            'access_at'      => Carbon::now(),
+        ]);
+
+        return $kartu->refresh();
     }
 
     /**

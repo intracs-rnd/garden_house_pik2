@@ -10,11 +10,23 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 use App\Models\IuranPerumahan;
 use App\Models\Card;
+use App\Support\ReadWriteSplit;
 use Illuminate\Support\Facades\Log;
 
 class Kartu extends Model
 {
-    use HasFactory;
+    use HasFactory, ReadWriteSplit;
+
+    /**
+     * Koneksi database yang digunakan model ini.
+     *
+     * Koneksi `pgsql` sudah dikonfigurasi dengan read/write split:
+     *   READ  → 192.168.214.161  (PC Admin – replica, SELECT otomatis)
+     *   WRITE → 192.168.214.163  (Virtual IP – master, DML otomatis)
+     *
+     * @var string
+     */
+    protected $connection = 'pgsql';
 
     /**
      * Status constants (integer-based).
@@ -141,6 +153,12 @@ class Kartu extends Model
         });
 
         // When a Kartu is created or updated, sync the corresponding Card record.
+        //
+        // WRITE ROUTING: Card sync selalu ditulis ke WRITE host (192.168.214.163).
+        // Dengan menggunakan Card::writeQuery() kita memastikan SELECT untuk
+        // "find existing card" pun pergi ke write host, menghindari replication lag
+        // saat kartu baru dibuat dan langsung disync (sticky sudah handle ini di dalam
+        // request, tapi writeQuery() menjamin konsistensi di luar request juga).
         $syncCard = static function ($kartu) {
             try {
                 if (! $kartu->rfid_tag) {
@@ -166,7 +184,9 @@ class Kartu extends Model
 
                 $cardData = array_filter($cardData, function ($v) { return $v !== null; });
 
-                Card::updateOrCreate(
+                // Force WRITE host (192.168.214.163) untuk SELECT + INSERT/UPDATE
+                // sehingga sync selalu konsisten dengan data master terbaru.
+                Card::writeQuery()->updateOrCreate(
                     ['kartus_id' => $kartu->id],
                     $cardData
                 );

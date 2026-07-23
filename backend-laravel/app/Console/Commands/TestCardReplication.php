@@ -51,7 +51,7 @@ class TestCardReplication extends Command
         $this->line('─────────────────────────────────────');
 
         $masterOk  = $this->ping('pgsql',         'Master (PC Admin 192.168.214.161)');
-        $replicaOk = $this->ping('pgsql_replica',  'Replica (Server  192.168.214.7)');
+        $replicaOk = $this->ping('pgsql_replica',  'Replica (Server  192.168.214.163)');
 
         $this->newLine();
         return [$masterOk, $replicaOk];

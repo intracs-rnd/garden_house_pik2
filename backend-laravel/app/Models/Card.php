@@ -2,11 +2,28 @@
 
 namespace App\Models;
 
+use App\Support\ReadWriteSplit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Card extends Model
 {
+    use ReadWriteSplit;
+
+    /**
+     * Koneksi database yang digunakan model ini.
+     *
+     * READ/WRITE split (identik dengan Kartu):
+     *   READ  → 192.168.214.161  (PC Admin – replica, SELECT otomatis)
+     *   WRITE → 192.168.214.163  (Virtual IP – master, DML otomatis)
+     *
+     * Tabel `cards` adalah mirror dari `kartus` yang diisi via auto-sync
+     * (Kartu::booted) dan dikonsumsi oleh perangkat gate (RFID reader).
+     *
+     * @var string
+     */
+    protected $connection = 'pgsql';
+
     /**
      * The table associated with the model.
      *

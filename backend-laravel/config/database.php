@@ -39,7 +39,16 @@ return [
         'pgsql' => [
             'driver' => 'pgsql',
             'url' => env('DATABASE_URL'),
-            'host' => env('DB_HOST', '127.0.0.1'),
+            // Read dari PC Admin (192.168.214.161) — data cepat via logical replication
+            'read' => [
+                'host' => [env('DB_HOST', '127.0.0.1')],
+            ],
+            // Write ke Virtual IP (192.168.214.163) — tambah/edit kartu ke master
+            'write' => [
+                'host' => [env('DB_WRITE_HOST', env('DB_HOST', '127.0.0.1'))],
+            ],
+            // Setelah write dalam satu request, baca dari write host untuk hindari replication lag
+            'sticky' => env('DB_STICKY', true),
             'port' => env('DB_PORT', '5432'),
             'database' => env('DB_DATABASE', 'forge'),
             'username' => env('DB_USERNAME', 'forge'),
@@ -56,9 +65,9 @@ return [
         // Digunakan untuk monitoring & testing replication dari sisi subscriber
         'pgsql_replica' => [
             'driver' => 'pgsql',
-            'host' => env('DB_REPLICA_HOST', '192.168.214.7'),
+            'host' => env('DB_REPLICA_HOST', '192.168.214.163'),
             'port' => env('DB_REPLICA_PORT', '5432'),
-            'database' => env('DB_REPLICA_DATABASE', env('DB_DATABASE', 'dashboard')),
+            'database' => env('DB_REPLICA_DATABASE', env('DB_DATABASE', 'garden_house')),
             'username' => env('DB_REPLICA_USERNAME', env('DB_USERNAME', 'postgres')),
             'password' => env('DB_REPLICA_PASSWORD', env('DB_PASSWORD', '')),
             'charset' => 'utf8',

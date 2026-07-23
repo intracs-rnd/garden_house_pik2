@@ -4,6 +4,16 @@ namespace App\Repositories;
 
 use App\Models\Kartu;
 
+/**
+ * Data-access layer untuk tabel `kartus`.
+ *
+ * READ/WRITE routing (otomatis via koneksi `pgsql`):
+ *   READ  (SELECT) → 192.168.214.161  – PC Admin replica, data cepat
+ *   WRITE (DML)    → 192.168.214.163  – Virtual IP master, tambah/edit kartu
+ *
+ * Logical Replication dari 163 → 161 berjalan real-time sehingga
+ * data di READ host selalu segar dalam hitungan milidetik.
+ */
 class KartuRepository extends BaseRepository
 {
     public function __construct(Kartu $model)
@@ -13,7 +23,9 @@ class KartuRepository extends BaseRepository
 
     /**
      * Paginate cards with optional filters and eager-loaded owner.
-     * 
+     *
+     * READ → 192.168.214.161 (SELECT dikirim ke replica)
+     *
      * @param  array<string, mixed>  $filters
      * @param  int  $perPage
      * @param  bool  $includeDeleted  Include soft-deleted cards (is_deleted = true)
@@ -49,6 +61,8 @@ class KartuRepository extends BaseRepository
     /**
      * Find a card by its physical card number / UID.
      *
+     * READ → 192.168.214.161 (lookup saat gate tap — data replica sudah segar)
+     *
      * @return \App\Models\Kartu|null
      */
     public function findByCardNumber(string $cardNumber)
@@ -61,6 +75,8 @@ class KartuRepository extends BaseRepository
 
     /**
      * Find a card by its physical RFID tag / UID.
+     *
+     * READ → 192.168.214.161
      *
      * @return \App\Models\Kartu|null
      */
@@ -75,6 +91,8 @@ class KartuRepository extends BaseRepository
     /**
      * Soft delete a card: flag it as deleted (is_deleted = true)
      * instead of permanently removing the record.
+     *
+     * WRITE → 192.168.214.163 (UPDATE dikirim ke master)
      */
     public function delete($id): bool
     {
@@ -83,6 +101,8 @@ class KartuRepository extends BaseRepository
 
     /**
      * Restore a previously soft-deleted card.
+     *
+     * WRITE → 192.168.214.163
      */
     public function restore($id): bool
     {

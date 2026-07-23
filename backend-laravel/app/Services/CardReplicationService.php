@@ -181,13 +181,18 @@ class CardReplicationService
     }
 
     /**
-     * Check replication lag
+     * Check replication lag.
+     *
+     * READ → 192.168.214.161 (replica)
+     * pg_last_xact_replay_timestamp() hanya tersedia di replica (subscriber).
+     * SELECT otomatis dikirim ke read host — eksplisit di sini untuk dokumentasi.
      */
     public function checkReplicationLag(): int
     {
         try {
-            // Query untuk check lag dari pg_stat_replication
-            $lag = DB::selectOne(
+            // Eksplisit gunakan koneksi pgsql — SELECT akan dikirim ke read host
+            // (192.168.214.161 / replica) di mana pg_last_xact_replay_timestamp() aktif.
+            $lag = DB::connection('pgsql')->selectOne(
                 'SELECT 
                     EXTRACT(EPOCH FROM (now() - pg_last_xact_replay_timestamp()))::INTEGER as lag_seconds'
             );
@@ -212,16 +217,22 @@ class CardReplicationService
 
         foreach ($failedLogs as $log) {
             try {
-                // Try to ensure record exists or is deleted
+                // WRITE → 192.168.214.163 — retry harus ke master langsung.
+                // useWritePdo() memastikan SELECT di updateOrInsert pun ke write host
+                // sehingga kita membaca state terbaru sebelum INSERT/UPDATE.
                 if ($log->operation === 'INSERT' || $log->operation === 'UPDATE') {
                     if ($log->new_values) {
-                        DB::table($log->table_name)->updateOrInsert(
-                            ['id' => $log->record_id],
-                            $log->new_values
-                        );
+                        DB::connection('pgsql')->table($log->table_name)
+                            ->useWritePdo()
+                            ->updateOrInsert(
+                                ['id' => $log->record_id],
+                                $log->new_values
+                            );
                     }
                 } elseif ($log->operation === 'DELETE') {
-                    DB::table($log->table_name)->where('id', $log->record_id)->delete();
+                    DB::connection('pgsql')->table($log->table_name)
+                        ->where('id', $log->record_id)
+                        ->delete();
                 }
 
                 $log->update([
