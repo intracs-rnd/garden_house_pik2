@@ -30,7 +30,6 @@ class KartuFactory extends Factory
         return [
             'user_id'          => User::factory(),
             'card_number'      => strtoupper($this->faker->unique()->bothify('KRT-########')),
-            'rfid_tag'         => strtoupper(bin2hex(random_bytes(5))),
             'nama'             => 'Kartu ' . $this->faker->firstName(),
             'status'           => Kartu::STATUS_AKTIF,
             'is_blacklisted'   => false,

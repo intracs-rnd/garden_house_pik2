@@ -15,7 +15,7 @@ class Card extends Model
     protected $table = 'cards';
 
     /**
-     * Cards table has no timestamp columns.
+     * Cards table has no created_at / updated_at columns.
      */
     public $timestamps = false;
 
@@ -26,12 +26,11 @@ class Card extends Model
      */
     protected $fillable = [
         'uid',
-        'holder_name',
-        'unit_number',
+        'name',
+        'unit',
         'status',
-        'expiry_date',
-        'remaining_days',
-        'user_id',
+        'expiry',
+        'grace_days',
         'kartus_id',
     ];
 
@@ -41,8 +40,8 @@ class Card extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'expiry_date'    => 'date',
-        'remaining_days' => 'integer',
+        'expiry' => 'date',
+        'grace_days' => 'integer',
     ];
 
     /**

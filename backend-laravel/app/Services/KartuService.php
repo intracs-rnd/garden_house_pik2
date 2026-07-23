@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Kartu;
-use App\Models\Card;
 use App\Models\KartuAccessLog;
 use App\Models\User;
 use App\Repositories\KartuAccessLogRepository;
@@ -26,7 +25,7 @@ class KartuService
 
     /**
      * Paginated, filterable list of cards.
-     * 
+     *
      * @param  array<string, mixed>  $filters
      * @param  int  $perPage
      * @param  bool  $includeDeleted  Include soft-deleted cards (is_deleted = true)
@@ -67,57 +66,7 @@ class KartuService
             $data['rfid_tag'] = $this->generateRfidTag();
         }
 
-        // Create the Kartu record first.
-        $kartu = $this->kartuRepository->create($data)->load('user');
-
-        // Ensure the corresponding Card row exists/synced. This mirrors the
-        // model event sync but makes creation resilient if events are skipped.
-        try {
-            $statusMap = [
-                Kartu::STATUS_AKTIF     => 'Active',
-                Kartu::STATUS_NONAKTIF  => 'Inactive',
-                Kartu::STATUS_BLACKLIST => 'Suspended',
-            ];
-
-            $cardData = [
-                'uid'            => $kartu->rfid_tag,
-                'holder_name'    => $kartu->user ? $kartu->user->name : null,
-                'unit_number'    => $kartu->nama,
-                'status'         => $statusMap[$kartu->status] ?? 'Active',
-                'expiry_date'    => $kartu->valid_until ? $kartu->valid_until->toDateString() : null,
-                'remaining_days' => $kartu->grace_days,
-                'user_id'        => $kartu->user_id,
-                'kartus_id'      => $kartu->id,
-            ];
-
-            $cardData = array_filter($cardData, function ($v) { return $v !== null; });
-
-            Card::updateOrCreate(['kartus_id' => $kartu->id], $cardData);
-        } catch (\Throwable $e) {
-            if (app()->bound('log')) {
-                app('log')->error('Failed to ensure Card for Kartu id ' . ($kartu->id ?? 'n/a') . ': ' . $e->getMessage());
-            }
-        }
-
-        // Persist an initial access snapshot so the frontend can show decision
-        // without requiring the gate tap or a separate seeder run.
-        try {
-            $decision = $kartu->evaluateAccess();
-
-            $kartu->access_allowed  = (bool) ($decision['allowed'] ?? false);
-            $kartu->access_reason   = $decision['reason'] ?? null;
-            $kartu->access_message  = $decision['message'] ?? null;
-            $kartu->access_at       = Carbon::now();
-
-            // Save quietly to avoid triggering the card sync again.
-            $kartu->saveQuietly();
-        } catch (\Throwable $e) {
-            if (app()->bound('log')) {
-                app('log')->error('Failed to persist access snapshot for Kartu id ' . ($kartu->id ?? 'n/a') . ': ' . $e->getMessage());
-            }
-        }
-
-        return $kartu;
+        return $this->kartuRepository->create($data)->load('user');
     }
 
     /**

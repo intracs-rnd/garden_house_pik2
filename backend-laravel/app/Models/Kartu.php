@@ -155,14 +155,13 @@ class Kartu extends Model
                 ];
 
                 $cardData = [
-                    'uid'            => $kartu->rfid_tag,
-                    'holder_name'    => $kartu->user ? $kartu->user->name : null,
-                    'unit_number'    => $kartu->nama,
-                    'status'         => $statusMap[$kartu->status] ?? 'Active',
-                    'expiry_date'    => $kartu->valid_until ? $kartu->valid_until->toDateString() : null,
-                    'remaining_days' => $kartu->grace_days,
-                    'user_id'        => $kartu->user_id,
-                    'kartus_id'      => $kartu->id,
+                    'uid'        => $kartu->rfid_tag,
+                    'name'       => $kartu->user ? $kartu->user->name : null,
+                    'unit'       => $kartu->nama,
+                    'status'     => $statusMap[$kartu->status] ?? 'Active',
+                    'expiry'     => $kartu->valid_until ? $kartu->valid_until->toDateString() : null,
+                    'grace_days' => $kartu->grace_days,
+                    'kartus_id'  => $kartu->id,
                 ];
 
                 $cardData = array_filter($cardData, function ($v) { return $v !== null; });

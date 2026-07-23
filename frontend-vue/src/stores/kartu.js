@@ -39,7 +39,7 @@ export const useKartuStore = defineStore('kartu', {
         search: this.filters.search || undefined,
         status: this.filters.status || undefined,
         is_blacklisted:
-          this.filters.is_blacklisted !== '' ? this.filters.is_blacklisted : undefined,
+            this.filters.is_blacklisted !== '' ? this.filters.is_blacklisted : undefined,
         include_deleted: this.activeTab === 'deleted' ? true : undefined,
       }
     },
@@ -127,9 +127,8 @@ export const useKartuStore = defineStore('kartu', {
       }
     },
 
-    async fetchUsers({ force = false } = {}) {
-      // If users already loaded, skip unless caller requested a forced refresh.
-      if (this.users.length && !force) return this.users
+    async fetchUsers() {
+      if (this.users.length) return this.users
       try {
         const res = await userApi.list({ per_page: 100 })
         this.users = res.data
@@ -139,7 +138,6 @@ export const useKartuStore = defineStore('kartu', {
         return []
       }
     },
-
 
     async create(payload) {
       this.saving = true
