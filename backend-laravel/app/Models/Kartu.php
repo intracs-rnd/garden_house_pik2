@@ -20,9 +20,9 @@ class Kartu extends Model
     /**
      * Koneksi database yang digunakan model ini.
      *
-     * Koneksi `pgsql` sudah dikonfigurasi dengan read/write split:
-     *   READ  → 192.168.214.161  (PC Admin – replica, SELECT otomatis)
-     *   WRITE → 192.168.214.163  (Virtual IP – master, DML otomatis)
+     * Menggunakan koneksi `pgsql` biasa (single host 192.168.214.161).
+     * Tabel kartus tidak masuk ke sistem read/write split — hanya tabel
+     * `cards` yang direplikasi ke .163 untuk dikonsumsi perangkat gate.
      *
      * @var string
      */

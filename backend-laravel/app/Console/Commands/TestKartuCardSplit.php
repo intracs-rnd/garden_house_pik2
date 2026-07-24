@@ -37,9 +37,9 @@ class TestKartuCardSplit extends Command
         // ── 1. Konfigurasi ────────────────────────────────────────────
         $this->section('1. Konfigurasi Read/Write');
 
-        $readHost  = config('database.connections.pgsql.read.host')[0]  ?? '?';
-        $writeHost = config('database.connections.pgsql.write.host')[0] ?? '?';
-        $sticky    = config('database.connections.pgsql.sticky')         ? 'true' : 'false';
+        $readHost  = config('database.connections.pgsql_cards.read.host')[0]  ?? '?';
+        $writeHost = config('database.connections.pgsql_cards.write.host')[0] ?? '?';
+        $sticky    = config('database.connections.pgsql_cards.sticky')         ? 'true' : 'false';
 
         $this->row('READ  host (replica)', $readHost);
         $this->row('WRITE host (master)',  $writeHost);
@@ -57,64 +57,53 @@ class TestKartuCardSplit extends Command
         $this->section('2. Koneksi PDO');
 
         try {
-            DB::connection('pgsql')->selectOne('SELECT 1');
-            $this->ok("Koneksi pgsql (read/write) ✓");
+            DB::connection('pgsql_cards')->selectOne('SELECT 1');
+            $this->ok("Koneksi pgsql_cards (read/write split) ✓");
             $pass++;
         } catch (\Throwable $e) {
             $this->fail("Koneksi pgsql GAGAL: {$e->getMessage()}");
             $fail++;
         }
 
-        // ── 3. ReadWriteSplit trait — readQuery() ─────────────────────
-        $this->section('3. Kartu::readQuery() → READ host (192.168.214.161)');
+        // ── 3. Kartu pakai pgsql biasa (single host .161) ────────────
+        $this->section('3. Kartu → pgsql single host (192.168.214.161)');
 
         try {
-            $count = Kartu::readQuery()->withoutGlobalScopes()->count();
-            $this->ok("readQuery() berhasil — jumlah row: {$count}");
-            $this->line("  <fg=gray>→ SELECT dikirim ke {$readHost}</>");
+            $count = Kartu::withoutGlobalScopes()->count();
+            $this->ok("Kartu query berhasil — jumlah row: {$count}");
+            $this->line("  <fg=gray>→ SELECT & DML ke 192.168.214.161 (pgsql biasa, no split)</>");
             $pass++;
         } catch (\Throwable $e) {
-            $this->fail("readQuery() GAGAL: {$e->getMessage()}");
+            $this->fail("Kartu query GAGAL: {$e->getMessage()}");
             $fail++;
         }
 
-        // ── 4. ReadWriteSplit trait — writeQuery() ────────────────────
-        $this->section('4. Kartu::writeQuery() → WRITE host (192.168.214.163)');
-
-        try {
-            $count = Kartu::writeQuery()->withoutGlobalScopes()->count();
-            $this->ok("writeQuery() berhasil — jumlah row: {$count}");
-            $this->line("  <fg=gray>→ SELECT dipaksa ke {$writeHost} (useWritePdo)</>");
-            $pass++;
-        } catch (\Throwable $e) {
-            $this->fail("writeQuery() GAGAL: {$e->getMessage()}");
-            $fail++;
-        }
-
-        // ── 5. Card::readQuery() dan writeQuery() ─────────────────────
-        $this->section('5. Card::readQuery() dan Card::writeQuery()');
+        // ── 4. Card::readQuery() dan writeQuery() ─────────────────────
+        $this->section('4. Card::readQuery() → READ (.161) | Card::writeQuery() → WRITE (.163)');
 
         try {
             $readCount  = Card::readQuery()->count();
             $writeCount = Card::writeQuery()->count();
-            $this->ok("Card::readQuery()  — row: {$readCount}");
-            $this->ok("Card::writeQuery() — row: {$writeCount}");
+            $this->ok("Card::readQuery()  — row: {$readCount}  → {$readHost}");
+            $this->ok("Card::writeQuery() — row: {$writeCount} → {$writeHost}");
             $pass++;
         } catch (\Throwable $e) {
             $this->fail("Card query GAGAL: {$e->getMessage()}");
             $fail++;
         }
 
+        // ── 5. (dihapus — Kartu tidak lagi pakai split) ───────────────
+
         // ── 6. Sticky: write lalu baca balik dari write host ──────────
         $this->section('6. Sticky — Tulis lalu baca balik (write host)');
 
         try {
             // Bersihkan sisa test sebelumnya
-            DB::connection('pgsql')->table('cards')
+            DB::connection('pgsql_cards')->table('cards')
                 ->where('uid', self::TEST_UID)->delete();
 
             // INSERT → write host
-            DB::connection('pgsql')->table('cards')->insert([
+            DB::connection('pgsql_cards')->table('cards')->insert([
                 'uid'    => self::TEST_UID,
                 'name'   => 'TEST ReadWriteSplit',
                 'unit'   => 'TEST-UNIT',
@@ -135,13 +124,13 @@ class TestKartuCardSplit extends Command
             }
 
             // Bersihkan
-            DB::connection('pgsql')->table('cards')
+            DB::connection('pgsql_cards')->table('cards')
                 ->where('uid', self::TEST_UID)->delete();
         } catch (\Throwable $e) {
             $this->fail("Sticky test GAGAL: {$e->getMessage()}");
             $fail++;
             // Pastikan cleanup
-            DB::connection('pgsql')->table('cards')
+            DB::connection('pgsql_cards')->table('cards')
                 ->where('uid', self::TEST_UID)->delete();
         }
 
@@ -149,7 +138,7 @@ class TestKartuCardSplit extends Command
         $this->section('7. Replication Lag (pg_last_xact_replay_timestamp @ replica)');
 
         try {
-            $lag = DB::connection('pgsql')->selectOne(
+            $lag = DB::connection('pgsql_cards')->selectOne(
                 "SELECT EXTRACT(EPOCH FROM (now() - pg_last_xact_replay_timestamp()))::INTEGER AS lag_seconds"
             );
 
@@ -189,7 +178,7 @@ class TestKartuCardSplit extends Command
 
     private function cleanup(): int
     {
-        $n = DB::connection('pgsql')->table('cards')
+        $n = DB::connection('pgsql_cards')->table('cards')
             ->where('uid', self::TEST_UID)->delete();
 
         $this->info("✓ Dihapus {$n} test card(s)");
@@ -200,7 +189,8 @@ class TestKartuCardSplit extends Command
     {
         $this->newLine();
         $this->line('╔══════════════════════════════════════════════════╗');
-        $this->line('║  <info>Kartus & Cards — Read/Write Split Test</info>         ║');
+        $this->line('║  <info>Cards — Read/Write Split Test</info>                  ║');
+        $this->line('║  (Kartus pakai pgsql biasa, bukan split)         ║');
         $this->line('║  READ  → 192.168.214.161  (PC Admin – replica)   ║');
         $this->line('║  WRITE → 192.168.214.163  (Virtual IP – master)  ║');
         $this->line('╚══════════════════════════════════════════════════╝');

@@ -13,16 +13,15 @@ class Card extends Model
     /**
      * Koneksi database yang digunakan model ini.
      *
-     * READ/WRITE split (identik dengan Kartu):
+     * Menggunakan `pgsql_cards` (read/write split khusus kartus & cards):
      *   READ  → 192.168.214.161  (PC Admin – replica, SELECT otomatis)
      *   WRITE → 192.168.214.163  (Virtual IP – master, DML otomatis)
      *
-     * Tabel `cards` adalah mirror dari `kartus` yang diisi via auto-sync
-     * (Kartu::booted) dan dikonsumsi oleh perangkat gate (RFID reader).
+     * Tabel lain menggunakan koneksi `pgsql` biasa (single host .161).
      *
      * @var string
      */
-    protected $connection = 'pgsql';
+    protected $connection = 'pgsql_cards';
 
     /**
      * The table associated with the model.

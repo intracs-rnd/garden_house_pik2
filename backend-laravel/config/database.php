@@ -36,33 +36,53 @@ return [
             ]) : [],
         ],
 
+        // Koneksi default untuk semua tabel kecuali kartus & cards.
+        // Single host ke PC Admin (.161) — read & write ke satu tempat.
+        // Tabel yang TIDAK direplikasi harus menggunakan koneksi ini.
         'pgsql' => [
-            'driver' => 'pgsql',
-            'url' => env('DATABASE_URL'),
-            // Read dari PC Admin (192.168.214.161) — data cepat via logical replication
-            'read' => [
-                'host' => [env('DB_HOST', '127.0.0.1')],
-            ],
-            // Write ke Virtual IP (192.168.214.163) — tambah/edit kartu ke master
-            'write' => [
-                'host' => [env('DB_WRITE_HOST', env('DB_HOST', '127.0.0.1'))],
-            ],
-            // Setelah write dalam satu request, baca dari write host untuk hindari replication lag
-            'sticky' => env('DB_STICKY', true),
-            'port' => env('DB_PORT', '5432'),
-            'database' => env('DB_DATABASE', 'forge'),
-            'username' => env('DB_USERNAME', 'forge'),
-            'password' => env('DB_PASSWORD', ''),
-            'charset' => 'utf8',
-            'prefix' => '',
-            'prefix_indexes' => true,
-            'schema' => 'public',
-            'sslmode' => 'prefer',
-            'timezone' => 'Asia/Jakarta',
+            'driver'        => 'pgsql',
+            'url'           => env('DATABASE_URL'),
+            'host'          => env('DB_HOST', '127.0.0.1'),
+            'port'          => env('DB_PORT', '5432'),
+            'database'      => env('DB_DATABASE', 'forge'),
+            'username'      => env('DB_USERNAME', 'forge'),
+            'password'      => env('DB_PASSWORD', ''),
+            'charset'       => 'utf8',
+            'prefix'        => '',
+            'prefix_indexes'=> true,
+            'schema'        => 'public',
+            'sslmode'       => 'prefer',
+            'timezone'      => 'Asia/Jakarta',
         ],
 
-        // Koneksi langsung ke Server/Replica (192.168.214.7)
-        // Digunakan untuk monitoring & testing replication dari sisi subscriber
+        // Koneksi khusus untuk tabel kartus & cards dengan read/write split.
+        // READ  → 192.168.214.161 (PC Admin – replica, SELECT cepat)
+        // WRITE → 192.168.214.163 (Virtual IP – master, INSERT/UPDATE/DELETE)
+        // Logical replication otomatis sync .163 → .161 untuk kedua tabel ini.
+        'pgsql_cards' => [
+            'driver' => 'pgsql',
+            'url'    => env('DATABASE_URL'),
+            'read'   => [
+                'host' => [env('DB_HOST', '127.0.0.1')],
+            ],
+            'write'  => [
+                'host' => [env('DB_WRITE_HOST', env('DB_HOST', '127.0.0.1'))],
+            ],
+            'sticky'        => env('DB_STICKY', true),
+            'port'          => env('DB_PORT', '5432'),
+            'database'      => env('DB_DATABASE', 'forge'),
+            'username'      => env('DB_USERNAME', 'forge'),
+            'password'      => env('DB_PASSWORD', ''),
+            'charset'       => 'utf8',
+            'prefix'        => '',
+            'prefix_indexes'=> true,
+            'schema'        => 'public',
+            'sslmode'       => 'prefer',
+            'timezone'      => 'Asia/Jakarta',
+        ],
+
+        // Koneksi langsung ke Server/master (192.168.214.163)
+        // Digunakan untuk monitoring & testing replication dari sisi publisher
         'pgsql_replica' => [
             'driver' => 'pgsql',
             'host' => env('DB_REPLICA_HOST', '192.168.214.163'),
