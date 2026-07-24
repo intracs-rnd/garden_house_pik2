@@ -82,6 +82,7 @@ class TransactionController extends Controller
 
         $transaction->status = Transaction::STATUS_COMPLETED;
         $transaction->exit_time = now();
+        $transaction->flag = 1;
         $transaction->save();
 
         return $this->successResponse($transaction, 'Transaction completed successfully.');
