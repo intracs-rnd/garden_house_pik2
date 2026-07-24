@@ -12,11 +12,19 @@ const pinia = createPinia()
 
 app.use(pinia)
 
-// Restore the authenticated session (token + user) before the router boots,
-// so navigation guards have the correct auth state on first load.
 const authStore = useAuthStore()
 authStore.bootstrap()
 
-app.use(router)
+async function initApp() {
+  // If already authenticated, fetch fresh permissions from the server BEFORE
+  // mounting so the router guard and sidebar always use up-to-date permissions,
+  // even when a superadmin has changed another role's access in the meantime.
+  if (authStore.isAuthenticated) {
+    await authStore.fetchUser().catch(() => {})
+  }
 
-app.mount('#app')
+  app.use(router)
+  app.mount('#app')
+}
+
+initApp()

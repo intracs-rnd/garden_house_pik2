@@ -645,25 +645,26 @@ onUnmounted(() => {
       <PageHeader title="Dashboard" subtitle="Ringkasan data sistem GH PIK2" />
 
       <!-- Akses cepat ke status RFID Reader (MQTT) -->
-      <button
-          type="button"
-          class="mqtt-chip"
-          :class="mqttConnected ? 'is-online' : 'is-offline'"
-          :title="mqttConnected ? `Terhubung ke ${RFID_STATUS_TOPIC}` : 'MQTT tidak terhubung'"
-          @click="mqttDetailModal = true"
-      >
-        <span class="mqtt-chip-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="4" width="20" height="16" rx="2" />
-            <path d="M7 15h.01M11 15h2" />
-          </svg>
-        </span>
-        <span class="mqtt-chip-text">
-          <span class="mqtt-chip-label">RFID Reader</span>
-          <span class="mqtt-chip-state">{{ mqttConnected ? 'Online' : 'Offline' }}</span>
-        </span>
-        <span class="status-dot"></span>
-      </button>
+<!--      <button-->
+<!--          type="button"-->
+<!--          class="mqtt-chip"-->
+<!--          :class="mqttConnected ? 'is-online' : 'is-offline'"-->
+<!--          :title="mqttConnected ? `Terhubung ke ${RFID_STATUS_TOPIC}` : 'MQTT tidak terhubung'"-->
+<!--          @click="mqttDetailModal = true"-->
+<!--      >-->
+<!--        <span class="mqtt-chip-icon">-->
+<!--          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">-->
+<!--            <rect x="2" y="4" width="20" height="16" rx="2" />-->
+<!--            <path d="M7 15h.01M11 15h2" />-->
+<!--          </svg>-->
+<!--        </span>-->
+<!--        <span class="mqtt-chip-text">-->
+<!--          <span class="mqtt-chip-label">RFID Reader</span>-->
+<!--          <span class="mqtt-chip-state">{{ mqttConnected ? 'Online' : 'Offline' }}</span>-->
+<!--        </span>-->
+<!--        <span class="status-dot"></span>-->
+<!--      </button>-->
+<!--      </button>-->
     </div>
 
     <Loader v-if="loading" text="Memuat statistik..." />

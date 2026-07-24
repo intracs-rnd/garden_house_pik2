@@ -24,7 +24,6 @@ const menu = [
     label: 'Kartu Akses',
     icon: 'M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm-1 5h20M6 15h4',
     feature: 'kartu',
-    adminOnly: true,
   },
   {
     to: { name: 'kartu.gate' },

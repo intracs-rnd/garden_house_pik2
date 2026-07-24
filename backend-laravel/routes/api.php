@@ -142,9 +142,13 @@ Route::middleware('auth:sanctum')->group(function () {
     // ---- Kartu akses ----
     // Custom routes are declared before the resource show route to avoid the
     // {kartu} wildcard capturing these paths.
+
+    // kartu-logs is accessible to all authenticated users so the Dashboard
+    // Live Kendaraan In/Out widget works regardless of role permissions.
+    Route::get('/kartu-logs', [KartuController::class, 'accessLogs']);
+
     Route::middleware('feature:kartu,view')->group(function () {
         Route::post('/kartu/status-check', [KartuController::class, 'statusByNumber']);
-        Route::get('/kartu-logs', [KartuController::class, 'accessLogs']);
         Route::get('/kartu/{id}/status', [KartuController::class, 'status']);
         Route::get('/kartu/{id}/logs', [KartuController::class, 'logs']);
         Route::get('/kartu', [KartuController::class, 'index']);
