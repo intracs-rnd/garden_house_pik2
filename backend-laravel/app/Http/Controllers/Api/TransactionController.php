@@ -21,7 +21,8 @@ class TransactionController extends Controller
             'plate_number' => 'required|string',
         ]);
 
-        $plateNumber = $request->query('plate_number');
+        // Normalize: trim whitespace and uppercase for case-insensitive match (PostgreSQL)
+        $plateNumber = strtoupper(trim($request->query('plate_number')));
 
         // Find LATEST active transaction with the given plate number
         // Priority ordering:
@@ -29,7 +30,7 @@ class TransactionController extends Controller
         // 2. ID DESC (secondary sort)
         // Include logCctv relation to get view_image_path
         $transaction = Transaction::with('logCctv')
-            ->where('plate_number', $plateNumber)
+            ->whereRaw('UPPER(TRIM(plate_number)) = ?', [$plateNumber])
             ->where('status', Transaction::STATUS_ACTIVE)
             ->orderBy('entry_time', 'desc') // Primary sort: newest entry_time
             ->orderBy('id', 'desc') // Secondary sort: newest ID first

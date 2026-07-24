@@ -11,6 +11,14 @@ class Transaction extends Model
     use HasFactory;
 
     /**
+     * The database connection for this model.
+     * Transactions are written to and read from the server (192.168.214.163).
+     *
+     * @var string
+     */
+    protected $connection = 'pgsql_replica';
+
+    /**
      * The table associated with the model.
      *
      * @var string

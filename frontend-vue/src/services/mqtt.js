@@ -36,7 +36,7 @@ class MQTTService {
 
       // Koneksi ke broker menggunakan WebSocket
       // Format: ws://IP:PORT/PATH (EMQX default path: /mqtt)
-      const brokerUrl = 'ws://192.168.214.7:8083/mqtt'
+      const brokerUrl = import.meta.env.VITE_MQTT_BROKER_URL || 'ws://localhost:8083/mqtt'
       
       console.log('Connecting to MQTT broker:', brokerUrl)
       

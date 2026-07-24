@@ -10,6 +10,14 @@ class LogCctv extends Model
     use HasFactory;
 
     /**
+     * The database connection for this model.
+     * log_cctv lives on the server (192.168.214.163).
+     *
+     * @var string
+     */
+    protected $connection = 'pgsql_replica';
+
+    /**
      * The table associated with the model.
      *
      * @var string

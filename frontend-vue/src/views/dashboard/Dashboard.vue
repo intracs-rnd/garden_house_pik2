@@ -379,8 +379,9 @@ async function searchPlateNumber() {
 
   try {
     // Validate plate number and get active transaction
-    console.log('🔍 Searching for plate:', gateForm.value.nomor_plat.trim())
-    const response = await transactionApi.getActiveTransaction(gateForm.value.nomor_plat.trim())
+    const plateInput = gateForm.value.nomor_plat.trim().toUpperCase()
+    console.log('🔍 Searching for plate:', plateInput)
+    const response = await transactionApi.getActiveTransaction(plateInput)
 
     if (!response.data) {
       toastError('Nomor plat tidak valid atau tidak memiliki transaksi aktif')

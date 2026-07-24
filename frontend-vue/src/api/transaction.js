@@ -10,7 +10,7 @@ import axios from 'axios'
 const transactionApi = {
   /**
    * Helper: Convert ArrayBuffer to Base64 string
-   * @param {ArrayBuffer} buffer 
+   * @param {ArrayBuffer} buffer
    * @returns {string} Base64 string
    */
   _arrayBufferToBase64(buffer) {
@@ -42,23 +42,23 @@ const transactionApi = {
    */
   async fetchImage(imagePath) {
     console.log('📥 Original image path:', imagePath)
-    
+
     // Prepare multiple path variations to try
     const pathVariations = []
-    
+
     // Handle /var/www/html/api-mr-pik2/ prefix
     if (imagePath.includes('/var/www/html/api-mr-pik2/')) {
       // Try 1: Convert to /home/transjakarta/ (likely to work based on Postman test)
       const transjakartaPath = imagePath.replace('/var/www/html/api-mr-pik2/', '/home/transjakarta/')
       pathVariations.push({ path: transjakartaPath, label: 'transjakarta path' })
-      
+
       // Try 2: Remove prefix completely
       const relativePath = imagePath.replace('/var/www/html/api-mr-pik2', '')
       pathVariations.push({ path: relativePath, label: 'relative path' })
-      
+
       // Try 3: Original path
       pathVariations.push({ path: imagePath, label: 'original path' })
-    } 
+    }
     // Handle /var/www/html/ prefix
     else if (imagePath.includes('/var/www/html/')) {
       const cleanPath = imagePath.replace('/var/www/html/', '/')
@@ -73,32 +73,33 @@ const transactionApi = {
     else {
       pathVariations.push({ path: imagePath, label: 'original path' })
     }
-    
+
     console.log('🔄 Will try', pathVariations.length, 'path variations:', pathVariations.map(p => p.label))
-    
+
     // Try each path variation until one succeeds
     let lastError = null
     for (let i = 0; i < pathVariations.length; i++) {
       const { path: apiPath, label } = pathVariations[i]
-      
+
       try {
         console.log(`🌐 [Attempt ${i + 1}/${pathVariations.length}] Trying ${label}:`, apiPath)
-        
+
         // Try to get response as arraybuffer first to avoid encoding issues
-        const response = await axios.post('http://192.168.214.7:4000/api/uploads', {
+        const uploadsApiUrl = import.meta.env.VITE_UPLOADS_API_URL
+        const response = await axios.post(uploadsApiUrl, {
           path: apiPath
         }, {
           timeout: 15000,
           responseType: 'arraybuffer'  // Use arraybuffer to handle binary data properly
         })
-        
+
         console.log(`✅ [Attempt ${i + 1}] SUCCESS with ${label}!`)
         console.log('📦 Response type:', typeof response.data, '| Byte length:', response.data.byteLength || response.data.length)
-        
+
         // Convert arraybuffer to base64
         const base64Data = this._arrayBufferToBase64(response.data)
         console.log('📦 Converted to base64, length:', base64Data.length, '| Preview:', base64Data.substring(0, 50))
-        
+
         // Return success immediately
         if (base64Data && base64Data.length > 100) {
           console.log('✅ Image fetched successfully with', label)
@@ -110,14 +111,14 @@ const transactionApi = {
             usedPath: apiPath
           }
         }
-        
+
         // Response received but data too short, try next variation
         console.log(`⚠️ [Attempt ${i + 1}] Response OK but data too short, trying next...`)
-        
+
       } catch (error) {
         lastError = error
         console.error(`❌ [Attempt ${i + 1}] Failed with ${label}:`, error.message)
-        
+
         // If this is not the last variation, continue to next
         if (i < pathVariations.length - 1) {
           console.log(`🔄 Trying next path variation...`)
@@ -125,26 +126,27 @@ const transactionApi = {
         }
       }
     }
-    
+
     // All attempts failed
     console.error('❌ All path variations failed for:', imagePath)
     console.error('❌ Last error:', lastError?.message)
-    
+
     // Generate fallback URLs
+    const uploadsBaseUrl = import.meta.env.VITE_UPLOADS_API_URL?.replace('/api/uploads', '') || ''
     const fallbackUrls = []
     if (imagePath.includes('/storage/')) {
       const storageIndex = imagePath.indexOf('/storage/')
       const relativePath = imagePath.substring(storageIndex)
-      fallbackUrls.push(`http://192.168.214.7:4000${relativePath}`)
+      fallbackUrls.push(`${uploadsBaseUrl}${relativePath}`)
     }
     if (imagePath.includes('/api-mr-pik2/')) {
       const cleanPath = imagePath.replace('/var/www/html/api-mr-pik2', '')
-      fallbackUrls.push(`http://192.168.214.7:4000${cleanPath}`)
+      fallbackUrls.push(`${uploadsBaseUrl}${cleanPath}`)
     }
     if (imagePath.includes('/home/transjakarta/')) {
       fallbackUrls.push(imagePath)
     }
-    
+
     return {
       success: false,
       path: imagePath,
