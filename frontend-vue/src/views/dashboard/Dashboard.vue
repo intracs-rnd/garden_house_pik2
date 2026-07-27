@@ -620,7 +620,7 @@ const cards = computed(() => [
   {
     label: 'Kendaraan Di Dalam',
     value: stats.value?.kendaraan_di_dalam ?? Math.max(
-        todayActivity.value.filter(i => i.type === 'in' && i.granted).length - 
+        todayActivity.value.filter(i => i.type === 'in' && i.granted).length -
         todayActivity.value.filter(i => i.type === 'out' && i.granted).length, 0),
     to: null,
     color: '#f59e0b',
