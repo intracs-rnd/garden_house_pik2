@@ -119,7 +119,14 @@ const routes = [
         path: 'laporan',
         name: 'reports.index',
         component: () => import('@/views/reports/ReportList.vue'),
-        meta: { title: 'Laporan', feature: 'reports' },
+        meta: { title: 'Laporan Transaksi', feature: 'reports' },
+      },
+      // Log & Tren Aktivitas Gate (real-time gate logs + 7-day activity trend chart)
+      {
+        path: 'laporan/aktivitas-gate',
+        name: 'reports.gate-activity',
+        component: () => import('@/views/reports/GateActivityView.vue'),
+        meta: { title: 'Log & Tren Aktivitas Gate', feature: 'reports' },
       },
       // Pengaturan hak akses (RBAC) — hanya untuk peran dengan akses "manage".
       {

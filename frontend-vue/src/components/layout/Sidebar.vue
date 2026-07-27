@@ -1,9 +1,9 @@
 <script setup>
-import { computed } from 'vue'
-import { RouterLink } from 'vue-router'
+import { computed, ref, watch } from 'vue'
+import { RouterLink, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
-defineProps({
+const props = defineProps({
   open: { type: Boolean, default: false },
   collapsed: { type: Boolean, default: false },
 })
@@ -11,87 +11,140 @@ defineProps({
 const emit = defineEmits(['navigate', 'toggle'])
 
 const auth = useAuthStore()
+const route = useRoute()
 
-const menu = [
+const menuGroups = [
   {
-    to: { name: 'dashboard' },
-    label: 'Dashboard',
-    icon: 'M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z',
-    feature: null,
+    heading: null,
+    items: [
+      {
+        to: { name: 'dashboard' },
+        label: 'Dashboard',
+        icon: 'M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z',
+        feature: null,
+      },
+      {
+        to: { name: 'kartu.index' },
+        label: 'Kartu Akses',
+        icon: 'M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm-1 5h20M6 15h4',
+        feature: 'kartu',
+      },
+      {
+        to: { name: 'kartu.gate' },
+        label: 'Simulasi Gate',
+        icon: 'M4 21V5a1 1 0 0 1 1-1h6v17M4 21h16M14 21V9h5a1 1 0 0 1 1 1v11M8 8h.01M8 12h.01',
+        feature: 'kartu_gate',
+      },
+      {
+        to: { name: 'users.index' },
+        label: 'Data Warga',
+        icon: 'M17 20h5v-2a4 4 0 0 0-3-3.87M9 20H4v-2a4 4 0 0 1 3-3.87m6-1.13a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm6 0a4 4 0 1 0-3-6.65',
+        feature: 'users',
+      },
+      {
+        to: { name: 'user-mr.index' },
+        label: 'User MR',
+        icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
+        superAdmin: true,
+      },
+      {
+        to: { name: 'iuran.index' },
+        label: 'Iuran Perumahan',
+        icon: 'M9 14l-4-4 4-4m-4 4h15M5 19h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2z',
+        feature: 'iuran',
+      },
+    ],
   },
   {
-    to: { name: 'kartu.index' },
-    label: 'Kartu Akses',
-    icon: 'M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm-1 5h20M6 15h4',
-    feature: 'kartu',
-  },
-  {
-    to: { name: 'kartu.gate' },
-    label: 'Simulasi Gate',
-    icon: 'M4 21V5a1 1 0 0 1 1-1h6v17M4 21h16M14 21V9h5a1 1 0 0 1 1 1v11M8 8h.01M8 12h.01',
-    feature: 'kartu_gate',
-  },
-  {
-    to: { name: 'users.index' },
-    label: 'Data Warga',
-    icon: 'M17 20h5v-2a4 4 0 0 0-3-3.87M9 20H4v-2a4 4 0 0 1 3-3.87m6-1.13a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm6 0a4 4 0 1 0-3-6.65',
-    feature: 'users',
-  },
-  {
-    to: { name: 'user-mr.index' },
-    label: 'User MR',
-    icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
-    superAdmin: true,
-  },
-  {
-    to: { name: 'iuran.index' },
-    label: 'Iuran Perumahan',
-    icon: 'M9 14l-4-4 4-4m-4 4h15M5 19h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2z',
-    feature: 'iuran',
-  },
-  {
-    to: { name: 'reports.index' },
+    heading: 'Menu Utama',
+    dropdown: true,
+    dropdownKey: 'laporan',
     label: 'Laporan',
     icon: 'M9 17v-6m3 6V7m3 10v-3M6 3h9l5 5v11a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z',
     feature: 'reports',
+    items: [
+      {
+        to: { name: 'reports.index' },
+        label: 'Laporan Transaksi',
+        icon: 'M9 17v-6m3 6V7m3 10v-3M6 3h9l5 5v11a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z',
+        feature: 'reports',
+      },
+      {
+        to: { name: 'reports.gate-activity' },
+        label: 'Log & Tren Aktivitas Gate',
+        icon: 'M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM13 2v7h7M8 13h8M8 17h5',
+        feature: 'reports',
+      },
+    ],
   },
   {
-    to: { name: 'settings.access-control' },
-    label: 'Pengaturan Hak Akses',
-    icon: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm7.4-3a7.4 7.4 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7.3 7.3 0 0 0-2-1.2l-.4-2.5H9.5l-.4 2.5a7.3 7.3 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7.4 7.4 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1a7.3 7.3 0 0 0 2 1.2l.4 2.5h4.9l.4-2.5a7.3 7.3 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.07-.4.1-.8.1-1.2z',
-    feature: 'access_control',
-    featureLevel: 'manage',
-  },
-  {
-    to: { name: 'settings.cameras' },
-    label: 'Pengaturan Kamera',
-    icon: 'M23 7l-7 5 7 5V7zM1 5h13a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H1a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z',
-    feature: 'cameras',
-    featureLevel: 'manage',
-  },
-  {
-    to: { name: 'logs.index' },
-    label: 'Log Error',
-    icon: 'M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z',
-    feature: 'log_error',
-  },
-  {
-    to: { name: 'mqtt.test' },
-    label: 'MQTT Test',
-    icon: 'M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5zm0 18c-3.86-.96-7-5.04-7-9V8.3l7-3.11 7 3.11V11c0 3.96-3.14 8.04-7 9z M9 12l2 2 4-4',
-    feature: 'mqtty',
+    divider: true,
+    items: [
+      {
+        to: { name: 'settings.access-control' },
+        label: 'Hak Akses',
+        icon: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm7.4-3a7.4 7.4 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7.3 7.3 0 0 0-2-1.2l-.4-2.5H9.5l-.4 2.5a7.3 7.3 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7.4 7.4 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1a7.3 7.3 0 0 0 2 1.2l.4 2.5h4.9l.4-2.5a7.3 7.3 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.07-.4.1-.8.1-1.2z',
+        feature: 'access_control',
+        featureLevel: 'manage',
+      },
+      {
+        to: { name: 'settings.cameras' },
+        label: 'Kamera',
+        icon: 'M23 7l-7 5 7 5V7zM1 5h13a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H1a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z',
+        feature: 'cameras',
+        featureLevel: 'manage',
+      },
+      {
+        to: { name: 'logs.index' },
+        label: 'Log Error',
+        icon: 'M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z',
+        feature: 'log_error',
+      },
+      {
+        to: { name: 'mqtt.test' },
+        label: 'MQTT Test',
+        icon: 'M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5zm0 18c-3.86-.96-7-5.04-7-9V8.3l7-3.11 7 3.11V11c0 3.96-3.14 8.04-7 9z M9 12l2 2 4-4',
+        feature: 'mqtty',
+      },
+    ],
   },
 ]
 
-const visibleMenu = computed(() =>
-  menu.filter((item) => {
-    if (item.superAdmin) return auth.isSuperAdmin
-    if (item.adminOnly) return auth.isAdmin
-    if (!item.feature) return true
-    if (item.featureLevel === 'manage') return auth.canManage(item.feature)
-    return auth.hasFeature(item.feature)
-  }),
+// Route names that belong to the laporan dropdown
+const laporanRoutes = ['reports.index', 'reports.gate-activity']
+
+const dropdownOpen = ref(laporanRoutes.includes(route.name))
+
+// Auto-open when navigating to a laporan child route
+watch(() => route.name, (name) => {
+  if (laporanRoutes.includes(name)) dropdownOpen.value = true
+})
+
+function toggleDropdown() {
+  if (!props.collapsed) dropdownOpen.value = !dropdownOpen.value
+}
+
+function isVisible(item) {
+  if (item.superAdmin) return auth.isSuperAdmin
+  if (item.adminOnly) return auth.isAdmin
+  if (!item.feature) return true
+  if (item.featureLevel === 'manage') return auth.canManage(item.feature)
+  return auth.hasFeature(item.feature)
+}
+
+const visibleGroups = computed(() =>
+  menuGroups
+    .map((group) => {
+      if (group.dropdown) {
+        return isVisible(group) ? group : null
+      }
+      const items = group.items.filter(isVisible)
+      return items.length > 0 ? { ...group, items } : null
+    })
+    .filter(Boolean),
 )
+
+const isLaporanActive = computed(() => laporanRoutes.includes(route.name))
 </script>
 
 <template>
@@ -106,28 +159,58 @@ const visibleMenu = computed(() =>
     </div>
 
     <nav class="sidebar-nav">
-      <p class="sidebar-heading">Menu Utama</p>
-      <RouterLink
-        v-for="item in visibleMenu"
-        :key="item.label"
-        :to="item.to"
-        class="sidebar-link"
-        :title="collapsed ? item.label : ''"
-        @click="emit('navigate')"
-      >
-        <svg
-          class="sidebar-icon"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path :d="item.icon" />
-        </svg>
-        <span class="link-label">{{ item.label }}</span>
-      </RouterLink>
+      <template v-for="group in visibleGroups" :key="group.label || group.heading">
+        <!-- Dropdown group (e.g. Laporan) -->
+        <template v-if="group.dropdown">
+          <button
+            class="sidebar-link dropdown-trigger"
+            :class="{ 'is-active': isLaporanActive, 'is-open': dropdownOpen }"
+            :title="collapsed ? group.label : ''"
+            @click="toggleDropdown"
+            type="button"
+          >
+            <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path :d="group.icon" />
+            </svg>
+            <span class="link-label">{{ group.label }}</span>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
+          <div class="dropdown-sub" :class="{ 'is-open': dropdownOpen && !collapsed }">
+            <RouterLink
+              v-for="item in group.items"
+              :key="item.label"
+              :to="item.to"
+              class="sidebar-link sub-link"
+              :title="collapsed ? item.label : ''"
+              @click="emit('navigate')"
+            >
+              <span class="sub-dot"></span>
+              <span class="link-label">{{ item.label }}</span>
+            </RouterLink>
+          </div>
+        </template>
+
+        <!-- Regular group with heading -->
+        <template v-else>
+          <hr v-if="group.divider" class="sidebar-divider" />
+          <p v-else-if="group.heading" class="sidebar-heading">{{ group.heading }}</p>
+          <RouterLink
+            v-for="item in group.items"
+            :key="item.label"
+            :to="item.to"
+            class="sidebar-link"
+            :title="collapsed ? item.label : ''"
+            @click="emit('navigate')"
+          >
+            <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path :d="item.icon" />
+            </svg>
+            <span class="link-label">{{ item.label }}</span>
+          </RouterLink>
+        </template>
+      </template>
     </nav>
 
     <div class="sidebar-footer">
@@ -177,6 +260,9 @@ const visibleMenu = computed(() =>
 }
 .sidebar.is-collapsed .sidebar-heading {
   display: none;
+}
+.sidebar.is-collapsed .dropdown-sub {
+  max-height: 0;
 }
 .sidebar.is-collapsed .sidebar-footer {
   padding: 12px 8px;
@@ -240,6 +326,21 @@ const visibleMenu = computed(() =>
   overflow-y: auto;
   transition: padding 0.3s ease;
 }
+
+/* Custom Scrollbar untuk Sidebar */
+.sidebar-nav::-webkit-scrollbar {
+  width: 6px;
+}
+.sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+}
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+}
 .sidebar-heading {
   margin: 8px 12px;
   font-size: 11px;
@@ -247,6 +348,11 @@ const visibleMenu = computed(() =>
   letter-spacing: 0.06em;
   color: #64748b;
   transition: display 0.3s ease;
+}
+.sidebar-divider {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin: 12px 12px;
 }
 .sidebar-link {
   display: flex;
@@ -266,6 +372,54 @@ const visibleMenu = computed(() =>
 .sidebar-link.router-link-active {
   background: var(--color-sidebar-active);
   color: #fff;
+}
+.dropdown-trigger {
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+.dropdown-trigger.is-active {
+  color: #fff;
+}
+.chevron {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin-left: auto;
+  transition: transform 0.25s ease;
+  opacity: 0.6;
+}
+.dropdown-trigger.is-open .chevron {
+  transform: rotate(180deg);
+}
+.sidebar.is-collapsed .chevron {
+  display: none;
+}
+.dropdown-sub {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.3s ease;
+}
+.dropdown-sub.is-open {
+  max-height: 200px;
+}
+.sub-link {
+  padding-left: 20px !important;
+}
+.sub-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.4;
+  flex-shrink: 0;
+  transition: opacity 0.15s ease;
+}
+.sub-link:hover .sub-dot,
+.sub-link.router-link-active .sub-dot {
+  opacity: 1;
 }
 .sidebar-icon {
   width: 20px;

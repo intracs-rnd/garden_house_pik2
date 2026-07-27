@@ -6,7 +6,6 @@ import rfidApi from '@/api/rfid'
 import cameraApi from '@/api/camera'
 import { gateApi } from '@/api/gate'
 import transactionApi from '@/api/transaction'
-import { useKartuStore } from '@/stores/kartu'
 import { useAuthStore } from '@/stores/auth'
 import { useMqtt } from '@/composables/useMqtt'
 import { useGateControl } from '@/composables/useGateControl'
@@ -18,7 +17,6 @@ import Loader from '@/components/common/Loader.vue'
 import LiveStream from '@/components/common/LiveStream.vue'
 import Modal from '@/components/common/Modal.vue'
 import Button from '@/components/common/Button.vue'
-import ActivityTrendsChart from '@/components/dashboard/ActivityTrendsChart.vue'
 
 const loading = ref(true)
 const error = ref('')
@@ -109,24 +107,21 @@ async function loadCameras() {
   }
 }
 
-// --- Live Kendaraan In/Out (real gate tap history) --------------------------
-// Reuses the "Riwayat Tap Terbaru" feed from the gate console
-// (GET /api/kartu-logs, via the kartu store) so the dashboard mirrors real tap
-// activity. The feed is polled periodically to stay live.
-const store = useKartuStore()
+// --- Live Kendaraan In/Out (dari log_gate + gate_manual_control via MQTT) ---
+// Polling dari /api/gate/live-activity yang menggabungkan event RFID otomatis
+// (log_gate) dan kontrol manual operator (gate_manual_control).
 const auth = useAuthStore()
 
-const ACTIVITY_LIMIT = 15
 const ACTIVITY_POLL_MS = 5000
 
 const vehicleActivityAll = ref([])
+const activitySummary = ref({ today_total: 0, today_auto: 0, today_manual: 0 })
 const activityLoading = ref(true)
 const activityError = ref('')
 const activityPage = ref(1)
 const activityPerPage = 5
 
-// Filter tanggal untuk feed aktivitas. '' = tampilkan semua log yang termuat
-// (tidak difilter). Format mengikuti <input type="date"> yaitu YYYY-MM-DD.
+// Filter tanggal untuk feed aktivitas. '' = tampilkan semua log yang termuat.
 const selectedDate = ref('')
 const todayDateStr = computed(() => toLocalDateStr(new Date()))
 
@@ -140,72 +135,79 @@ function clearDateFilter() {
 
 watch(selectedDate, () => {
   activityPage.value = 1
+  loadActivity()
 })
 
-// Map a raw access log (same shape KartuGate consumes) into a feed item.
+/**
+ * Map baris dari log_gate / gate_manual_control ke feed item.
+ * - action 'OPEN'  → type 'in'
+ * - action 'CLOSE' → type 'out'
+ * - result 'SUCCESS' → granted true
+ * - control_type 'auto' = RFID otomatis, 'manual' = operator
+ */
 function mapLog(log) {
-  // Kartu status: 1 = Aktif, 2 = Non Aktif, 3 = Blacklist (App\Models\Kartu).
-  const kartuStatus = log.kartu?.status != null ? Number(log.kartu.status) : null
-  const active = kartuStatus === 1 && !log.kartu?.is_blacklisted
+  const isManual  = log.control_type === 'manual'
+  const isOpen    = String(log.action).toUpperCase() === 'OPEN'
+  const granted   = String(log.result).toUpperCase() === 'SUCCESS'
+  const eventTs   = log.event_ts || log.created_at || null
   return {
-    id: log.id,
-    type: Number(log.direction) === 1 ? 'in' : 'out',
-    plate: log.card_number,
-    name: log.kartu?.user?.name || log.user?.name || 'Tidak dikenal',
-    userType: log.kartu?.user?.type || log.user?.type || null,
-    gate: log.gate || '',
-    granted: log.access_granted,
-    reason: log.reason,
-    active,
-    statusLabel: log.kartu?.status_label || (active ? 'Aktif' : 'Non Aktif'),
-    time: log.tapped_at ? formatDateTime(log.tapped_at) : '',
-    rawTappedAt: log.tapped_at || null,
+    id:           log.id,
+    type:         isOpen ? 'in' : 'out',
+    plate:        log.nomor_plat || null,
+    name:         isManual ? (log.user_name || 'Operator') : 'RFID Auto',
+    gate:         log.gate_id || '',
+    granted,
+    isManual,
+    controlType:  log.control_type || 'auto',
+    action:       log.action || '',
+    result:       log.result || '',
+    time:         eventTs ? formatDateTime(eventTs) : '',
+    rawEventTs:   eventTs,
+    // raw row untuk detail modal
+    raw:          log,
   }
 }
 
 async function loadActivity() {
   try {
-    const res = await store.fetchRecentLogs({ per_page: 200 })
-    const logs = res.data || []
-    vehicleActivityAll.value = logs.map(mapLog)
+    const params = { limit: 1000 }
+    if (selectedDate.value) params.date = selectedDate.value
+    const res = await gateApi.getLiveActivity(params)
+    const payload = res.data?.data || res.data || []
+    vehicleActivityAll.value = Array.isArray(payload) ? payload.map(mapLog) : []
+    activitySummary.value = res.data?.summary || { today_total: 0, today_auto: 0, today_manual: 0 }
     activityError.value = ''
   } catch (err) {
-    activityError.value = extractErrorMessage(err, 'Gagal memuat aktivitas kendaraan.')
+    activityError.value = extractErrorMessage(err, 'Gagal memuat aktivitas gate.')
   } finally {
     activityLoading.value = false
   }
 }
 
-// Log yang cocok dengan tanggal terpilih (kalau ada filter aktif).
+// Filter aktivitas berdasarkan tanggal (jika filter aktif)
 const filteredActivity = computed(() => {
-  if (!selectedDate.value) return vehicleActivityAll.value
+  const targetDate = selectedDate.value || todayDateStr.value
   return vehicleActivityAll.value.filter(
-      (item) => item.rawTappedAt && toLocalDateStr(new Date(item.rawTappedAt)) === selectedDate.value,
+    (item) => item.rawEventTs && toLocalDateStr(new Date(item.rawEventTs)) === targetDate,
   )
 })
 
-// Filter aktivitas untuk hari ini saja (untuk counter Kendaraan Di Dalam)
+// Untuk filter hari ini (digunakan oleh cards)
 const todayActivity = computed(() => {
   const today = todayDateStr.value
   return vehicleActivityAll.value.filter(
-      (item) => item.rawTappedAt && toLocalDateStr(new Date(item.rawTappedAt)) === today,
+    (item) => item.rawEventTs && toLocalDateStr(new Date(item.rawEventTs)) === today,
   )
 })
 
-// Counter kendaraan masuk dan keluar (mengikuti filter tanggal, default hari ini)
-const vehicleInCount = computed(() => {
-  const targetDate = selectedDate.value || todayDateStr.value
-  return vehicleActivityAll.value.filter(
-      (item) => item.rawTappedAt && toLocalDateStr(new Date(item.rawTappedAt)) === targetDate && item.type === 'in' && item.granted
-  ).length
-})
+// Counter masuk (OPEN SUCCESS) dan keluar (CLOSE SUCCESS) pada tanggal aktif
+const vehicleInCount = computed(
+  () => filteredActivity.value.filter((item) => item.type === 'in').length,
+)
 
-const vehicleOutCount = computed(() => {
-  const targetDate = selectedDate.value || todayDateStr.value
-  return vehicleActivityAll.value.filter(
-      (item) => item.rawTappedAt && toLocalDateStr(new Date(item.rawTappedAt)) === targetDate && item.type === 'out' && item.granted
-  ).length
-})
+const vehicleOutCount = computed(
+  () => filteredActivity.value.filter((item) => item.type === 'out').length,
+)
 
 const activityPagination = computed(() => ({
   total: filteredActivity.value.length,
@@ -227,56 +229,16 @@ function startActivityFeed() {
   activityTimer = setInterval(loadActivity, ACTIVITY_POLL_MS)
 }
 
-// --- Live Log Gate ----------------------------------------------------------
-const logGateActivityAll = ref([])
-const logGateLoading = ref(true)
-const logGateError = ref('')
+// --- Detail Pop-up saat item aktivitas diklik --------------------------------
+const activityDetailModal = ref(false)
+const activityDetailItem  = ref(null)
 
-async function loadLogGate() {
-  try {
-    const res = await gateApi.getAllLogs({ limit: 15 })
-    logGateActivityAll.value = res.data?.logs || []
-    logGateError.value = ''
-  } catch (err) {
-    logGateError.value = extractErrorMessage(err, 'Gagal memuat log gate.')
-  } finally {
-    logGateLoading.value = false
-  }
+function openActivityDetail(item) {
+  activityDetailItem.value = item
+  activityDetailModal.value = true
 }
-
-let logGateTimer
-function startLogGateFeed() {
-  loadLogGate()
-  logGateTimer = setInterval(loadLogGate, ACTIVITY_POLL_MS)
-}
-
-// --- Live Log Manual Gate ---------------------------------------------------
-const logManualActivityAll = ref([])
-const logManualLoading = ref(true)
-const logManualError = ref('')
-
-async function loadLogManual() {
-  try {
-    const res = await gateApi.getManualLogs({ limit: 15 })
-    logManualActivityAll.value = res.data?.logs || []
-    logManualError.value = ''
-  } catch (err) {
-    logManualError.value = extractErrorMessage(err, 'Gagal memuat log kontrol manual.')
-  } finally {
-    logManualLoading.value = false
-  }
-}
-
-let logManualTimer
-function startLogManualFeed() {
-  loadLogManual()
-  logManualTimer = setInterval(loadLogManual, ACTIVITY_POLL_MS)
-}
-
 
 // --- RFID gate reader connection status -------------------------------------
-// Latest heartbeat (log_rfid_conn) per gate, polled so the dashboard reflects
-// whether each gate's RFID reader is currently connected.
 const rfidGates = ref([])
 const rfidSummary = ref({ total: 0, online: 0, offline: 0 })
 const rfidError = ref('')
@@ -304,13 +266,33 @@ const rfidAllOnline = computed(
     () => rfidSummary.value.total > 0 && rfidSummary.value.offline === 0,
 )
 
-// Aktivitas hari ini = jumlah tap (masuk+keluar, granted maupun ditolak) yang
-// tapped_at-nya jatuh pada tanggal lokal hari ini. Catatan: karena sumbernya
-// dibatasi 200 log terbaru (lihat loadActivity), jika dalam satu hari terjadi
-// lebih dari 200 tap, angka ini bisa kurang dari jumlah sebenarnya — bukan
-// gara-gara belum lewat tengah malam, tapi karena log lama terdorong keluar
-// dari jendela 200 tersebut.
-const todayActivityCount = computed(() => todayActivity.value.length)
+// Aktivitas gate hari ini — didapat dari summary backend (today_total dari
+// log_gate + gate_manual_control) jika tersedia, fallback ke hitung lokal.
+const todayActivityCount = computed(() =>
+  activitySummary.value.today_total || todayActivity.value.length
+)
+
+
+
+const kendaraanDiDalamCount = computed(() => {
+  const targetDate = selectedDate.value || todayDateStr.value
+  const scoped = vehicleActivityAll.value.filter(
+    (item) => item.rawEventTs && toLocalDateStr(new Date(item.rawEventTs)) === targetDate,
+  )
+  const inCount = scoped.filter((item) => item.type === 'in').length
+  const outCount = scoped.filter((item) => item.type === 'out').length
+  return Math.max(inCount - outCount, 0)
+})
+
+const activityCardCount = computed(() =>
+  selectedDate.value ? filteredActivity.value.length : todayActivityCount.value
+)
+
+const activityCardSubtitle = computed(() =>
+  selectedDate.value
+    ? `Total event gate pada ${selectedDate.value}`
+    : 'Total event gate hari ini'
+)
 
 // --- RFID Gate Detail Modal -------------------------------------------------
 const rfidDetailModal = ref(false)
@@ -643,19 +625,19 @@ const cards = computed(() => [
   },
   {
     label: 'Kendaraan Di Dalam',
-    value: stats.value?.kendaraan_di_dalam ?? Math.max(
-        todayActivity.value.filter(i => i.type === 'in' && i.granted).length -
-        todayActivity.value.filter(i => i.type === 'out' && i.granted).length, 0),
+    value: kendaraanDiDalamCount.value,
     to: null,
     color: '#f59e0b',
     icon: 'M5 13l1.4-4.2A2 2 0 0 1 8.3 7.4h7.4a2 2 0 0 1 1.9 1.4L19 13M5 13a2 2 0 0 0-2 2v3.5a1 1 0 0 0 1 1h1.2M5 13h14M19 13a2 2 0 0 1 2 2v3.5a1 1 0 0 1-1 1h-1.2M7.5 19.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zM16.5 19.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z',
+    subtitle: selectedDate.value ? `Transaksi aktif pada ${selectedDate.value}` : 'Transaksi aktif saat ini',
   },
   {
     label: 'Aktivitas Hari Ini',
-    value: todayActivityCount.value,
+    value: activityCardCount.value,
     to: null,
     color: '#0891b2',
     icon: 'M3 12h4l3 8 4-16 3 8h4',
+    subtitle: activityCardSubtitle.value,
   },
 ])
 
@@ -676,16 +658,12 @@ onMounted(() => {
   loadStats()
   loadCameras()
   startActivityFeed()
-  startLogGateFeed()
-  startLogManualFeed()
   startRfidStatus()
   initMqtt()
 })
 
 onUnmounted(() => {
   clearInterval(activityTimer)
-  clearInterval(logGateTimer)
-  clearInterval(logManualTimer)
   clearInterval(rfidTimer)
 })
 </script>
@@ -739,6 +717,7 @@ onUnmounted(() => {
           <div class="stat-meta">
             <span class="stat-value">{{ card.raw ? card.value : formatNumber(card.value) }}</span>
             <span class="stat-label">{{ card.label }}</span>
+            <span v-if="card.subtitle" class="stat-subtitle">{{ card.subtitle }}</span>
           </div>
           <svg v-if="card.to" class="stat-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M9 18l6-6-6-6" />
@@ -880,7 +859,12 @@ onUnmounted(() => {
                   v-for="item in vehicleActivity"
                   :key="item.id"
                   class="activity-item"
-                  :class="{ 'is-denied': !item.granted }"
+                  :class="{ 'is-denied': !item.granted, 'is-clickable': true }"
+                  role="button"
+                  tabindex="0"
+                  :title="'Klik untuk lihat detail'"
+                  @click="openActivityDetail(item)"
+                  @keydown.enter="openActivityDetail(item)"
               >
                 <span class="activity-icon" :class="item.type === 'in' ? 'is-in' : 'is-out'">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -889,13 +873,12 @@ onUnmounted(() => {
                 </span>
                 <div class="activity-info">
                   <span class="activity-plate">
-                    {{ item.plate }}
+                    {{ item.plate || '—' }}
                     <span
-                        v-if="item.userType"
                         class="badge activity-type-badge"
-                        :class="`badge-${USER_TYPE_VARIANT[item.userType] || 'muted'}`"
+                        :class="item.isManual ? 'badge-warning' : 'badge-muted'"
                     >
-                      {{ capitalize(item.userType) }}
+                      {{ item.isManual ? 'Manual' : 'RFID' }}
                     </span>
                   </span>
                   <span class="activity-meta">
@@ -907,16 +890,14 @@ onUnmounted(() => {
                       class="badge"
                       :class="item.granted ? (item.type === 'in' ? 'badge-success' : 'badge-info') : 'badge-danger'"
                   >
-                    {{ item.granted ? (item.type === 'in' ? 'Masuk' : 'Keluar') : 'Ditolak' }}
+                    {{ item.granted ? (item.type === 'in' ? 'Masuk' : 'Keluar') : 'Gagal' }}
                   </span>
                   <span
                       class="activity-status"
-                      :class="item.active ? 'is-active' : 'is-inactive'"
-                      :title="item.active ? 'Kartu aktif' : 'Kartu tidak aktif'"
+                      :class="item.granted ? 'is-active' : 'is-inactive'"
                   >
-                    <span class="status-dot"></span>{{ item.statusLabel }}
+                    <span class="status-dot"></span>{{ item.result }}
                   </span>
-                  <span v-if="!item.granted" class="activity-reason">{{ kartuReasonMeta(item.reason).label }}</span>
                   <span class="activity-time">{{ item.time }}</span>
                 </div>
               </div>
@@ -952,65 +933,6 @@ onUnmounted(() => {
           </div>
         </div>
 
-      </div>
-
-      <!-- Live Log Gate Full Width Data Table -->
-      <div class="card" style="margin-top: 24px;">
-        <div class="card-header card-header-flex">
-          <span class="card-header-title">
-            <svg class="card-header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 6h16M4 12h16m-7 6h7" />
-            </svg>
-            Live Gate Logs
-          </span>
-          <span class="live-indicator"><span class="live-pulse"></span>Live</span>
-        </div>
-        
-        <div class="card-body" style="padding: 0; overflow-x: auto; max-height: 400px; overflow-y: auto;">
-          <table class="detail-table" style="width: 100%; min-width: 600px;">
-            <thead style="position: sticky; top: 0; background: var(--color-bg-card, #fff); z-index: 1; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-              <tr>
-                <th style="padding-left: 24px;">Waktu</th>
-                <th>Gate ID</th>
-                <th>Aksi</th>
-                <th>Hasil</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-if="logGateLoading && !logGateActivityAll.length">
-                <td colspan="4" class="detail-empty" style="text-align: center;"><span class="spinner"></span> Memuat Log Gate...</td>
-              </tr>
-              <tr v-else-if="logGateError && !logGateActivityAll.length">
-                <td colspan="4" class="detail-empty text-danger" style="text-align: center;">{{ logGateError }}</td>
-              </tr>
-              <tr v-else-if="!logGateActivityAll.length">
-                <td colspan="4" class="detail-empty" style="text-align: center;">Belum ada data Log Gate</td>
-              </tr>
-              <tr v-else v-for="log in logGateActivityAll" :key="log.id">
-                <td class="detail-time" style="padding-left: 24px;">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px; margin-right: 4px; vertical-align: text-bottom; opacity: 0.7;">
-                    <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-                  </svg>
-                  {{ log.event_ts ? formatDateTime(log.event_ts) : '-' }}
-                </td>
-                <td class="detail-gate-id">
-                  <strong>{{ log.gate_id || 'Unknown Gate' }}</strong>
-                </td>
-                <td>
-                  <span class="badge" :class="log.action === 'OPEN' ? 'badge-success' : 'badge-info'">
-                    <svg v-if="log.action === 'OPEN'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 12px; height: 12px; margin-right: 4px; display: inline-block;"><path d="M5 21V7l7-4 7 4v14M9 21v-6h6v6" /></svg>
-                    {{ log.action }}
-                  </span>
-                </td>
-                <td>
-                  <span class="badge" :class="log.result === 'SUCCESS' ? 'badge-success' : (log.result === 'ERROR' ? 'badge-danger' : 'badge-warning')">
-                    {{ log.result }}
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
       </div>
 
       <!-- Live Kontrol Manual Gate Full Width Data Table -->
@@ -1080,9 +1002,6 @@ onUnmounted(() => {
           </table>
         </div>
       </div> -->
-
-      <!-- Grafik Trend Aktivitas 7 Hari Terakhir -->
-      <ActivityTrendsChart :autoRefresh="true" :refreshInterval="30000" />
 
       <!-- Modal: Buka / Tutup Gate (frontend only) -->
       <Modal v-model="gateModal" :title="gateModalTitle">
@@ -1328,6 +1247,110 @@ onUnmounted(() => {
         </div>
         <template #footer>
           <Button variant="secondary" type="button" @click="detailModal = false">Tutup</Button>
+        </template>
+      </Modal>
+
+      <!-- Modal: Detail Aktivitas Gate (log_gate / gate_manual_control) -->
+      <Modal
+          v-model="activityDetailModal"
+          :title="activityDetailItem ? `Detail Aktivitas · ${activityDetailItem.gate}` : 'Detail Aktivitas'"
+      >
+        <div v-if="activityDetailItem" class="gate-activity-detail">
+          <!-- Hero: status besar -->
+          <div
+              class="activity-detail-hero"
+              :class="activityDetailItem.granted ? 'is-success' : 'is-danger'"
+          >
+            <div class="activity-detail-hero-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path v-if="activityDetailItem.type === 'in'" d="M5 12h14M13 6l6 6-6 6" />
+                <path v-else d="M19 12H5M11 18l-6-6 6-6" />
+              </svg>
+            </div>
+            <div class="activity-detail-hero-text">
+              <span class="activity-detail-hero-label">
+                {{ activityDetailItem.type === 'in' ? 'Kendaraan Masuk' : 'Kendaraan Keluar' }}
+              </span>
+              <span class="activity-detail-hero-gate">{{ activityDetailItem.gate || '—' }}</span>
+            </div>
+            <span class="badge activity-detail-hero-badge" :class="activityDetailItem.granted ? 'badge-success' : 'badge-danger'">
+              {{ activityDetailItem.result }}
+            </span>
+          </div>
+
+          <!-- Grid info -->
+          <div class="activity-detail-grid">
+            <div class="activity-detail-item">
+              <span class="activity-detail-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:4px;">
+                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                </svg>
+                Waktu
+              </span>
+              <span class="activity-detail-value">{{ activityDetailItem.time || '—' }}</span>
+            </div>
+
+            <div class="activity-detail-item">
+              <span class="activity-detail-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:4px;">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+                Gate ID
+              </span>
+              <span class="activity-detail-value">{{ activityDetailItem.gate || '—' }}</span>
+            </div>
+
+            <div class="activity-detail-item">
+              <span class="activity-detail-label">Aksi</span>
+              <span class="activity-detail-value">
+                <span class="badge" :class="activityDetailItem.action === 'OPEN' ? 'badge-success' : 'badge-info'">
+                  {{ activityDetailItem.action || '—' }}
+                </span>
+              </span>
+            </div>
+
+            <div class="activity-detail-item">
+              <span class="activity-detail-label">Hasil</span>
+              <span class="activity-detail-value">
+                <span class="badge" :class="activityDetailItem.granted ? 'badge-success' : 'badge-danger'">
+                  {{ activityDetailItem.result || '—' }}
+                </span>
+              </span>
+            </div>
+
+            <div class="activity-detail-item">
+              <span class="activity-detail-label">Tipe Kontrol</span>
+              <span class="activity-detail-value">
+                <span class="badge" :class="activityDetailItem.isManual ? 'badge-warning' : 'badge-muted'">
+                  {{ activityDetailItem.isManual ? 'Manual Operator' : 'RFID Otomatis' }}
+                </span>
+              </span>
+            </div>
+
+            <div class="activity-detail-item" v-if="activityDetailItem.plate">
+              <span class="activity-detail-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:4px;">
+                  <rect x="1" y="6" width="22" height="12" rx="2"/><path d="M5 10h.01M19 10h.01M9 14h6"/>
+                </svg>
+                Nomor Plat
+              </span>
+              <span class="activity-detail-value activity-detail-plate">{{ activityDetailItem.plate }}</span>
+            </div>
+
+            <div class="activity-detail-item" v-if="activityDetailItem.isManual && activityDetailItem.name">
+              <span class="activity-detail-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:4px;">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                </svg>
+                Operator
+              </span>
+              <span class="activity-detail-value">{{ activityDetailItem.name }}</span>
+            </div>
+          </div>
+        </div>
+
+        <template #footer>
+          <Button variant="secondary" type="button" @click="activityDetailModal = false">Tutup</Button>
         </template>
       </Modal>
 

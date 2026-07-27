@@ -1,4 +1,4 @@
-﻿/* ---------- Header ---------- */
+/* ---------- Header ---------- */
 .dashboard-head {
   display: flex;
   align-items: flex-start;
@@ -1102,4 +1102,137 @@ a.stat-card:hover .stat-arrow {
   .rfid-detail-summary {
     grid-template-columns: 1fr;
   }
+}
+
+/* ---------- Stat card subtitle ---------- */
+.stat-subtitle {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-weight: 400;
+  margin-top: 1px;
+}
+
+/* ---------- Activity item — clickable ---------- */
+.activity-item.is-clickable {
+  cursor: pointer;
+  outline: none;
+  transition: background 0.12s ease, box-shadow 0.12s ease;
+}
+.activity-item.is-clickable:hover {
+  background: color-mix(in srgb, var(--color-primary, #4f46e5) 5%, transparent);
+  box-shadow: inset 3px 0 0 var(--color-primary, #4f46e5);
+}
+.activity-item.is-clickable:focus-visible {
+  box-shadow: 0 0 0 2px var(--color-primary, #4f46e5);
+  border-radius: 6px;
+}
+.activity-item.is-clickable.is-denied:hover {
+  background: color-mix(in srgb, var(--color-danger, #dc2626) 5%, transparent);
+  box-shadow: inset 3px 0 0 var(--color-danger, #dc2626);
+}
+
+/* ---------- Badge muted ---------- */
+.badge-muted {
+  background: var(--color-border, #e5e7eb);
+  color: var(--color-text-muted, #6b7280);
+}
+
+/* ---------- Gate Activity Detail Modal ---------- */
+.gate-activity-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Hero section */
+.activity-detail-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+  border-radius: 10px;
+  border: 1px solid;
+}
+.activity-detail-hero.is-success {
+  background: color-mix(in srgb, var(--color-success, #16a34a) 8%, transparent);
+  border-color: color-mix(in srgb, var(--color-success, #16a34a) 25%, transparent);
+}
+.activity-detail-hero.is-danger {
+  background: color-mix(in srgb, var(--color-danger, #dc2626) 8%, transparent);
+  border-color: color-mix(in srgb, var(--color-danger, #dc2626) 25%, transparent);
+}
+.activity-detail-hero-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--color-surface, #fff);
+  box-shadow: 0 2px 6px -2px rgba(0,0,0,0.12);
+  flex-shrink: 0;
+}
+.activity-detail-hero-icon svg {
+  width: 22px;
+  height: 22px;
+}
+.activity-detail-hero-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.activity-detail-hero-label {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+.activity-detail-hero-gate {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+.activity-detail-hero-badge {
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+/* Grid info */
+.activity-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 500px) {
+  .activity-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.activity-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px;
+  background: var(--color-bg, #f9fafb);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 8px;
+}
+.activity-detail-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+.activity-detail-value {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+.activity-detail-plate {
+  font-family: monospace;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--color-primary, #4f46e5);
 }

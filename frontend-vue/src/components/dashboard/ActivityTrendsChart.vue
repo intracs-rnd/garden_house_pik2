@@ -2,7 +2,7 @@
   <div class="chart-container">
     <div class="chart-header-row">
       <div class="chart-header">
-        <h3 class="chart-title">Trend Aktivitas 7 Hari Terakhir</h3>
+        <h3 class="chart-title">{{ chartTitle }}</h3>
         <p class="chart-subtitle">Data kendaraan masuk, keluar, dan total aktivitas</p>
       </div>
       <div class="chart-filter">
@@ -95,6 +95,14 @@ function toLocalDateStr(date) {
 
 const todayDateStr = computed(() => toLocalDateStr(new Date()))
 const selectedEndDate = ref(todayDateStr.value)
+
+const chartTitle = computed(() => {
+  if (!selectedEndDate.value || selectedEndDate.value === todayDateStr.value) {
+    return 'Trend Aktivitas 7 Hari Terakhir'
+  }
+  const dateObj = new Date(selectedEndDate.value)
+  return `Trend Aktivitas 7 Hari (Hingga ${dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })})`
+})
 
 function handleDateChange() {
   loadData()

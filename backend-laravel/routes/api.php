@@ -70,6 +70,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/gate/logs', [GateController::class, 'getAllLogs']);
     Route::get('/gate/manual-control/logs', [GateController::class, 'getManualLogs']);
     Route::get('/gate/logs/{gateId}', [GateController::class, 'getLogsByGateId']);
+    // Live activity feed (log_gate + gate_manual_control) untuk dashboard
+    Route::get('/gate/live-activity', [GateController::class, 'getLiveActivity']);
+
 
     // RFID gate reader connection status (live heartbeat per gate)
     Route::get('/rfid-conn/status', [LogRfidConnController::class, 'index']);

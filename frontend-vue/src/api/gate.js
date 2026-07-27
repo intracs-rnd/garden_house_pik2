@@ -31,4 +31,10 @@ export const gateApi = {
    * @param {object} params - { limit?, gate_id? }
    */
   getManualLogs: (params = {}) => axios.get('/gate/manual-control/logs', { params }),
+
+  /**
+   * Get live activity feed (log_gate + gate_manual_control) untuk dashboard
+   * @param {object} params - { date?: 'YYYY-MM-DD', gate_id?: string, limit?: number }
+   */
+  getLiveActivity: (params = {}) => axios.get('/gate/live-activity', { params }),
 }

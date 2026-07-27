@@ -4,6 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\KartuAccessLog;
+use App\Models\Transaction;
+use App\Models\LogGate;
+use App\Models\GateManualControl;
 use App\Repositories\CategoryRepository;
 use App\Repositories\KartuRepository;
 use App\Repositories\KendaraanRepository;
@@ -35,25 +38,25 @@ class DashboardController extends Controller
      */
     public function index(): JsonResponse
     {
-        $today = now()->startOfDay();
+        $today    = now()->startOfDay();
+        $todayEnd = now()->endOfDay();
 
-        $vehiclesIn = \App\Models\KartuAccessLog::where('tapped_at', '>=', $today)
-            ->where('direction', \App\Models\KartuAccessLog::DIRECTION_IN)
-            ->where('access_granted', true)
-            ->count();
+        // Kendaraan di dalam = transaksi dengan status ACTIVE (belum keluar)
+        $kendaraanDiDalam = Transaction::where('status', Transaction::STATUS_ACTIVE)->count();
 
-        $vehiclesOut = \App\Models\KartuAccessLog::where('tapped_at', '>=', $today)
-            ->where('direction', \App\Models\KartuAccessLog::DIRECTION_OUT)
-            ->where('access_granted', true)
-            ->count();
+        // Aktivitas gate hari ini = log_gate + gate_manual_control
+        $todayGateAuto   = LogGate::whereBetween('event_ts', [$today, $todayEnd])->count();
+        $todayGateManual = GateManualControl::whereBetween('event_ts', [$today, $todayEnd])->count();
+        $todayGateTotal  = $todayGateAuto + $todayGateManual;
 
         $stats = [
-            'total_users'        => $this->userRepository->query()->where('role', 'user')->where('type', 'warga')->count(),
-            'total_kendaraan'    => $this->kendaraanRepository->query()->count(),
-            'total_category'     => $this->categoryRepository->query()->count(),
-            'total_kartu'        => $this->kartuRepository->query()->count(),
-            'kartu_by_status'    => $this->kartuRepository->countByStatus(),
-            'kendaraan_di_dalam' => max($vehiclesIn - $vehiclesOut, 0),
+            'total_users'         => $this->userRepository->query()->where('role', 'user')->where('type', 'warga')->count(),
+            'total_kendaraan'     => $this->kendaraanRepository->query()->count(),
+            'total_category'      => $this->categoryRepository->query()->count(),
+            'total_kartu'         => $this->kartuRepository->query()->count(),
+            'kartu_by_status'     => $this->kartuRepository->countByStatus(),
+            'kendaraan_di_dalam'  => $kendaraanDiDalam,
+            'today_gate_activity' => $todayGateTotal,
         ];
 
         return $this->successResponse($stats, 'Dashboard statistics retrieved successfully.');
@@ -70,14 +73,14 @@ class DashboardController extends Controller
         $startDate = $endDate->copy()->subDays(6)->startOfDay();
 
         // Get data for 7 days ending at endDate
-        $trends = KartuAccessLog::select(
-            DB::raw('DATE(tapped_at) as date'),
-            DB::raw('SUM(CASE WHEN direction = ' . KartuAccessLog::DIRECTION_IN . ' AND access_granted = true THEN 1 ELSE 0 END) as vehicles_in'),
-            DB::raw('SUM(CASE WHEN direction = ' . KartuAccessLog::DIRECTION_OUT . ' AND access_granted = true THEN 1 ELSE 0 END) as vehicles_out'),
+        $trends = LogGate::select(
+            DB::raw('DATE(event_ts) as date'),
+            DB::raw("SUM(CASE WHEN action = 'OPEN' THEN 1 ELSE 0 END) as vehicles_in"),
+            DB::raw("SUM(CASE WHEN action = 'CLOSE' THEN 1 ELSE 0 END) as vehicles_out"),
             DB::raw('COUNT(*) as total_activities')
         )
-            ->whereBetween('tapped_at', [$startDate, $endDate])
-            ->groupBy(DB::raw('DATE(tapped_at)'))
+            ->whereBetween('event_ts', [$startDate, $endDate])
+            ->groupBy(DB::raw('DATE(event_ts)'))
             ->orderBy('date', 'asc')
             ->get();
 

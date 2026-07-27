@@ -123,18 +123,9 @@ class GateController extends Controller
         $page = $request->query('page', 1);
         $perPage = $request->query('per_page', 20);
 
-        // Query dari log_gate (automatic RFID)
-        $logGateQuery = LogGate::where('gate_id', $gateId)
-            ->selectRaw("id, gate_id, event_ts, action, result, NULL as nomor_plat, 'auto' as control_type")
-            ->where('gate_id', $gateId);
-
         // Query dari gate_manual_control (manual control)
-        $manualControlQuery = GateManualControl::where('gate_id', $gateId)
-            ->selectRaw("id, gate_id, event_ts, action, result, nomor_plat, 'manual' as control_type");
-
-        // Combine dan sort by event_ts
-        $logs = $logGateQuery
-            ->union($manualControlQuery)
+        $logs = GateManualControl::where('gate_id', $gateId)
+            ->selectRaw("id, gate_id, event_ts, action, result, nomor_plat, 'manual' as control_type")
             ->orderBy('event_ts', 'desc')
             ->paginate($perPage, ['*'], 'page', $page);
 
@@ -392,6 +383,73 @@ class GateController extends Controller
         return response()->json([
             'total' => $logs->count(),
             'logs' => $logs,
+        ]);
+    }
+
+    /**
+     * GET /api/gate/live-activity
+     * Gabungkan log_gate (RFID otomatis) + gate_manual_control (operator manual)
+     * untuk feed "Live Kendaraan In / Out" di dashboard.
+     *
+     * Query params:
+     *   - date     : YYYY-MM-DD  (opsional, default = semua)
+     *   - gate_id  : string      (opsional, filter per gate)
+     *   - limit    : int         (default 100)
+     */
+    public function getLiveActivity(Request $request): JsonResponse
+    {
+        $limit  = (int) $request->query('limit', 100);
+        $date   = $request->query('date');
+        $gateId = $request->query('gate_id');
+
+        // --- Query log_gate (RFID otomatis) ---
+        $autoQuery = LogGate::selectRaw(
+            "id,
+             gate_id,
+             event_ts,
+             action,
+             result,
+             NULL        AS nomor_plat,
+             NULL        AS user_name,
+             'auto'      AS control_type,
+             created_at"
+        );
+
+        // Terapkan filter tanggal
+        if ($date) {
+            try {
+                $from = Carbon::parse($date)->startOfDay();
+                $to   = Carbon::parse($date)->endOfDay();
+                $autoQuery->whereBetween('event_ts', [$from, $to]);
+            } catch (\Throwable) {
+                // Abaikan tanggal tidak valid
+            }
+        }
+
+        // Terapkan filter gate_id
+        if ($gateId) {
+            $autoQuery->where('gate_id', $gateId);
+        }
+
+        // Urutkan, batasi
+        $rows = $autoQuery
+            ->orderBy('event_ts', 'desc')
+            ->limit($limit)
+            ->get();
+
+        // --- Summary hari ini ---
+        $today    = Carbon::now()->startOfDay();
+        $todayEnd = Carbon::now()->endOfDay();
+
+        $todayAuto = LogGate::whereBetween('event_ts', [$today, $todayEnd])->count();
+
+        return response()->json([
+            'data'    => $rows,
+            'summary' => [
+                'today_total'  => $todayAuto,
+                'today_auto'   => $todayAuto,
+                'today_manual' => 0, // Tidak dihitung lagi sesuai permintaan
+            ],
         ]);
     }
 }
