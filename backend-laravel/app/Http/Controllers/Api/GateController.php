@@ -125,7 +125,7 @@ class GateController extends Controller
 
         // Query dari gate_manual_control (manual control)
         $logs = GateManualControl::where('gate_id', $gateId)
-            ->selectRaw("id, gate_id, event_ts, action, result, nomor_plat, 'manual' as control_type")
+            ->selectRaw("id, gate_id, event_ts, action, result, nomor_plat, 'manual' as control_type, view_image_path, entry_image_1, entry_image_2, entry_image_3, entry_image_4")
             ->orderBy('event_ts', 'desc')
             ->paginate($perPage, ['*'], 'page', $page);
 

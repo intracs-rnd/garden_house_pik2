@@ -599,6 +599,54 @@ async function openDetailModal(cam) {
   await loadDetailGateLogs(1)
 }
 
+function hasImages(log) {
+  return !!(log.view_image_path || log.entry_image_1 || log.entry_image_2 || log.entry_image_3 || log.entry_image_4)
+}
+
+const logImagesModal = ref(false)
+const logImagesData = ref([])
+const logImagesLoading = ref(false)
+const logImagesError = ref('')
+
+async function openLogImagesModal(log) {
+  logImagesModal.value = true
+  logImagesData.value = []
+  logImagesLoading.value = true
+  logImagesError.value = ''
+  
+  const paths = []
+  if (log.view_image_path) paths.push(log.view_image_path)
+  const entryImages = [
+    log.entry_image_1,
+    log.entry_image_2,
+    log.entry_image_3,
+    log.entry_image_4,
+  ].filter(p => p != null && p !== '')
+  paths.push(...entryImages)
+  
+  const uniquePaths = [...new Set(paths)].slice(0, 4)
+  
+  if (uniquePaths.length === 0) {
+    logImagesLoading.value = false
+    return
+  }
+  
+  try {
+    const promises = uniquePaths.map(async (path) => {
+      try {
+         return await transactionApi.fetchImage(path)
+      } catch(err) {
+         return { success: false, path, error: err.message }
+      }
+    })
+    logImagesData.value = await Promise.all(promises)
+  } catch (err) {
+    logImagesError.value = extractErrorMessage(err, 'Gagal memuat gambar')
+  } finally {
+    logImagesLoading.value = false
+  }
+}
+
 const statusBreakdown = computed(() => {
   const byStatus = stats.value?.kendaraan_by_status || {}
   return Object.entries(KENDARAAN_STATUS).map(([value, meta]) => ({
@@ -1204,6 +1252,7 @@ onUnmounted(() => {
               <th>Nomor Plat</th>
               <th>Aksi</th>
               <th>Hasil</th>
+              <th style="width: 80px; text-align: center;">Gambar</th>
             </tr>
             </thead>
             <tbody>
@@ -1215,6 +1264,15 @@ onUnmounted(() => {
                 <span class="badge" :class="log.action === 'OPEN' ? 'badge-success' : 'badge-info'">{{ log.action }}</span>
               </td>
               <td><span class="badge badge-success">{{ log.result }}</span></td>
+              <td style="text-align: center;">
+                <Button size="sm" variant="secondary" @click="openLogImagesModal(log)" :disabled="!hasImages(log)" style="padding: 4px 8px;" :title="hasImages(log) ? 'Lihat Gambar' : 'Tidak ada gambar'">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                  </svg>
+                </Button>
+              </td>
             </tr>
             </tbody>
           </table>
@@ -1446,8 +1504,58 @@ onUnmounted(() => {
         </template>
       </Modal>
 
+      <!-- Modal: Gambar Riwayat Gate -->
+      <Modal v-model="logImagesModal" title="Gambar Riwayat Gate">
+        <div v-if="logImagesLoading" class="gate-images-loading">
+          <span class="spinner"></span>
+          <span>Memuat gambar...</span>
+        </div>
+        <div v-else-if="logImagesError" class="alert alert-danger">{{ logImagesError }}</div>
+        <div v-else-if="logImagesData.length > 0" class="gate-images">
+          <div class="images-grid">
+            <div v-for="(image, index) in logImagesData" :key="index" class="image-item">
+              <img v-if="image.url"
+                   :src="image.url"
+                   :alt="`Entry Image ${index + 1}`"
+                   @error="handleImageError"
+                   style="width: 100%; height: 100%; object-fit: cover; cursor: pointer;"
+                   @click="openImagePreview(image)"
+              />
+              <img v-else-if="image.base64"
+                   :src="`data:image/jpeg;base64,${image.base64}`"
+                   :alt="`Entry Image ${index + 1}`"
+                   @error="handleImageError"
+                   style="width: 100%; height: 100%; object-fit: cover; cursor: pointer;"
+                   @click="openImagePreview(image)"
+              />
+              <div v-else class="image-placeholder">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 32px; height: 32px; margin-bottom: 8px; opacity: 0.5;">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+                <div style="font-size: 11px; color: var(--color-text-muted);">
+                  {{ image.success === false ? 'Gagal memuat' : 'Tidak tersedia' }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div v-else class="gate-images-empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width: 24px; height: 24px; opacity: 0.5;">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+            <polyline points="21 15 16 10 5 21"></polyline>
+          </svg>
+          <span>Tidak ada gambar tersedia</span>
+        </div>
+        <template #footer>
+          <Button variant="secondary" type="button" @click="logImagesModal = false">Tutup</Button>
+        </template>
+      </Modal>
+
       <!-- Modal: Image Preview -->
-      <Modal v-model="imagePreviewModal" title="Preview Gambar">
+      <Modal v-model="imagePreviewModal" title="Preview Gambar" style="z-index: 1060;">
         <div style="display: flex; justify-content: center; align-items: center; max-height: 70vh;">
           <img :src="previewImageUrl" style="max-width: 100%; max-height: 100%; object-fit: contain;" alt="Preview" />
         </div>
