@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class LogGate extends Model
 {
+    protected $connection = 'pgsql_replica';
     protected $table = 'log_gate';
     public $timestamps = false;
 

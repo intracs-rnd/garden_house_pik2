@@ -359,7 +359,9 @@ class GateController extends Controller
             $query->where('gate_id', $gateId);
         }
 
-        $logs = $query->orderBy('event_ts', 'desc')
+        // Gunakan 'id' untuk sorting (Primary Key index) agar query sangat cepat
+        // walaupun ada jutaan data log_gate, karena tidak perlu full table scan.
+        $logs = $query->orderBy('id', 'desc')
             ->limit($limit)
             ->get();
 

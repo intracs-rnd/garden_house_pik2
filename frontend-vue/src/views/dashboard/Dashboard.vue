@@ -227,6 +227,29 @@ function startActivityFeed() {
   activityTimer = setInterval(loadActivity, ACTIVITY_POLL_MS)
 }
 
+// --- Live Log Gate ----------------------------------------------------------
+const logGateActivityAll = ref([])
+const logGateLoading = ref(true)
+const logGateError = ref('')
+
+async function loadLogGate() {
+  try {
+    const res = await gateApi.getAllLogs({ limit: 15 })
+    logGateActivityAll.value = res.data?.logs || []
+    logGateError.value = ''
+  } catch (err) {
+    logGateError.value = extractErrorMessage(err, 'Gagal memuat log gate.')
+  } finally {
+    logGateLoading.value = false
+  }
+}
+
+let logGateTimer
+function startLogGateFeed() {
+  loadLogGate()
+  logGateTimer = setInterval(loadLogGate, ACTIVITY_POLL_MS)
+}
+
 // --- RFID gate reader connection status -------------------------------------
 // Latest heartbeat (log_rfid_conn) per gate, polled so the dashboard reflects
 // whether each gate's RFID reader is currently connected.
@@ -629,12 +652,14 @@ onMounted(() => {
   loadStats()
   loadCameras()
   startActivityFeed()
+  startLogGateFeed()
   startRfidStatus()
   initMqtt()
 })
 
 onUnmounted(() => {
   clearInterval(activityTimer)
+  clearInterval(logGateTimer)
   clearInterval(rfidTimer)
 })
 </script>
@@ -900,7 +925,51 @@ onUnmounted(() => {
             </div>
           </div>
         </div>
+
       </div>
+
+      <!-- Live Log Gate Full Width Data Table -->
+      <!-- <div class="card" style="margin-top: 24px;">
+        <div class="card-header card-header-flex">
+          <span class="card-header-title">
+            <svg class="card-header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 6h16M4 12h16m-7 6h7" />
+            </svg>
+            Live Log Gate 
+          </span>
+          <span class="live-indicator"><span class="live-pulse"></span>Live</span>
+        </div>
+        
+        <div class="card-body" style="padding: 0; overflow-x: auto;">
+          <table class="detail-table" style="width: 100%; min-width: 600px;">
+            <thead>
+              <tr>
+                <th style="padding-left: 24px;">Waktu</th>
+                <th>Gate ID</th>
+                <th>Aksi</th>
+                <th>Hasil</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="logGateLoading && !logGateActivityAll.length">
+                <td colspan="4" class="detail-empty" style="text-align: center;"><span class="spinner"></span> Memuat Log Gate...</td>
+              </tr>
+              <tr v-else-if="logGateError && !logGateActivityAll.length">
+                <td colspan="4" class="detail-empty text-danger" style="text-align: center;">{{ logGateError }}</td>
+              </tr>
+              <tr v-else-if="!logGateActivityAll.length">
+                <td colspan="4" class="detail-empty" style="text-align: center;">Belum ada data Log Gate</td>
+              </tr>
+              <tr v-else v-for="log in logGateActivityAll" :key="log.id">
+                <td class="detail-time" style="padding-left: 24px;">{{ log.event_ts ? formatDateTime(log.event_ts) : '-' }}</td>
+                <td class="detail-gate-id"><strong>{{ log.gate_id || 'Unknown Gate' }}</strong></td>
+                <td><span class="badge" :class="log.action === 'OPEN' ? 'badge-success' : 'badge-info'">{{ log.action }}</span></td>
+                <td><span class="badge badge-success">{{ log.result }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div> -->
 
       <!-- Grafik Trend Aktivitas 7 Hari Terakhir -->
       <ActivityTrendsChart :autoRefresh="true" :refreshInterval="30000" />
