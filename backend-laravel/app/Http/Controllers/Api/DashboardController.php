@@ -48,7 +48,7 @@ class DashboardController extends Controller
             ->count();
 
         $stats = [
-            'total_users'        => $this->userRepository->query()->count(),
+            'total_users'        => $this->userRepository->query()->where('role', 'user')->where('type', 'warga')->count(),
             'total_kendaraan'    => $this->kendaraanRepository->query()->count(),
             'total_category'     => $this->categoryRepository->query()->count(),
             'total_kartu'        => $this->kartuRepository->query()->count(),
