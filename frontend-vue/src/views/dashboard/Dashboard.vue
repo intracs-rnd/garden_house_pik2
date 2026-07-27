@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import dashboardApi from '@/api/dashboard'
@@ -249,6 +249,30 @@ function startLogGateFeed() {
   loadLogGate()
   logGateTimer = setInterval(loadLogGate, ACTIVITY_POLL_MS)
 }
+
+// --- Live Log Manual Gate ---------------------------------------------------
+const logManualActivityAll = ref([])
+const logManualLoading = ref(true)
+const logManualError = ref('')
+
+async function loadLogManual() {
+  try {
+    const res = await gateApi.getManualLogs({ limit: 15 })
+    logManualActivityAll.value = res.data?.logs || []
+    logManualError.value = ''
+  } catch (err) {
+    logManualError.value = extractErrorMessage(err, 'Gagal memuat log kontrol manual.')
+  } finally {
+    logManualLoading.value = false
+  }
+}
+
+let logManualTimer
+function startLogManualFeed() {
+  loadLogManual()
+  logManualTimer = setInterval(loadLogManual, ACTIVITY_POLL_MS)
+}
+
 
 // --- RFID gate reader connection status -------------------------------------
 // Latest heartbeat (log_rfid_conn) per gate, polled so the dashboard reflects
@@ -653,6 +677,7 @@ onMounted(() => {
   loadCameras()
   startActivityFeed()
   startLogGateFeed()
+  startLogManualFeed()
   startRfidStatus()
   initMqtt()
 })
@@ -660,6 +685,7 @@ onMounted(() => {
 onUnmounted(() => {
   clearInterval(activityTimer)
   clearInterval(logGateTimer)
+  clearInterval(logManualTimer)
   clearInterval(rfidTimer)
 })
 </script>
@@ -929,20 +955,20 @@ onUnmounted(() => {
       </div>
 
       <!-- Live Log Gate Full Width Data Table -->
-      <!-- <div class="card" style="margin-top: 24px;">
+      <div class="card" style="margin-top: 24px;">
         <div class="card-header card-header-flex">
           <span class="card-header-title">
             <svg class="card-header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 6h16M4 12h16m-7 6h7" />
             </svg>
-            Live Log Gate 
+            Live Gate Logs
           </span>
           <span class="live-indicator"><span class="live-pulse"></span>Live</span>
         </div>
         
-        <div class="card-body" style="padding: 0; overflow-x: auto;">
+        <div class="card-body" style="padding: 0; overflow-x: auto; max-height: 400px; overflow-y: auto;">
           <table class="detail-table" style="width: 100%; min-width: 600px;">
-            <thead>
+            <thead style="position: sticky; top: 0; background: var(--color-bg-card, #fff); z-index: 1; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
               <tr>
                 <th style="padding-left: 24px;">Waktu</th>
                 <th>Gate ID</th>
@@ -961,10 +987,94 @@ onUnmounted(() => {
                 <td colspan="4" class="detail-empty" style="text-align: center;">Belum ada data Log Gate</td>
               </tr>
               <tr v-else v-for="log in logGateActivityAll" :key="log.id">
-                <td class="detail-time" style="padding-left: 24px;">{{ log.event_ts ? formatDateTime(log.event_ts) : '-' }}</td>
-                <td class="detail-gate-id"><strong>{{ log.gate_id || 'Unknown Gate' }}</strong></td>
-                <td><span class="badge" :class="log.action === 'OPEN' ? 'badge-success' : 'badge-info'">{{ log.action }}</span></td>
-                <td><span class="badge badge-success">{{ log.result }}</span></td>
+                <td class="detail-time" style="padding-left: 24px;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px; margin-right: 4px; vertical-align: text-bottom; opacity: 0.7;">
+                    <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                  </svg>
+                  {{ log.event_ts ? formatDateTime(log.event_ts) : '-' }}
+                </td>
+                <td class="detail-gate-id">
+                  <strong>{{ log.gate_id || 'Unknown Gate' }}</strong>
+                </td>
+                <td>
+                  <span class="badge" :class="log.action === 'OPEN' ? 'badge-success' : 'badge-info'">
+                    <svg v-if="log.action === 'OPEN'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 12px; height: 12px; margin-right: 4px; display: inline-block;"><path d="M5 21V7l7-4 7 4v14M9 21v-6h6v6" /></svg>
+                    {{ log.action }}
+                  </span>
+                </td>
+                <td>
+                  <span class="badge" :class="log.result === 'SUCCESS' ? 'badge-success' : (log.result === 'ERROR' ? 'badge-danger' : 'badge-warning')">
+                    {{ log.result }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Live Kontrol Manual Gate Full Width Data Table -->
+      <!-- <div class="card" style="margin-top: 24px;">
+        <div class="card-header card-header-flex">
+          <span class="card-header-title">
+            <svg class="card-header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+            Live Gate Manual Control
+          </span>
+          <span class="live-indicator"><span class="live-pulse"></span>Live</span>
+        </div>
+        
+        <div class="card-body" style="padding: 0; overflow-x: auto; max-height: 400px; overflow-y: auto;">
+          <table class="detail-table" style="width: 100%; min-width: 800px;">
+            <thead style="position: sticky; top: 0; background: var(--color-bg-card, #fff); z-index: 1; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+              <tr>
+                <th style="padding-left: 24px;">Waktu</th>
+                <th>Gate ID</th>
+                <th>Nomor Plat</th>
+                <th>Pengguna</th>
+                <th>Aksi</th>
+                <th>Hasil</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="logManualLoading && !logManualActivityAll.length">
+                <td colspan="6" class="detail-empty" style="text-align: center;"><span class="spinner"></span> Memuat Log Manual Control...</td>
+              </tr>
+              <tr v-else-if="logManualError && !logManualActivityAll.length">
+                <td colspan="6" class="detail-empty text-danger" style="text-align: center;">{{ logManualError }}</td>
+              </tr>
+              <tr v-else-if="!logManualActivityAll.length">
+                <td colspan="6" class="detail-empty" style="text-align: center;">Belum ada data Log Manual Control</td>
+              </tr>
+              <tr v-else v-for="log in logManualActivityAll" :key="log.id">
+                <td class="detail-time" style="padding-left: 24px;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px; margin-right: 4px; vertical-align: text-bottom; opacity: 0.7;">
+                    <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                  </svg>
+                  {{ log.event_ts ? formatDateTime(log.event_ts) : '-' }}
+                </td>
+                <td class="detail-gate-id">
+                  <strong>{{ log.gate_id || 'Unknown Gate' }}</strong>
+                </td>
+                <td>
+                  <span class="badge badge-secondary">{{ log.nomor_plat || '-' }}</span>
+                </td>
+                <td>
+                  {{ log.user_name || '-' }}
+                </td>
+                <td>
+                  <span class="badge" :class="log.action === 'OPEN' ? 'badge-success' : 'badge-info'">
+                    <svg v-if="log.action === 'OPEN'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 12px; height: 12px; margin-right: 4px; display: inline-block;"><path d="M5 21V7l7-4 7 4v14M9 21v-6h6v6" /></svg>
+                    {{ log.action }}
+                  </span>
+                </td>
+                <td>
+                  <span class="badge" :class="log.result === 'SUCCESS' ? 'badge-success' : (log.result === 'ERROR' ? 'badge-danger' : 'badge-warning')">
+                    {{ log.result }}
+                  </span>
+                </td>
               </tr>
             </tbody>
           </table>

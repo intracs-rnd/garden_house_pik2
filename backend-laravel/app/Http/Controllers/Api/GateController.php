@@ -370,4 +370,28 @@ class GateController extends Controller
             'logs' => $logs,
         ]);
     }
+
+    /**
+     * Get recent manual control logs for dashboard
+     */
+    public function getManualLogs(Request $request): JsonResponse
+    {
+        $limit = $request->query('limit', 15);
+        $gateId = $request->query('gate_id');
+
+        $query = GateManualControl::query();
+
+        if ($gateId) {
+            $query->where('gate_id', $gateId);
+        }
+
+        $logs = $query->orderBy('id', 'desc')
+            ->limit($limit)
+            ->get();
+
+        return response()->json([
+            'total' => $logs->count(),
+            'logs' => $logs,
+        ]);
+    }
 }

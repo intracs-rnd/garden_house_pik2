@@ -25,4 +25,10 @@ export const gateApi = {
    * @param {object} params - { page?, per_page? }
    */
   getLogsByGateId: (gateId, params = {}) => axios.get(`/gate/logs/${gateId}`, { params }),
+
+  /**
+   * Get all manual gate control logs
+   * @param {object} params - { limit?, gate_id? }
+   */
+  getManualLogs: (params = {}) => axios.get('/gate/manual-control/logs', { params }),
 }

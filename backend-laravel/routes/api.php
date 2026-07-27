@@ -68,6 +68,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // ---- Gate logs (MQTT integration) ----
     Route::post('/gate/log', [GateController::class, 'logGateAction']);
     Route::get('/gate/logs', [GateController::class, 'getAllLogs']);
+    Route::get('/gate/manual-control/logs', [GateController::class, 'getManualLogs']);
     Route::get('/gate/logs/{gateId}', [GateController::class, 'getLogsByGateId']);
 
     // RFID gate reader connection status (live heartbeat per gate)
