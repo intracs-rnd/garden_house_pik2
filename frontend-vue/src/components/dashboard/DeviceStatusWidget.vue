@@ -63,8 +63,8 @@ function formatTime(iso) {
 
     <!-- Topic info -->
     <div class="dsw-topic-row">
-      <span class="dsw-topic-label">Topic:</span>
-      <code class="dsw-topic-code">get/+/status</code>
+      <span class="dsw-topic-label"></span>
+      <code class="dsw-topic-code"></code>
       <span class="dsw-conn-dot" :class="mqttConnected ? 'is-online' : 'is-offline'">
         <span class="dsw-dot"></span>
         {{ mqttConnected ? 'Live' : 'Offline' }}
