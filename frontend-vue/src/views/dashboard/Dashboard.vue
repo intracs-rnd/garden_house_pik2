@@ -798,15 +798,18 @@ function submitGateAction() {
 
   gateSubmitting.value = true
 
+  const viewPath = gateImages.value.find(img => img.label && img.label.includes('CCTV'))?.path || null
+  const anprPaths = gateImages.value.filter(img => img.label && img.label.includes('ANPR')).map(img => img.path)
+
   // Publish gate action ke MQTT dan log dengan nomor plat + gambar
   publishGateAction(gateCamera.value.gate_id, gateAction.value === 'open', {
     nomor_plat: gateForm.value.nomor_plat,
-    // Sertakan path gambar yang sudah ada di data transaksi agar tersimpan di log
-    view_image_path: gateTransactionData.value?.view_image_path || null,
-    entry_image_1: gateTransactionData.value?.entry_image_1 ?? gateTransactionData.value?.entry_image1 ?? null,
-    entry_image_2: gateTransactionData.value?.entry_image_2 ?? gateTransactionData.value?.entry_image2 ?? null,
-    entry_image_3: gateTransactionData.value?.entry_image_3 ?? gateTransactionData.value?.entry_image3 ?? null,
-    entry_image_4: gateTransactionData.value?.entry_image_4 ?? gateTransactionData.value?.entry_image4 ?? null,
+    // Masukkan gambar CCTV ke view_image_path, sisanya (baik entry maupun exit) ke slot entry_image_1 s/d 4
+    view_image_path: viewPath,
+    entry_image_1: anprPaths[0] || null,
+    entry_image_2: anprPaths[1] || null,
+    entry_image_3: anprPaths[2] || null,
+    entry_image_4: anprPaths[3] || null,
   })
       .then(async (success) => {
         if (success) {
@@ -891,36 +894,53 @@ const logImagesModal = ref(false)
 const logImagesData = ref([])
 const logImagesLoading = ref(false)
 const logImagesError = ref('')
+const logImagesLog = ref(null)       // log baris yang sedang dibuka
+const logImagesSubmitting = ref(false)
 
 async function openLogImagesModal(log) {
   logImagesModal.value = true
   logImagesData.value = []
   logImagesLoading.value = true
   logImagesError.value = ''
+  logImagesLog.value = log
+  logImagesSubmitting.value = false
   
-  const paths = []
-  if (log.view_image_path) paths.push(log.view_image_path)
-  const entryImages = [
-    log.entry_image_1,
-    log.entry_image_2,
-    log.entry_image_3,
-    log.entry_image_4,
-  ].filter(p => p != null && p !== '')
-  paths.push(...entryImages)
+  // Kumpulkan semua path gambar yang tersedia beserta labelnya
+  const pathItems = []
+  if (log.view_image_path) {
+    pathItems.push({ path: log.view_image_path, label: 'CCTV (View)' })
+  }
+  const entryFields = [
+    { field: 'entry_image_1', label: 'ANPR (Entry 1)' },
+    { field: 'entry_image_2', label: 'ANPR (Entry 2)' },
+    { field: 'entry_image_3', label: 'ANPR (Entry 3)' },
+    { field: 'entry_image_4', label: 'ANPR (Entry 4)' },
+  ]
+  for (const { field, label } of entryFields) {
+    const p = log[field]
+    if (p != null && p !== '') pathItems.push({ path: p, label })
+  }
   
-  const uniquePaths = [...new Set(paths)].slice(0, 4)
+  // Deduplikasi berdasarkan path, tanpa batasan jumlah
+  const seen = new Set()
+  const uniqueItems = pathItems.filter(({ path }) => {
+    if (seen.has(path)) return false
+    seen.add(path)
+    return true
+  })
   
-  if (uniquePaths.length === 0) {
+  if (uniqueItems.length === 0) {
     logImagesLoading.value = false
     return
   }
   
   try {
-    const promises = uniquePaths.map(async (path) => {
+    const promises = uniqueItems.map(async ({ path, label }) => {
       try {
-         return await transactionApi.fetchImage(path)
-      } catch(err) {
-         return { success: false, path, error: err.message }
+        const imageData = await transactionApi.fetchImage(path)
+        return { ...imageData, label }
+      } catch (err) {
+        return { success: false, path, label, error: err.message }
       }
     })
     logImagesData.value = await Promise.all(promises)
@@ -930,6 +950,7 @@ async function openLogImagesModal(log) {
     logImagesLoading.value = false
   }
 }
+
 
 const statusBreakdown = computed(() => {
   const byStatus = stats.value?.kendaraan_by_status || {}
@@ -1799,7 +1820,21 @@ onUnmounted(() => {
       </Modal>
 
       <!-- Modal: Gambar Riwayat Gate -->
-      <Modal v-model="logImagesModal" title="Gambar Riwayat Gate">
+      <Modal
+        v-model="logImagesModal"
+        :title="logImagesLog ? `Gambar Riwayat Gate · ${logImagesLog.gate_id || ''}` : 'Gambar Riwayat Gate'"
+      >
+        <!-- Info ringkas log -->
+        <div v-if="logImagesLog" class="log-images-meta">
+          <span v-if="logImagesLog.nomor_plat" class="log-images-plate">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:4px;"><rect x="1" y="6" width="22" height="12" rx="2"/><path d="M5 10h.01M19 10h.01M9 14h6"/></svg>
+            {{ logImagesLog.nomor_plat }}
+          </span>
+          <span class="badge" :class="logImagesLog.action === 'OPEN' ? 'badge-success' : 'badge-info'">{{ logImagesLog.action }}</span>
+          <span class="badge" :class="logImagesLog.result === 'SUCCESS' ? 'badge-success' : 'badge-danger'">{{ logImagesLog.result }}</span>
+          <span v-if="logImagesLog.event_ts" class="log-images-time">{{ formatDateTime(logImagesLog.event_ts) }}</span>
+        </div>
+
         <div v-if="logImagesLoading" class="gate-images-loading">
           <span class="spinner"></span>
           <span>Memuat gambar...</span>
@@ -1807,17 +1842,21 @@ onUnmounted(() => {
         <div v-else-if="logImagesError" class="alert alert-danger">{{ logImagesError }}</div>
         <div v-else-if="logImagesData.length > 0" class="gate-images">
           <div class="images-grid">
-            <div v-for="(image, index) in logImagesData" :key="index" class="image-item">
+            <div v-for="(image, index) in logImagesData" :key="index" class="image-item" style="position:relative;">
+              <!-- Label overlay -->
+              <div v-if="image.label" class="image-label-overlay" :class="image.label.startsWith('CCTV') ? 'label-cctv' : 'label-anpr'">
+                {{ image.label }}
+              </div>
               <img v-if="image.url"
                    :src="image.url"
-                   :alt="`Entry Image ${index + 1}`"
+                   :alt="image.label || `Gambar ${index + 1}`"
                    @error="handleImageError"
                    style="width: 100%; height: 100%; object-fit: cover; cursor: pointer;"
                    @click="openImagePreview(image)"
               />
               <img v-else-if="image.base64"
                    :src="`data:image/jpeg;base64,${image.base64}`"
-                   :alt="`Entry Image ${index + 1}`"
+                   :alt="image.label || `Gambar ${index + 1}`"
                    @error="handleImageError"
                    style="width: 100%; height: 100%; object-fit: cover; cursor: pointer;"
                    @click="openImagePreview(image)"
@@ -1844,7 +1883,7 @@ onUnmounted(() => {
           <span>Tidak ada gambar tersedia</span>
         </div>
         <template #footer>
-          <Button variant="secondary" type="button" @click="logImagesModal = false">Tutup</Button>
+          <Button variant="secondary" type="button" @click="logImagesModal = false" :disabled="logImagesSubmitting">Tutup</Button>
         </template>
       </Modal>
 

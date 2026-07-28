@@ -427,6 +427,37 @@ a.stat-card:hover .stat-arrow {
   color: var(--color-text);
 }
 
+/* ---------- Log Images Modal Meta ---------- */
+.log-images-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed var(--color-border);
+  flex-wrap: wrap;
+}
+
+.log-images-plate {
+  display: inline-flex;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--color-text);
+  background: var(--color-bg, #f8fafc);
+  border: 1px solid var(--color-border);
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.log-images-time {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ---------- Images Grid ---------- */
 .gate-images {
   margin-top: 16px;
