@@ -21,9 +21,14 @@ import Button from '@/components/common/Button.vue'
 const loading = ref(true)
 const error = ref('')
 const stats = ref(null)
+const gate1Total = ref(0)
+const gate2Total = ref(0)
+
 
 // MQTT untuk RFID Status
 const RFID_STATUS_TOPIC = 'gate/in/rfid_status'
+const GATE_EVENT_TOPIC  = 'gate/in/event'
+
 const rfidStatusData = ref({
   card_number: null,
   rfid_tag: null,
@@ -35,6 +40,177 @@ const rfidStatusData = ref({
 const mqttConnected = ref(false)
 const mqttError = ref(null)
 const mqttDetailModal = ref(false)
+
+// --- Live MQTT Events (SCAN | GATE | VEHICLE) ----------------------------
+// Maks item yang disimpan di memori (oldest will be dropped)
+const MQTT_EVENT_MAX = 100
+
+const mqttEvents = ref([])          // seluruh event
+const mqttEventFilter = ref('ALL')  // 'ALL' | 'SCAN' | 'GATE' | 'VEHICLE'
+const mqttEventCategories = ['ALL', 'SCAN', 'GATE', 'VEHICLE']
+
+// Counter per category (direbuild dari events saat load)
+const mqttEventCounts = ref({ SCAN: 0, GATE: 0, VEHICLE: 0 })
+
+// --- localStorage persistence -------------------------------------------
+const LS_EVENTS_KEY = 'gh_pik2_mqtt_events'
+const LS_DATE_KEY   = 'gh_pik2_mqtt_events_date'
+
+function getTodayStr() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+/** Muat events dari localStorage saat halaman pertama dibuka */
+function loadFromStorage() {
+  try {
+    const savedDate = localStorage.getItem(LS_DATE_KEY)
+    const today = getTodayStr()
+
+    // Beda hari → hapus data lama secara otomatis
+    if (savedDate && savedDate !== today) {
+      localStorage.removeItem(LS_EVENTS_KEY)
+      localStorage.removeItem(LS_DATE_KEY)
+      console.log('[MQTT] Data hari lama dihapus otomatis.')
+      return
+    }
+
+    const raw = localStorage.getItem(LS_EVENTS_KEY)
+    if (!raw) return
+
+    const saved = JSON.parse(raw)
+    if (!Array.isArray(saved) || saved.length === 0) return
+
+    mqttEvents.value = saved
+
+    // Rebuild counter dari events yang tersimpan
+    const counts = { SCAN: 0, GATE: 0, VEHICLE: 0 }
+    for (const evt of saved) {
+      if (evt.category in counts) counts[evt.category]++
+    }
+    mqttEventCounts.value = counts
+    console.log(`[MQTT] ${saved.length} events dimuat dari localStorage.`)
+  } catch (e) {
+    console.warn('[MQTT] Gagal memuat dari localStorage:', e)
+  }
+}
+
+/** Simpan events ke localStorage (dipanggil setiap kali ada event baru) */
+function saveToStorage() {
+  try {
+    localStorage.setItem(LS_EVENTS_KEY, JSON.stringify(mqttEvents.value))
+    localStorage.setItem(LS_DATE_KEY, getTodayStr())
+  } catch (e) {
+    console.warn('[MQTT] Gagal menyimpan ke localStorage:', e)
+  }
+}
+
+// Muat data tersimpan segera saat komponen diinisialisasi
+loadFromStorage()
+
+/**
+ * Parse pesan dari topic gate/in/event.
+ * mqtt.js service sudah pre-parse pipe-string menjadi object:
+ *   { gate_id, device_type, status, message, timestamp }
+ * di mana:  device_type = kategori (SCAN/GATE/VEHICLE)
+ *           status      = detail   (rfid tag / OPEN / CLEARED)
+ *           message     = result   (ALLOW/DENY/SUCCESS/OK)
+ * Jika diterima sebagai raw string, parse manual.
+ */
+function parseMqttGateEvent(raw) {
+  if (typeof raw === 'object' && raw !== null) {
+    // Pre-parsed oleh mqtt.js: device_type = category, status = detail, message = status
+    if ('device_type' in raw) {
+      return {
+        gate_id:   raw.gate_id   || '',
+        category:  (raw.device_type || '').toUpperCase(),
+        detail:    raw.status    || '',   // field 'status' dari mqtt.js = detail sebenarnya
+        status:    raw.message   || '',   // field 'message' dari mqtt.js = status sebenarnya
+        timestamp: raw.timestamp || '',
+      }
+    }
+    // Sudah dalam format yang benar (punya field 'category')
+    return raw
+  }
+  // Raw string — parse pipe-delimited manual
+  const parts = String(raw).split('|')
+  if (parts.length < 5) return null
+  const [gate_id, category, detail, status, timestamp] = parts
+  return { gate_id, category: category.toUpperCase(), detail, status, timestamp }
+}
+
+/** Tambahkan event baru ke daftar mqttEvents (prepend, trim bila perlu) */
+function pushMqttEvent(evt) {
+  if (!evt) return
+  const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`
+  mqttEvents.value.unshift({ id, ...evt, receivedAt: new Date().toISOString() })
+  if (mqttEvents.value.length > MQTT_EVENT_MAX) {
+    mqttEvents.value = mqttEvents.value.slice(0, MQTT_EVENT_MAX)
+  }
+  // Tambah counter
+  const cat = evt.category
+  if (cat in mqttEventCounts.value) {
+    mqttEventCounts.value[cat]++
+  }
+  // Simpan ke localStorage
+  saveToStorage()
+}
+
+
+
+/** Handler MQTT untuk topic gate/in/event */
+function handleGateEvent(raw) {
+  const evt = parseMqttGateEvent(raw)
+  pushMqttEvent(evt)
+}
+
+// Filtered events berdasarkan tab
+const filteredMqttEvents = computed(() => {
+  if (mqttEventFilter.value === 'ALL') return mqttEvents.value
+  return mqttEvents.value.filter(e => e.category === mqttEventFilter.value)
+})
+
+// Helper tampilan per kategori
+function mqttEventMeta(evt) {
+  switch (evt.category) {
+    case 'SCAN':
+      return {
+        label: 'SCAN',
+        colorClass: 'cat-scan',
+        icon: 'M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM9 7h6M9 11h6M9 15h4',
+        statusClass: evt.status === 'ALLOW' ? 'badge-success' : (evt.status === 'DENY' ? 'badge-danger' : 'badge-muted'),
+        detail: evt.detail,
+        detailFull: evt.detail,
+      }
+    case 'GATE':
+      return {
+        label: 'GATE',
+        colorClass: 'cat-gate',
+        icon: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
+        statusClass: evt.status === 'SUCCESS' ? 'badge-success' : (evt.status === 'ERROR' ? 'badge-danger' : 'badge-warning'),
+        detail: evt.detail,
+        detailFull: evt.detail,
+      }
+    case 'VEHICLE':
+      return {
+        label: 'VEHICLE',
+        colorClass: 'cat-vehicle',
+        icon: 'M5 13l1.4-4.2A2 2 0 0 1 8.3 7.4h7.4a2 2 0 0 1 1.9 1.4L19 13M5 13a2 2 0 0 0-2 2v3.5a1 1 0 0 0 1 1h1.2M5 13h14M19 13a2 2 0 0 1 2 2v3.5a1 1 0 0 1-1 1h-1.2M7.5 19.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zM16.5 19.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z',
+        statusClass: evt.status === 'OK' ? 'badge-success' : 'badge-muted',
+        detail: evt.detail,
+        detailFull: evt.detail,
+      }
+    default:
+      return {
+        label: evt.category || '?',
+        colorClass: 'cat-unknown',
+        icon: 'M12 8h.01M11 12h1v4h1M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z',
+        statusClass: 'badge-muted',
+        detail: evt.detail,
+        detailFull: evt.detail,
+      }
+  }
+}
 
 // Setup MQTT connection
 const { isConnected, error: mqttErr, connect: mqttConnect, subscribe: mqttSubscribe } = useMqtt(null, { autoConnect: false })
@@ -64,14 +240,25 @@ async function initMqtt() {
     await mqttConnect()
     mqttConnected.value = isConnected.value
     if (mqttConnected.value) {
-      // Subscribe dengan QoS 1 (wajib)
+      // Subscribe RFID status (QoS 1)
       await mqttSubscribe(RFID_STATUS_TOPIC, handleRfidStatus, { qos: 1 })
+      // Subscribe gate events (QoS 0)
+      await mqttSubscribe(GATE_EVENT_TOPIC, handleGateEvent, { qos: 0 })
     }
   } catch (err) {
     mqttError.value = err
     console.error('Failed to init MQTT:', err)
   }
 }
+
+/** Reset semua event MQTT, counter, dan localStorage */
+function clearMqttEvents() {
+  mqttEvents.value = []
+  mqttEventCounts.value = { SCAN: 0, GATE: 0, VEHICLE: 0 }
+  localStorage.removeItem(LS_EVENTS_KEY)
+  localStorage.removeItem(LS_DATE_KEY)
+}
+
 
 // The four CCTV feeds shown in the 2x2 grid. Names + HLS URLs are loaded from
 // the backend (GET /api/cameras/feeds) so they follow the "Pengaturan Kamera"
@@ -104,6 +291,27 @@ async function loadCameras() {
     }
   } catch {
     // Keep the .env fallbacks if the feed endpoint is unavailable.
+  } finally {
+    loadGateTotals()
+  }
+}
+
+async function loadGateTotals() {
+  if (cameras.value.length > 0) {
+    try {
+      const res1 = await gateApi.getLogsByGateId(cameras.value[0].gate_id, { per_page: 1 })
+      gate1Total.value = res1.data?.pagination?.total || 0
+    } catch (e) {
+      console.error('Failed to load total for Kamera 1:', e)
+    }
+  }
+  if (cameras.value.length > 1) {
+    try {
+      const res2 = await gateApi.getLogsByGateId(cameras.value[1].gate_id, { per_page: 1 })
+      gate2Total.value = res2.data?.pagination?.total || 0
+    } catch (e) {
+      console.error('Failed to load total for Kamera 2:', e)
+    }
   }
 }
 
@@ -672,20 +880,22 @@ const cards = computed(() => [
     icon: 'M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm-1 5h20M6 15h4',
   },
   {
-    label: 'Kendaraan Di Dalam',
-    value: kendaraanDiDalamCount.value,
+    label: 'Riwayat Kamera 1',
+    value: gate1Total.value,
     to: null,
-    color: '#f59e0b',
-    icon: 'M5 13l1.4-4.2A2 2 0 0 1 8.3 7.4h7.4a2 2 0 0 1 1.9 1.4L19 13M5 13a2 2 0 0 0-2 2v3.5a1 1 0 0 0 1 1h1.2M5 13h14M19 13a2 2 0 0 1 2 2v3.5a1 1 0 0 1-1 1h-1.2M7.5 19.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zM16.5 19.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z',
-    subtitle: selectedDate.value ? `Transaksi aktif pada ${selectedDate.value}` : 'Transaksi aktif saat ini',
+    color: '#10b981', // emerald
+    icon: 'M23 7l-7 5 7 5V7z M3 5h11a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2H3a2 2 0 0 1 -2 -2V7a2 2 0 0 1 2 -2z',
+    subtitle: 'Total Riwayat Gate Kamera 1',
+    onClick: () => { if (cameras.value[0]) openDetailModal(cameras.value[0]) },
   },
   {
-    label: 'Aktivitas Hari Ini',
-    value: activityCardCount.value,
+    label: 'Riwayat Kamera 2',
+    value: gate2Total.value,
     to: null,
-    color: '#0891b2',
-    icon: 'M3 12h4l3 8 4-16 3 8h4',
-    subtitle: activityCardSubtitle.value,
+    color: '#f59e0b', // amber
+    icon: 'M23 7l-7 5 7 5V7z M3 5h11a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2H3a2 2 0 0 1 -2 -2V7a2 2 0 0 1 2 -2z',
+    subtitle: 'Total Riwayat Gate Kamera 2',
+    onClick: () => { if (cameras.value[1]) openDetailModal(cameras.value[1]) },
   },
 ])
 
@@ -756,6 +966,8 @@ onUnmounted(() => {
             :key="card.label"
             :to="card.to"
             class="stat-card"
+            @click="card.onClick ? card.onClick() : null"
+            :style="card.onClick ? 'cursor: pointer;' : ''"
         >
           <div class="stat-icon" :style="{ background: card.color }">
             <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -844,141 +1056,126 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- Live Kendaraan In/Out -->
+        <!-- Live Aktivitas Kendaraan (MQTT) -->
         <div class="card live-activity">
           <div class="card-header card-header-flex">
             <span class="card-header-title">
               <svg class="card-header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 12h4l3 8 4-16 3 8h4" />
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
               </svg>
-              Live Kendaraan In / Out
+              Live Aktivitas Kendaraan
             </span>
-            <span class="live-indicator"><span class="live-pulse"></span>Live</span>
+            <span class="live-indicator" :class="{ 'is-offline': !mqttConnected }">
+              <span class="live-pulse"></span>
+              {{ mqttConnected ? 'Live' : 'Offline' }}
+            </span>
           </div>
 
-          <div class="activity-filter">
-            <svg class="activity-filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
-            </svg>
-            <input
-                id="activity-date"
-                v-model="selectedDate"
-                type="date"
-                class="activity-filter-input"
-                :max="todayDateStr"
-                aria-label="Filter berdasarkan tanggal"
-            />
-            <button v-if="selectedDate" type="button" class="activity-filter-clear" @click="clearDateFilter">
-              Reset
+          <!-- MQTT Event Counter Summary -->
+          <div class="mqtt-summary">
+            <div class="mqtt-sum-item cat-scan">
+              <span class="mqtt-sum-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM9 7h6M9 11h6M9 15h4" /></svg>
+              </span>
+              <span class="mqtt-sum-val">{{ mqttEventCounts.SCAN }}</span>
+              <span class="mqtt-sum-lbl">SCAN</span>
+            </div>
+            <div class="mqtt-sum-divider"></div>
+            <div class="mqtt-sum-item cat-gate">
+              <span class="mqtt-sum-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg>
+              </span>
+              <span class="mqtt-sum-val">{{ mqttEventCounts.GATE }}</span>
+              <span class="mqtt-sum-lbl">GATE</span>
+            </div>
+            <div class="mqtt-sum-divider"></div>
+            <div class="mqtt-sum-item cat-vehicle">
+              <span class="mqtt-sum-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l1.4-4.2A2 2 0 0 1 8.3 7.4h7.4a2 2 0 0 1 1.9 1.4L19 13M5 13a2 2 0 0 0-2 2v3.5a1 1 0 0 0 1 1h1.2M5 13h14M19 13a2 2 0 0 1 2 2v3.5a1 1 0 0 1-1 1h-1.2M7.5 19.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zM16.5 19.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z" /></svg>
+              </span>
+              <span class="mqtt-sum-val">{{ mqttEventCounts.VEHICLE }}</span>
+              <span class="mqtt-sum-lbl">VEHICLE</span>
+            </div>
+          </div>
+
+          <!-- Category Filter Tabs -->
+          <div class="mqtt-tabs">
+            <button
+              v-for="cat in mqttEventCategories"
+              :key="cat"
+              type="button"
+              class="mqtt-tab"
+              :class="{ 'is-active': mqttEventFilter === cat, [`tab-${cat.toLowerCase()}`]: true }"
+              @click="mqttEventFilter = cat"
+            >
+              {{ cat === 'ALL' ? 'Semua' : cat }}
+              <span v-if="cat !== 'ALL'" class="mqtt-tab-badge">{{ mqttEventCounts[cat] }}</span>
             </button>
-            <span class="activity-filter-hint"></span>
+            
           </div>
 
-          <div class="activity-summary">
-            <div class="summary-item">
-              <span class="summary-icon is-in">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-              </span>
-              <span class="summary-value text-in">{{ formatNumber(vehicleInCount) }}</span>
-              <span class="summary-label">Masuk</span>
-            </div>
-            <div class="summary-divider"></div>
-            <div class="summary-item">
-              <span class="summary-icon is-out">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6" /></svg>
-              </span>
-              <span class="summary-value text-out">{{ formatNumber(vehicleOutCount) }}</span>
-              <span class="summary-label">Keluar</span>
-            </div>
-          </div>
-
+          <!-- MQTT Event Feed -->
           <div class="activity-feed">
-            <div v-if="activityLoading && !vehicleActivity.length" class="activity-empty">
-              <span class="spinner"></span>Memuat aktivitas...
+            <!-- Offline state -->
+            <div v-if="!mqttConnected && mqttEvents.length === 0" class="mqtt-offline-state">
+              <div class="mqtt-offline-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 6l11 11M5 3a16 16 0 0 1 16 16M5 9a10 10 0 0 1 10 10M5 15a4 4 0 0 1 4 4" />
+                </svg>
+              </div>
+              <span class="mqtt-offline-title">MQTT tidak terhubung</span>
+              <span class="mqtt-offline-sub">Topic: <code>{{ GATE_EVENT_TOPIC }}</code></span>
+              <span v-if="mqttError" class="mqtt-offline-err">{{ mqttError?.message || mqttError }}</span>
             </div>
-            <div v-else-if="activityError && !vehicleActivity.length" class="activity-empty is-error">
-              {{ activityError }}
+
+            <!-- Empty (connected but no events yet) -->
+            <div v-else-if="filteredMqttEvents.length === 0" class="activity-empty">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:32px;height:32px;opacity:0.35;margin-bottom:6px;">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+              </svg>
+              <span>{{ mqttConnected ? 'Menunggu event dari MQTT...' : 'Belum ada event' }}</span>
             </div>
-            <div v-else-if="!vehicleActivity.length" class="activity-empty">
-              {{ selectedDate ? 'Tidak ada aktivitas pada tanggal ini.' : 'Belum ada aktivitas tap.' }}
-            </div>
-            <TransitionGroup v-else name="activity">
+
+            <!-- Event list -->
+            <TransitionGroup v-else name="activity" tag="div">
               <div
-                  v-for="item in vehicleActivity"
-                  :key="item.id"
-                  class="activity-item"
-                  :class="{ 'is-denied': !item.granted, 'is-clickable': true }"
-                  role="button"
-                  tabindex="0"
-                  :title="'Klik untuk lihat detail'"
-                  @click="openActivityDetail(item)"
-                  @keydown.enter="openActivityDetail(item)"
+                v-for="evt in filteredMqttEvents"
+                :key="evt.id"
+                class="mqtt-event-item"
+                :class="mqttEventMeta(evt).colorClass"
               >
-                <span class="activity-icon" :class="item.type === 'in' ? 'is-in' : 'is-out'">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path :d="item.type === 'in' ? 'M5 12h14M13 6l6 6-6 6' : 'M19 12H5M11 18l-6-6 6-6'" />
+                <!-- Category icon -->
+                <span class="mqtt-event-cat-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path :d="mqttEventMeta(evt).icon" />
                   </svg>
                 </span>
-                <div class="activity-info">
-                  <span class="activity-plate">
-                    {{ item.plate || '—' }}
-                    <span
-                        class="badge activity-type-badge"
-                        :class="item.isManual ? 'badge-warning' : 'badge-muted'"
-                    >
-                      {{ item.isManual ? 'Manual' : 'RFID' }}
+
+                <!-- Body: 2 rows -->
+                <div class="mqtt-event-body">
+                  <!-- Row 1: Gate ID + timestamp -->
+                  <div class="mqtt-event-row1">
+                    <span class="mqtt-event-gate">{{ evt.gate_id }}</span>
+                    <span class="mqtt-event-time">{{ evt.timestamp?.split(' ')[1]?.slice(0,8) || '' }}</span>
+                  </div>
+                  <!-- Row 2: detail + badges -->
+                  <div class="mqtt-event-row2">
+                    <span class="mqtt-event-detail" :title="mqttEventMeta(evt).detailFull">
+                      {{ mqttEventMeta(evt).detail }}
                     </span>
-                  </span>
-                  <span class="activity-meta">
-                    {{ item.name }}<template v-if="item.gate"> · {{ item.gate }}</template>
-                  </span>
-                </div>
-                <div class="activity-side">
-                  <span
-                      class="badge"
-                      :class="item.granted ? (item.type === 'in' ? 'badge-success' : 'badge-info') : 'badge-danger'"
-                  >
-                    {{ item.granted ? (item.type === 'in' ? 'Masuk' : 'Keluar') : 'Gagal' }}
-                  </span>
-                  <span
-                      class="activity-status"
-                      :class="item.granted ? 'is-active' : 'is-inactive'"
-                  >
-                    <span class="status-dot"></span>{{ item.result }}
-                  </span>
-                  <span class="activity-time">{{ item.time }}</span>
+                    <div class="mqtt-event-badges">
+                      <span class="mqtt-event-cat-label">{{ evt.category }}</span>
+                      <span class="badge mqtt-event-status" :class="mqttEventMeta(evt).statusClass">
+                        {{ evt.status }}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </TransitionGroup>
           </div>
 
-          <!-- Pagination untuk Activity Feed -->
-          <div v-if="!activityLoading && vehicleActivity.length > 0 && activityPagination.pages > 1" class="activity-pagination">
-            <span class="pagination-info">
-              {{ (activityPage - 1) * activityPerPage + 1 }}–{{ Math.min(activityPage * activityPerPage, activityPagination.total) }} dari {{ activityPagination.total }}
-            </span>
-            <div class="pagination-buttons">
-              <button
-                  type="button"
-                  class="page-btn"
-                  :disabled="activityPage === 1"
-                  @click="updateActivityPage(activityPage - 1)"
-                  aria-label="Sebelumnya"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
-              </button>
-              <span class="page-current">{{ activityPage }} / {{ activityPagination.pages }}</span>
-              <button
-                  type="button"
-                  class="page-btn"
-                  :disabled="activityPage >= activityPagination.pages"
-                  @click="updateActivityPage(activityPage + 1)"
-                  aria-label="Selanjutnya"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6" /></svg>
-              </button>
-            </div>
-          </div>
+
         </div>
 
       </div>

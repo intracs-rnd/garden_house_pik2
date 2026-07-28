@@ -20,7 +20,7 @@ class Kartu extends Model
     /**
      * Koneksi database yang digunakan model ini.
      *
-     * Menggunakan koneksi `pgsql` biasa (single host 192.168.214.161).
+     * Menggunakan koneksi `pgsql` biasa (single host 192.168.214.163).
      * Tabel kartus tidak masuk ke sistem read/write split — hanya tabel
      * `cards` yang direplikasi ke .163 untuk dikonsumsi perangkat gate.
      *

@@ -1236,3 +1236,334 @@ a.stat-card:hover .stat-arrow {
   letter-spacing: 0.05em;
   color: var(--color-primary, #4f46e5);
 }
+
+/* ============================================================
+   MQTT Live Event Feed
+   ============================================================ */
+
+/* ---------- Live indicator offline variant ---------- */
+.live-indicator.is-offline {
+  color: var(--color-text-muted);
+  background: var(--color-bg, #f3f4f6);
+}
+.live-indicator.is-offline .live-pulse {
+  background: #9ca3af;
+  animation: none;
+}
+
+/* ---------- Summary Counter Strip ---------- */
+.mqtt-summary {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+  background: var(--color-bg, #f9fafb);
+}
+.mqtt-sum-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  justify-content: center;
+}
+.mqtt-sum-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.mqtt-sum-icon svg {
+  width: 16px;
+  height: 16px;
+}
+.mqtt-sum-val {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+}
+.mqtt-sum-lbl {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+}
+.mqtt-sum-divider {
+  width: 1px;
+  height: 40px;
+  background: var(--color-border, #e5e7eb);
+  flex-shrink: 0;
+  margin: 0 8px;
+}
+
+/* SCAN – blue */
+.mqtt-sum-item.cat-scan .mqtt-sum-icon  { background: #eff6ff; color: #2563eb; }
+.mqtt-sum-item.cat-scan .mqtt-sum-val   { color: #2563eb; }
+/* GATE – amber */
+.mqtt-sum-item.cat-gate .mqtt-sum-icon  { background: #fffbeb; color: #d97706; }
+.mqtt-sum-item.cat-gate .mqtt-sum-val   { color: #d97706; }
+/* VEHICLE – emerald */
+.mqtt-sum-item.cat-vehicle .mqtt-sum-icon { background: #ecfdf5; color: #059669; }
+.mqtt-sum-item.cat-vehicle .mqtt-sum-val  { color: #059669; }
+
+/* ---------- Category Filter Tabs ---------- */
+.mqtt-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+  flex-wrap: wrap;
+}
+.mqtt-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border, #e5e7eb);
+  background: transparent;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  letter-spacing: 0.02em;
+}
+.mqtt-tab:hover {
+  background: var(--color-bg, #f3f4f6);
+  color: var(--color-text);
+}
+.mqtt-tab.is-active {
+  background: var(--color-primary, #4f46e5);
+  border-color: var(--color-primary, #4f46e5);
+  color: #fff;
+}
+/* Active colour per tab category */
+.mqtt-tab.is-active.tab-scan    { background: #2563eb; border-color: #2563eb; }
+.mqtt-tab.is-active.tab-gate    { background: #d97706; border-color: #d97706; }
+.mqtt-tab.is-active.tab-vehicle { background: #059669; border-color: #059669; }
+
+.mqtt-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  background: rgb(0 0 0 / 0.1);
+}
+.mqtt-tab.is-active .mqtt-tab-badge {
+  background: rgb(255 255 255 / 0.25);
+}
+.mqtt-tab-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--color-border, #e5e7eb);
+  background: transparent;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.mqtt-tab-clear:hover {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+
+/* ---------- Event Items ---------- */
+.mqtt-event-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px 10px 14px;
+  border-bottom: 1px solid var(--color-border, #f0f0f0);
+  transition: background 0.12s;
+  border-left: 4px solid transparent;
+}
+.mqtt-event-item:last-child {
+  border-bottom: none;
+}
+.mqtt-event-item:hover {
+  background: var(--color-bg, #f9fafb);
+}
+
+/* Per-category left accent */
+.mqtt-event-item.cat-scan    { border-left-color: #3b82f6; }
+.mqtt-event-item.cat-gate    { border-left-color: #f59e0b; }
+.mqtt-event-item.cat-vehicle { border-left-color: #10b981; }
+.mqtt-event-item.cat-unknown { border-left-color: #9ca3af; }
+
+/* Category icon circle */
+.mqtt-event-cat-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+.mqtt-event-cat-icon svg {
+  width: 17px;
+  height: 17px;
+}
+.cat-scan    .mqtt-event-cat-icon { background: #eff6ff; color: #2563eb; }
+.cat-gate    .mqtt-event-cat-icon { background: #fffbeb; color: #d97706; }
+.cat-vehicle .mqtt-event-cat-icon { background: #ecfdf5; color: #059669; }
+.cat-unknown .mqtt-event-cat-icon { background: var(--color-bg, #f3f4f6); color: var(--color-text-muted); }
+
+/* Body: takes remaining width, 2-row layout */
+.mqtt-event-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Row 1: Gate ID (left) + timestamp (right) */
+.mqtt-event-row1 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.mqtt-event-gate {
+  font-weight: 700;
+  font-size: 12.5px;
+  color: var(--color-text);
+  font-family: monospace;
+  letter-spacing: 0.02em;
+}
+.mqtt-event-time {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-family: monospace;
+  flex-shrink: 0;
+}
+
+/* Row 2: detail (left, truncated) + badges (right) */
+.mqtt-event-row2 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+.mqtt-event-detail {
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  font-family: monospace;
+  word-break: break-all;
+  min-width: 0;
+  flex: 1;
+}
+.mqtt-event-badges {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.mqtt-event-cat-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 2px 7px;
+  border-radius: 4px;
+  line-height: 1.6;
+}
+.cat-scan    .mqtt-event-cat-label { background: #dbeafe; color: #1d4ed8; }
+.cat-gate    .mqtt-event-cat-label { background: #fef3c7; color: #b45309; }
+.cat-vehicle .mqtt-event-cat-label { background: #d1fae5; color: #047857; }
+.cat-unknown .mqtt-event-cat-label { background: var(--color-bg, #f3f4f6); color: var(--color-text-muted); }
+
+.mqtt-event-status {
+  font-size: 10px;
+  padding: 2px 7px;
+  line-height: 1.6;
+}
+
+
+
+/* ---------- Offline state ---------- */
+.mqtt-offline-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  gap: 8px;
+  text-align: center;
+}
+.mqtt-offline-icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #fef2f2;
+  color: #dc2626;
+  margin-bottom: 4px;
+}
+.mqtt-offline-icon svg {
+  width: 24px;
+  height: 24px;
+}
+.mqtt-offline-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.mqtt-offline-sub {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.mqtt-offline-sub code {
+  background: var(--color-bg, #f3f4f6);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+.mqtt-offline-err {
+  font-size: 11px;
+  color: #dc2626;
+  margin-top: 4px;
+}
+
+/* ---------- Topic footer bar ---------- */
+.mqtt-topic-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-top: 1px solid var(--color-border, #e5e7eb);
+  font-size: 11px;
+  color: var(--color-text-muted);
+  background: var(--color-bg, #f9fafb);
+  border-radius: 0 0 var(--radius, 10px) var(--radius, 10px);
+}
+.mqtt-topic-footer code {
+  font-family: monospace;
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--color-border, #e5e7eb);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--color-text);
+}
+.mqtt-topic-sep {
+  opacity: 0.4;
+}
+
