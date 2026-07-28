@@ -49,7 +49,9 @@ function close() {
   box-shadow: var(--shadow-lg);
   width: 100%;
   max-width: 460px;
-  overflow: hidden;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
 }
 .modal-header {
   display: flex;
@@ -57,6 +59,7 @@ function close() {
   justify-content: space-between;
   padding: 16px 20px;
   border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
 }
 .modal-header h3 {
   font-size: 16px;
@@ -71,6 +74,7 @@ function close() {
 }
 .modal-body {
   padding: 20px;
+  overflow-y: auto;
 }
 .modal-footer {
   display: flex;
@@ -78,6 +82,7 @@ function close() {
   gap: 10px;
   padding: 16px 20px;
   border-top: 1px solid var(--color-border);
+  flex-shrink: 0;
 }
 .modal-enter-active,
 .modal-leave-active {

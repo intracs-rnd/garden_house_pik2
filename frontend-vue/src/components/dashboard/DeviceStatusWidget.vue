@@ -86,9 +86,7 @@ function formatTime(iso) {
         <path d="M8 21h8M12 17v4" />
       </svg>
       <span class="dsw-empty-title">Belum ada data device</span>
-      <span class="dsw-empty-sub">
-        Menunggu pesan MQTT dari topic <code>get/+/status</code>
-      </span>
+      
     </div>
 
     <!-- Device list -->

@@ -1050,7 +1050,7 @@ onUnmounted(() => {
         </span>
       </div>
 
-      <!-- Live CCTV + Kendaraan In/Out -->
+      <!-- Live CCTV + Kendaraan In/Out + Status Device -->
       <div class="row live-row">
         <!-- Live CCTV streams -->
         <div class="card live-cctv">
@@ -1108,136 +1108,137 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- Live Aktivitas Kendaraan (MQTT) -->
-        <div class="card live-activity">
-          <div class="card-header card-header-flex">
-            <span class="card-header-title">
-              <svg class="card-header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-              </svg>
-              Live Aktivitas Kendaraan
-            </span>
-            <span class="live-indicator" :class="{ 'is-offline': !mqttConnected }">
-              <span class="live-pulse"></span>
-              {{ mqttConnected ? 'Live' : 'Offline' }}
-            </span>
-          </div>
-
-          <!-- MQTT Event Counter Summary -->
-          <div class="mqtt-summary">
-            <div class="mqtt-sum-item cat-scan">
-              <span class="mqtt-sum-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM9 7h6M9 11h6M9 15h4" /></svg>
-              </span>
-              <span class="mqtt-sum-val">{{ mqttEventCounts.SCAN }}</span>
-              <span class="mqtt-sum-lbl">SCAN</span>
-            </div>
-            <div class="mqtt-sum-divider"></div>
-            <div class="mqtt-sum-item cat-gate">
-              <span class="mqtt-sum-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg>
-              </span>
-              <span class="mqtt-sum-val">{{ mqttEventCounts.GATE }}</span>
-              <span class="mqtt-sum-lbl">GATE</span>
-            </div>
-            <div class="mqtt-sum-divider"></div>
-            <div class="mqtt-sum-item cat-vehicle">
-              <span class="mqtt-sum-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l1.4-4.2A2 2 0 0 1 8.3 7.4h7.4a2 2 0 0 1 1.9 1.4L19 13M5 13a2 2 0 0 0-2 2v3.5a1 1 0 0 0 1 1h1.2M5 13h14M19 13a2 2 0 0 1 2 2v3.5a1 1 0 0 1-1 1h-1.2M7.5 19.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zM16.5 19.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z" /></svg>
-              </span>
-              <span class="mqtt-sum-val">{{ mqttEventCounts.VEHICLE }}</span>
-              <span class="mqtt-sum-lbl">VEHICLE</span>
-            </div>
-          </div>
-
-          <!-- Category Filter Tabs -->
-          <div class="mqtt-tabs">
-            <button
-              v-for="cat in mqttEventCategories"
-              :key="cat"
-              type="button"
-              class="mqtt-tab"
-              :class="{ 'is-active': mqttEventFilter === cat, [`tab-${cat.toLowerCase()}`]: true }"
-              @click="mqttEventFilter = cat"
-            >
-              {{ cat === 'ALL' ? 'Semua' : cat }}
-              <span v-if="cat !== 'ALL'" class="mqtt-tab-badge">{{ mqttEventCounts[cat] }}</span>
-            </button>
-            
-          </div>
-
-          <!-- MQTT Event Feed -->
-          <div class="activity-feed">
-            <!-- Offline state -->
-            <div v-if="!mqttConnected && mqttEvents.length === 0" class="mqtt-offline-state">
-              <div class="mqtt-offline-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M1 6l11 11M5 3a16 16 0 0 1 16 16M5 9a10 10 0 0 1 10 10M5 15a4 4 0 0 1 4 4" />
+        <!-- Kolom kanan: Live Aktivitas + Status Device ditumpuk agar tidak perlu scroll halaman di desktop -->
+        <div class="live-side">
+          <!-- Live Aktivitas Kendaraan (MQTT) -->
+          <div class="card live-activity">
+            <div class="card-header card-header-flex">
+              <span class="card-header-title">
+                <svg class="card-header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
                 </svg>
-              </div>
-              <span class="mqtt-offline-title">MQTT tidak terhubung</span>
-              <span class="mqtt-offline-sub">Topic: <code>{{ GATE_EVENT_TOPIC }}</code></span>
-              <span v-if="mqttError" class="mqtt-offline-err">{{ mqttError?.message || mqttError }}</span>
+                Live Aktivitas Kendaraan
+              </span>
+              <span class="live-indicator" :class="{ 'is-offline': !mqttConnected }">
+                <span class="live-pulse"></span>
+                {{ mqttConnected ? 'Live' : 'Offline' }}
+              </span>
             </div>
 
-            <!-- Empty (connected but no events yet) -->
-            <div v-else-if="filteredMqttEvents.length === 0" class="activity-empty">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:32px;height:32px;opacity:0.35;margin-bottom:6px;">
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-              </svg>
-              <span>{{ mqttConnected ? 'Menunggu event dari MQTT...' : 'Belum ada event' }}</span>
-            </div>
-
-            <!-- Event list -->
-            <TransitionGroup v-else name="activity" tag="div">
-              <div
-                v-for="evt in filteredMqttEvents"
-                :key="evt.id"
-                class="mqtt-event-item"
-                :class="mqttEventMeta(evt).colorClass"
-              >
-                <!-- Category icon -->
-                <span class="mqtt-event-cat-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path :d="mqttEventMeta(evt).icon" />
-                  </svg>
+            <!-- MQTT Event Counter Summary -->
+            <div class="mqtt-summary">
+              <div class="mqtt-sum-item cat-scan">
+                <span class="mqtt-sum-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM9 7h6M9 11h6M9 15h4" /></svg>
                 </span>
+                <span class="mqtt-sum-val">{{ mqttEventCounts.SCAN }}</span>
+                <span class="mqtt-sum-lbl">SCAN</span>
+              </div>
+              <div class="mqtt-sum-divider"></div>
+              <div class="mqtt-sum-item cat-gate">
+                <span class="mqtt-sum-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg>
+                </span>
+                <span class="mqtt-sum-val">{{ mqttEventCounts.GATE }}</span>
+                <span class="mqtt-sum-lbl">GATE</span>
+              </div>
+              <div class="mqtt-sum-divider"></div>
+              <div class="mqtt-sum-item cat-vehicle">
+                <span class="mqtt-sum-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l1.4-4.2A2 2 0 0 1 8.3 7.4h7.4a2 2 0 0 1 1.9 1.4L19 13M5 13a2 2 0 0 0-2 2v3.5a1 1 0 0 0 1 1h1.2M5 13h14M19 13a2 2 0 0 1 2 2v3.5a1 1 0 0 1-1 1h-1.2M7.5 19.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zM16.5 19.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z" /></svg>
+                </span>
+                <span class="mqtt-sum-val">{{ mqttEventCounts.VEHICLE }}</span>
+                <span class="mqtt-sum-lbl">VEHICLE</span>
+              </div>
+            </div>
 
-                <!-- Body: 2 rows -->
-                <div class="mqtt-event-body">
-                  <!-- Row 1: Gate ID + timestamp -->
-                  <div class="mqtt-event-row1">
-                    <span class="mqtt-event-gate">{{ evt.gate_id }}</span>
-                    <span class="mqtt-event-time">{{ evt.timestamp?.split(' ')[1]?.slice(0,8) || '' }}</span>
-                  </div>
-                  <!-- Row 2: detail + badges -->
-                  <div class="mqtt-event-row2">
-                    <span class="mqtt-event-detail" :title="mqttEventMeta(evt).detailFull">
-                      {{ mqttEventMeta(evt).detail }}
-                    </span>
-                    <div class="mqtt-event-badges">
-                      <span class="mqtt-event-cat-label">{{ evt.category }}</span>
-                      <span class="badge mqtt-event-status" :class="mqttEventMeta(evt).statusClass">
-                        {{ evt.status }}
+            <!-- Category Filter Tabs -->
+            <div class="mqtt-tabs">
+              <button
+                v-for="cat in mqttEventCategories"
+                :key="cat"
+                type="button"
+                class="mqtt-tab"
+                :class="{ 'is-active': mqttEventFilter === cat, [`tab-${cat.toLowerCase()}`]: true }"
+                @click="mqttEventFilter = cat"
+              >
+                {{ cat === 'ALL' ? 'Semua' : cat }}
+                <span v-if="cat !== 'ALL'" class="mqtt-tab-badge">{{ mqttEventCounts[cat] }}</span>
+              </button>
+              
+            </div>
+
+            <!-- MQTT Event Feed -->
+            <div class="activity-feed">
+              <!-- Offline state -->
+              <div v-if="!mqttConnected && mqttEvents.length === 0" class="mqtt-offline-state">
+                <div class="mqtt-offline-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 6l11 11M5 3a16 16 0 0 1 16 16M5 9a10 10 0 0 1 10 10M5 15a4 4 0 0 1 4 4" />
+                  </svg>
+                </div>
+                <span class="mqtt-offline-title">MQTT tidak terhubung</span>
+                <span class="mqtt-offline-sub">Topic: <code>{{ GATE_EVENT_TOPIC }}</code></span>
+                <span v-if="mqttError" class="mqtt-offline-err">{{ mqttError?.message || mqttError }}</span>
+              </div>
+
+              <!-- Empty (connected but no events yet) -->
+              <div v-else-if="filteredMqttEvents.length === 0" class="activity-empty">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:32px;height:32px;opacity:0.35;margin-bottom:6px;">
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                </svg>
+                <span>{{ mqttConnected ? 'Menunggu event dari MQTT...' : 'Belum ada event' }}</span>
+              </div>
+
+              <!-- Event list -->
+              <TransitionGroup v-else name="activity" tag="div">
+                <div
+                  v-for="evt in filteredMqttEvents"
+                  :key="evt.id"
+                  class="mqtt-event-item"
+                  :class="mqttEventMeta(evt).colorClass"
+                >
+                  <!-- Category icon -->
+                  <span class="mqtt-event-cat-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path :d="mqttEventMeta(evt).icon" />
+                    </svg>
+                  </span>
+
+                  <!-- Body: 2 rows -->
+                  <div class="mqtt-event-body">
+                    <!-- Row 1: Gate ID + timestamp -->
+                    <div class="mqtt-event-row1">
+                      <span class="mqtt-event-gate">{{ evt.gate_id }}</span>
+                      <span class="mqtt-event-time">{{ evt.timestamp?.split(' ')[1]?.slice(0,8) || '' }}</span>
+                    </div>
+                    <!-- Row 2: detail + badges -->
+                    <div class="mqtt-event-row2">
+                      <span class="mqtt-event-detail" :title="mqttEventMeta(evt).detailFull">
+                        {{ mqttEventMeta(evt).detail }}
                       </span>
+                      <div class="mqtt-event-badges">
+                        <span class="mqtt-event-cat-label">{{ evt.category }}</span>
+                        <span class="badge mqtt-event-status" :class="mqttEventMeta(evt).statusClass">
+                          {{ evt.status }}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </TransitionGroup>
+              </TransitionGroup>
+            </div>
           </div>
 
-
+          <!-- Status Device (MQTT get/+/status) -->
+          <div class="card live-device-status">
+            <DeviceStatusWidget
+              :devices="deviceStatusList"
+              :mqtt-connected="mqttConnected"
+            />
+          </div>
         </div>
 
-      </div>
-
-      <!-- Device Status Widget (MQTT get/+/status) -->
-      <div class="card" style="margin-top: 24px;">
-        <DeviceStatusWidget
-          :devices="deviceStatusList"
-          :mqtt-connected="mqttConnected"
-        />
       </div>
 
       <!-- Live Kontrol Manual Gate Full Width Data Table -->
