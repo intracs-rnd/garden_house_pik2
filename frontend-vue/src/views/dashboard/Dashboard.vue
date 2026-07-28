@@ -45,6 +45,41 @@ const deviceStatusList = computed(() =>
   )
 )
 
+// --- localStorage persistence untuk Status Device ---
+const LS_DEVICE_STATUS_KEY = 'gh_pik2_device_status'
+
+/** Muat status device dari localStorage saat halaman pertama dibuka */
+function loadDeviceStatusFromStorage() {
+  try {
+    const raw = localStorage.getItem(LS_DEVICE_STATUS_KEY)
+    if (!raw) return
+
+    const saved = JSON.parse(raw)
+    if (!Array.isArray(saved) || saved.length === 0) return
+
+    // saved berupa array of [key, value] pairs
+    deviceStatusMap.value = new Map(saved)
+    console.log(`[MQTT] ${saved.length} status device dimuat dari localStorage.`)
+  } catch (e) {
+    console.warn('[MQTT] Gagal memuat status device dari localStorage:', e)
+  }
+}
+
+/** Simpan status device ke localStorage (dipanggil tiap kali ada update) */
+function saveDeviceStatusToStorage() {
+  try {
+    // Map tidak bisa langsung di-JSON.stringify, ubah ke array of entries dulu
+    const entries = Array.from(deviceStatusMap.value.entries())
+    localStorage.setItem(LS_DEVICE_STATUS_KEY, JSON.stringify(entries))
+  } catch (e) {
+    console.warn('[MQTT] Gagal menyimpan status device ke localStorage:', e)
+  }
+}
+
+// Muat data tersimpan segera saat komponen diinisialisasi
+loadDeviceStatusFromStorage()
+
+
 /**
  * Handler untuk topic get/+/status.
  * Menerima JSON {nama_device, status} dan update deviceStatusMap.
@@ -74,6 +109,8 @@ function handleDeviceStatus(message, receivedTopic) {
       status,
       receivedAt: new Date().toISOString(),
     })
+    // simpan ke localStorage supaya tidak hilang saat reload
+    saveDeviceStatusToStorage()
   } catch (e) {
     console.warn('[MQTT Device Status] Failed to parse message:', e, message)
   }
@@ -1174,7 +1211,7 @@ onUnmounted(() => {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:32px;height:32px;opacity:0.35;margin-bottom:6px;">
                   <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
                 </svg>
-                <span>{{ mqttConnected ? 'Menunggu event dari MQTT...' : 'Belum ada event' }}</span>
+                <span>{{ mqttConnected ? 'Menunggu event...' : 'Belum ada event' }}</span>
               </div>
 
               <!-- Event list -->

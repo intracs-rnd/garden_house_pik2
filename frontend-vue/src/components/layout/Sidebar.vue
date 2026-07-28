@@ -69,12 +69,12 @@ const menuGroups = [
         icon: 'M9 17v-6m3 6V7m3 10v-3M6 3h9l5 5v11a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z',
         feature: 'reports',
       },
-      {
-        to: { name: 'reports.gate-activity' },
-        label: 'Log & Tren Aktivitas Gate',
-        icon: 'M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM13 2v7h7M8 13h8M8 17h5',
-        feature: 'reports',
-      },
+      // {
+      //   to: { name: 'reports.gate-activity' },
+      //   label: 'Log & Tren Aktivitas Gate',
+      //   icon: 'M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM13 2v7h7M8 13h8M8 17h5',
+      //   feature: 'reports',
+      // },
     ],
   },
   {
