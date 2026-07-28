@@ -47,6 +47,7 @@ class Transaction extends Model
         'exit_image2',
         'exit_image3',
         'exit_image4',
+        'is_receipt',
         'qr_code',
         'entry_time',
         'exit_time',
@@ -58,6 +59,10 @@ class Transaction extends Model
         'code_transaction',
         'flag',
         'user_id',
+        'category',
+        'exit_log_anpr_id',
+        'exit_log_cctv_id',
+        'category_exit',
     ];
 
     /**

@@ -63,6 +63,7 @@ class GateController extends Controller
                 'data' => $logGate,
             ], 201);
         } catch (\Exception $e) {
+            \Log::error('logGateAction Error: ' . $e->getMessage() . ' | Trace: ' . $e->getTraceAsString());
             return response()->json([
                 'error' => 'Failed to log gate action',
                 'message' => $e->getMessage(),
@@ -107,6 +108,7 @@ class GateController extends Controller
                 'data'    => $manualControl,
             ], 201);
         } catch (\Exception $e) {
+            \Log::error('logManualControl Error: ' . $e->getMessage() . ' | Trace: ' . $e->getTraceAsString());
             return response()->json([
                 'error'   => 'Failed to log manual gate control',
                 'message' => $e->getMessage(),
