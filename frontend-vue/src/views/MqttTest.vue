@@ -1,6 +1,113 @@
 <template>
   <div class="mqtt-test-container">
-    <div class="card">
+    <!-- ============================================================ -->
+    <!-- DEVICE STATUS TEST (get/+/status wildcard)                  -->
+    <!-- ============================================================ -->
+    <div class="card ds-card">
+      <div class="card-header ds-header">
+        <div class="ds-header-left">
+          <span class="ds-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2" />
+              <path d="M8 21h8M12 17v4" />
+            </svg>
+          </span>
+          <span>Device Status Test <code class="ds-code">get/+/status</code></span>
+        </div>
+        <div class="status-indicator" style="margin-bottom:0">
+          <span class="status-dot" :class="{ connected: isConnected }"></span>
+          <span style="font-size:13px">{{ isConnected ? 'Connected' : 'Disconnected' }}</span>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <!-- Connect hint -->
+        <div v-if="!isConnected" class="ds-hint">
+          ⚠️ Sambungkan ke MQTT broker terlebih dahulu di bagian bawah halaman ini.
+        </div>
+
+        <!-- Simulator form -->
+        <div class="ds-form">
+          <div class="ds-row">
+            <div class="ds-field">
+              <label class="ds-label">Nama Device</label>
+              <input
+                v-model="deviceName"
+                type="text"
+                class="input"
+                placeholder="cth: cctv-gerbang, sensor-pintu"
+              />
+              <span class="ds-hint-text">Topic: <code>get/{{ deviceName || 'nama_device' }}/status</code></span>
+            </div>
+            <div class="ds-field ds-field-sm">
+              <label class="ds-label">Status</label>
+              <div class="ds-radio-group">
+                <label class="ds-radio" :class="{ active: deviceStatus === 'online' }">
+                  <input type="radio" v-model="deviceStatus" value="online" />
+                  <span class="ds-radio-dot online"></span> online
+                </label>
+                <label class="ds-radio" :class="{ active: deviceStatus === 'offline' }">
+                  <input type="radio" v-model="deviceStatus" value="offline" />
+                  <span class="ds-radio-dot offline"></span> offline
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Preview JSON yang akan diterima oleh backend Laravel -->
+          <div class="ds-preview">
+            <span class="ds-preview-label">📦 Payload yang akan dikirim ke MQTT broker:</span>
+            <code class="ds-preview-code">{{ deviceStatus }}</code>
+            <span class="ds-preview-arrow">→</span>
+            <span class="ds-preview-label">JSON yang akan di-publish oleh backend ke <code>dashboard/device/status</code>:</span>
+            <code class="ds-preview-code">{{ JSON.stringify({ nama_device: deviceName || 'nama_device', status: deviceStatus }) }}</code>
+          </div>
+
+          <button
+            @click="handlePublishDeviceStatus"
+            :disabled="!isConnected || isPublishingDevice"
+            class="btn btn-publish"
+          >
+            <svg v-if="isPublishingDevice" style="width:16px;height:16px;animation:spin 1s linear infinite" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px">
+              <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+            {{ isPublishingDevice ? 'Mengirim...' : 'Kirim Status Device' }}
+          </button>
+        </div>
+
+        <!-- Log hasil publish -->
+        <div class="ds-log" v-if="deviceStatusMessages.length > 0">
+          <div class="ds-log-header">
+            <span>📋 Log Pengiriman</span>
+            <button @click="deviceStatusMessages = []" class="btn btn-sm btn-secondary">Clear</button>
+          </div>
+          <div class="ds-log-list">
+            <div
+              v-for="(m, i) in deviceStatusMessages"
+              :key="i"
+              class="ds-log-item"
+              :class="m.status"
+            >
+              <div class="ds-log-left">
+                <span class="ds-status-dot" :class="m.status"></span>
+                <span class="ds-log-device">{{ m.nama_device }}</span>
+              </div>
+              <div class="ds-log-mid">
+                <code class="ds-log-topic">{{ m.topic }}</code>
+                <code class="ds-log-json">{{ JSON.stringify({ nama_device: m.nama_device, status: m.status }) }}</code>
+              </div>
+              <span class="ds-log-time">{{ m.time }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- GENERAL MQTT TEST (original)                                -->
+    <!-- ============================================================ -->
+    <div class="card" style="margin-top:24px">
       <div class="card-header">
         <h2>MQTT Connection Test</h2>
       </div>
@@ -33,7 +140,7 @@
             <input 
               v-model="subscribeTopic" 
               type="text" 
-              placeholder="e.g., gate/status or gate/+/status"
+              placeholder="e.g., gate/status or get/+/status"
               class="input"
             />
             <button @click="handleSubscribe" :disabled="!isConnected" class="btn btn-success">
@@ -61,14 +168,14 @@
             <input 
               v-model="publishTopic" 
               type="text" 
-              placeholder="Topic (e.g., gate/command)"
+              placeholder="Topic (e.g., get/cctv-gerbang/status)"
               class="input"
             />
           </div>
           <div class="input-group">
             <textarea 
               v-model="publishMessage" 
-              placeholder='Message (JSON or text, e.g., {"action":"open"})'
+              placeholder='Message (text or JSON, e.g., online)'
               class="textarea"
               rows="3"
             ></textarea>
@@ -124,11 +231,47 @@
 import { ref, watch } from 'vue'
 import { useMqtt } from '@/composables/useMqtt'
 
-const subscribeTopic = ref('gate/status')
-const publishTopic = ref('gate/command')
-const publishMessage = ref('{"action":"test","timestamp":' + Date.now() + '}')
+const subscribeTopic = ref('get/+/status')
+const publishTopic = ref('get/cctv-gerbang/status')
+const publishMessage = ref('online')
 const subscribedTopics = ref([])
 const messages = ref([])
+
+// --- Device Status Test ---
+const deviceName = ref('cctv-gerbang')
+const deviceStatus = ref('online')
+const deviceStatusMessages = ref([])
+const isPublishingDevice = ref(false)
+
+async function handlePublishDeviceStatus() {
+  if (!deviceName.value.trim()) {
+    alert('Masukkan nama device')
+    return
+  }
+  if (!isConnected.value) {
+    alert('Sambungkan ke MQTT broker terlebih dahulu')
+    return
+  }
+
+  isPublishingDevice.value = true
+  const topic = `get/${deviceName.value.trim()}/status`
+  const payload = deviceStatus.value
+
+  await publish(topic, payload)
+
+  // Log entry
+  deviceStatusMessages.value.unshift({
+    topic,
+    nama_device: deviceName.value.trim(),
+    status: payload,
+    time: new Date().toLocaleTimeString('id-ID'),
+  })
+  if (deviceStatusMessages.value.length > 30) {
+    deviceStatusMessages.value = deviceStatusMessages.value.slice(0, 30)
+  }
+
+  isPublishingDevice.value = false
+}
 
 const { isConnected, isConnecting, error, connect, disconnect, subscribe, unsubscribe, publish } = useMqtt(null, { autoConnect: false })
 
@@ -449,5 +592,201 @@ hr {
   border: none;
   border-top: 1px solid #e0e0e0;
   margin: 30px 0;
+}
+
+/* ===== Device Status Test Styles ===== */
+.ds-card { overflow: hidden; }
+
+.ds-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: white;
+  padding: 18px 24px;
+}
+.ds-header h2 { margin: 0; }
+.ds-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 17px;
+  font-weight: 600;
+}
+.ds-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 8px;
+}
+.ds-icon svg { width: 20px; height: 20px; }
+.ds-code {
+  background: rgba(255,255,255,0.15);
+  color: #c7d2fe;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.ds-hint {
+  padding: 12px 16px;
+  background: #fefce8;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #92400e;
+  margin-bottom: 20px;
+}
+
+.ds-form { display: flex; flex-direction: column; gap: 16px; }
+.ds-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.ds-field { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 200px; }
+.ds-field-sm { flex: 0 0 auto; min-width: 140px; }
+.ds-label { font-size: 13px; font-weight: 600; color: #374151; }
+.ds-hint-text { font-size: 11px; color: #6b7280; }
+.ds-hint-text code { background: #f3f4f6; padding: 1px 4px; border-radius: 3px; }
+
+.ds-radio-group { display: flex; gap: 10px; }
+.ds-radio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+.ds-radio input { display: none; }
+.ds-radio.active { border-color: #4f46e5; background: #eef2ff; color: #4f46e5; }
+.ds-radio-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.ds-radio-dot.online { background: #22c55e; }
+.ds-radio-dot.offline { background: #ef4444; }
+
+.ds-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+.ds-preview-label { color: #6b7280; }
+.ds-preview-label code { background: #e2e8f0; padding: 1px 4px; border-radius: 3px; }
+.ds-preview-code {
+  background: #1e293b;
+  color: #7dd3fc;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+.ds-preview-arrow { color: #94a3b8; font-size: 16px; font-weight: bold; }
+
+.btn-publish {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 24px;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
+  align-self: flex-start;
+}
+.btn-publish:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(79,70,229,0.35); }
+.btn-publish:disabled { opacity: 0.5; cursor: not-allowed; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* DS Log */
+.ds-log { margin-top: 8px; }
+.ds-log-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+.ds-log-list { display: flex; flex-direction: column; gap: 8px; }
+.ds-log-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  border-left: 3px solid #e2e8f0;
+}
+.ds-log-item.online { border-left-color: #22c55e; }
+.ds-log-item.offline { border-left-color: #ef4444; }
+
+.ds-log-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 120px;
+}
+.ds-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.ds-status-dot.online { background: #22c55e; }
+.ds-status-dot.offline { background: #ef4444; }
+.ds-log-device { font-size: 13px; font-weight: 600; color: #1e293b; }
+
+.ds-log-mid {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+.ds-log-topic {
+  font-size: 11px;
+  color: #7c3aed;
+  background: #ede9fe;
+  padding: 1px 6px;
+  border-radius: 4px;
+  align-self: flex-start;
+}
+.ds-log-json {
+  font-size: 12px;
+  color: #1e293b;
+  background: #f1f5f9;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ds-log-time {
+  font-size: 11px;
+  color: #94a3b8;
+  flex-shrink: 0;
 }
 </style>

@@ -28,7 +28,7 @@ class MqttRfidListener extends Command
      * @var string
      */
     protected $signature = 'mqtt:rfid-listener
-                            {--host=192.168.214.7 : MQTT broker host}
+                            {--host=192.168.214.163 : MQTT broker host}
                             {--port=1883 : MQTT broker port}
                             {--username=dev : MQTT username}
                             {--password=dev : MQTT password}

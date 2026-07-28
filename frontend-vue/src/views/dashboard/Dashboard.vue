@@ -17,6 +17,7 @@ import Loader from '@/components/common/Loader.vue'
 import LiveStream from '@/components/common/LiveStream.vue'
 import Modal from '@/components/common/Modal.vue'
 import Button from '@/components/common/Button.vue'
+import DeviceStatusWidget from '@/components/dashboard/DeviceStatusWidget.vue'
 
 const loading = ref(true)
 const error = ref('')
@@ -28,6 +29,55 @@ const gate2Total = ref(0)
 // MQTT untuk RFID Status
 const RFID_STATUS_TOPIC = 'gate/in/rfid_status'
 const GATE_EVENT_TOPIC  = 'gate/in/event'
+
+// MQTT untuk Device Status (wildcard get/+/status)
+const DEVICE_STATUS_TOPIC = 'get/+/status'
+
+/**
+ * Menyimpan status tiap device yang diterima dari topic get/{nama_device}/status.
+ * Map: nama_device → { nama_device, status, receivedAt }
+ * Disimpan sebagai Map agar update per-device tidak duplikat.
+ */
+const deviceStatusMap = ref(new Map())
+const deviceStatusList = computed(() =>
+  Array.from(deviceStatusMap.value.values()).sort((a, b) =>
+    a.nama_device.localeCompare(b.nama_device)
+  )
+)
+
+/**
+ * Handler untuk topic get/+/status.
+ * Menerima JSON {nama_device, status} dan update deviceStatusMap.
+ */
+function handleDeviceStatus(message, receivedTopic) {
+  try {
+    let nama_device = ''
+    let status = ''
+
+    if (typeof message === 'object' && message !== null && message.nama_device) {
+      // Pesan sudah di-parse JSON oleh mqtt.js service
+      nama_device = message.nama_device
+      status = (message.status || '').toLowerCase()
+    } else {
+      // Fallback: ambil nama device dari URL topic
+      const parts = (receivedTopic || '').split('/')
+      nama_device = parts[1] || 'unknown'
+      status = typeof message === 'string' ? message.toLowerCase() : String(message).toLowerCase()
+    }
+
+    if (!nama_device) return
+
+    // Update atau tambahkan entry di Map
+    deviceStatusMap.value = new Map(deviceStatusMap.value)
+    deviceStatusMap.value.set(nama_device, {
+      nama_device,
+      status,
+      receivedAt: new Date().toISOString(),
+    })
+  } catch (e) {
+    console.warn('[MQTT Device Status] Failed to parse message:', e, message)
+  }
+}
 
 const rfidStatusData = ref({
   card_number: null,
@@ -244,6 +294,8 @@ async function initMqtt() {
       await mqttSubscribe(RFID_STATUS_TOPIC, handleRfidStatus, { qos: 1 })
       // Subscribe gate events (QoS 0)
       await mqttSubscribe(GATE_EVENT_TOPIC, handleGateEvent, { qos: 0 })
+      // Subscribe device status wildcard get/+/status (QoS 1)
+      await mqttSubscribe(DEVICE_STATUS_TOPIC, handleDeviceStatus, { qos: 1 })
     }
   } catch (err) {
     mqttError.value = err
@@ -1178,6 +1230,14 @@ onUnmounted(() => {
 
         </div>
 
+      </div>
+
+      <!-- Device Status Widget (MQTT get/+/status) -->
+      <div class="card" style="margin-top: 24px;">
+        <DeviceStatusWidget
+          :devices="deviceStatusList"
+          :mqtt-connected="mqttConnected"
+        />
       </div>
 
       <!-- Live Kontrol Manual Gate Full Width Data Table -->
