@@ -97,6 +97,47 @@ class Transaction extends Model
         return $this->belongsTo(LogCctv::class, 'log_cctv_id');
     }
 
+    public function logAnprRecord(): BelongsTo
+    {
+        return $this->belongsTo(LogAnpr::class, 'log_anpr_id');
+    }
+
+    public function logAnprCctvRecord(): BelongsTo
+    {
+        return $this->belongsTo(LogCctv::class, 'log_anpr_id');
+    }
+
+    public function exitLogCctv(): BelongsTo
+    {
+        return $this->belongsTo(LogCctv::class, 'exit_log_cctv_id');
+    }
+
+    public function exitLogAnprRecord(): BelongsTo
+    {
+        return $this->belongsTo(LogAnpr::class, 'exit_log_anpr_id');
+    }
+
+    public function exitLogAnprCctvRecord(): BelongsTo
+    {
+        return $this->belongsTo(LogCctv::class, 'exit_log_anpr_id');
+    }
+
+    public function getEntryAnprDataAttribute()
+    {
+        if ($this->category === 'request_capture') {
+            return $this->logAnprCctvRecord;
+        }
+        return $this->logAnprRecord;
+    }
+
+    public function getExitAnprDataAttribute()
+    {
+        if ($this->category_exit === 'request_capture') {
+            return $this->exitLogAnprCctvRecord;
+        }
+        return $this->exitLogAnprRecord;
+    }
+
     /**
      * Scope a query to only include active transactions.
      *

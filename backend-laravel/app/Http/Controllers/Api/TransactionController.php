@@ -29,7 +29,7 @@ class TransactionController extends Controller
         // 1. entry_time DESC (primary sort: newest entry_time)
         // 2. ID DESC (secondary sort)
         // Include logCctv relation to get view_image_path
-        $transaction = Transaction::with('logCctv')
+        $transaction = Transaction::with(['logCctv', 'logAnprRecord', 'logAnprCctvRecord'])
             ->whereRaw('UPPER(TRIM(plate_number)) = ?', [$plateNumber])
             ->where('status', Transaction::STATUS_ACTIVE)
             ->orderBy('entry_time', 'desc') // Primary sort: newest entry_time
@@ -46,6 +46,17 @@ class TransactionController extends Controller
         // If logCctv exists, add view_image_path to the response
         if ($transaction->logCctv && $transaction->logCctv->view_image_path) {
             $transaction->view_image_path = $transaction->logCctv->view_image_path;
+        }
+
+        // Add dynamic ANPR images based on category
+        $entryAnpr = $transaction->entry_anpr_data;
+        if ($entryAnpr) {
+            if ($transaction->category === 'request_capture') {
+                $transaction->entry_image1 = $entryAnpr->view_image_path ?? null;
+            } else {
+                $transaction->entry_image1 = $entryAnpr->plate_image_path ?? null;
+                $transaction->entry_image2 = $entryAnpr->full_image_path ?? null;
+            }
         }
 
         return $this->successResponse($transaction, 'Transaction found successfully.');
@@ -130,10 +141,43 @@ class TransactionController extends Controller
      */
     public function show(string $id): JsonResponse
     {
-        $transaction = Transaction::find($id);
+        $transaction = Transaction::with([
+            'logCctv', 'logAnprRecord', 'logAnprCctvRecord',
+            'exitLogCctv', 'exitLogAnprRecord', 'exitLogAnprCctvRecord'
+        ])->find($id);
 
         if (!$transaction) {
             return $this->errorResponse('Transaction not found', 404);
+        }
+
+        // Entry Images
+        if ($transaction->logCctv && $transaction->logCctv->view_image_path) {
+            $transaction->view_image_path = $transaction->logCctv->view_image_path;
+        }
+
+        $entryAnpr = $transaction->entry_anpr_data;
+        if ($entryAnpr) {
+            if ($transaction->category === 'request_capture') {
+                $transaction->entry_image1 = $entryAnpr->view_image_path ?? null;
+            } else {
+                $transaction->entry_image1 = $entryAnpr->plate_image_path ?? null;
+                $transaction->entry_image2 = $entryAnpr->full_image_path ?? null;
+            }
+        }
+
+        // Exit Images
+        if ($transaction->exitLogCctv && $transaction->exitLogCctv->view_image_path) {
+            $transaction->exit_view_image_path = $transaction->exitLogCctv->view_image_path;
+        }
+
+        $exitAnpr = $transaction->exit_anpr_data;
+        if ($exitAnpr) {
+            if ($transaction->category_exit === 'request_capture') {
+                $transaction->exit_image1 = $exitAnpr->view_image_path ?? null;
+            } else {
+                $transaction->exit_image1 = $exitAnpr->plate_image_path ?? null;
+                $transaction->exit_image2 = $exitAnpr->full_image_path ?? null;
+            }
         }
 
         return $this->successResponse($transaction, 'Transaction retrieved successfully.');

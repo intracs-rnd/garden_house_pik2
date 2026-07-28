@@ -680,53 +680,40 @@ async function searchPlateNumber() {
     console.log('✅ Transaction found:', response.data)
     gateTransactionData.value = response.data
 
-    // Collect image paths from entry_image_1 to entry_image_4 (with underscore)
-    // Also check for view_image_path from log_cctv (preferred as it works with API)
+    // Collect image paths with labels
     const imagePaths = []
 
-    // Priority 1: Use view_image_path from log_cctv if available (this path works!)
     if (response.data.view_image_path) {
-      console.log('✨ Using view_image_path from log_cctv:', response.data.view_image_path)
-      imagePaths.push(response.data.view_image_path)
+      imagePaths.push({ path: response.data.view_image_path, label: 'CCTV (Entry)' })
+    }
+    if (response.data.entry_image_1 || response.data.entry_image1) {
+      imagePaths.push({ path: response.data.entry_image_1 || response.data.entry_image1, label: 'ANPR (Entry 1)' })
+    }
+    if (response.data.entry_image_2 || response.data.entry_image2) {
+      imagePaths.push({ path: response.data.entry_image_2 || response.data.entry_image2, label: 'ANPR (Entry 2)' })
+    }
+    if (response.data.exit_view_image_path) {
+      imagePaths.push({ path: response.data.exit_view_image_path, label: 'CCTV (Exit)' })
+    }
+    if (response.data.exit_image_1 || response.data.exit_image1) {
+      imagePaths.push({ path: response.data.exit_image_1 || response.data.exit_image1, label: 'ANPR (Exit 1)' })
+    }
+    if (response.data.exit_image_2 || response.data.exit_image2) {
+      imagePaths.push({ path: response.data.exit_image_2 || response.data.exit_image2, label: 'ANPR (Exit 2)' })
     }
 
-    // Priority 2: Use entry_image fields from transactions table
-    const entryImages = [
-      response.data.entry_image_1 || response.data.entry_image1,
-      response.data.entry_image_2 || response.data.entry_image2,
-      response.data.entry_image_3 || response.data.entry_image3,
-      response.data.entry_image_4 || response.data.entry_image4,
-    ].filter(path => path != null && path !== '')
-
-    if (entryImages.length > 0) {
-      console.log('📷 Found entry_image paths:', entryImages.length)
-      imagePaths.push(...entryImages)
-    }
-
-    // Ambil maksimal 4 gambar saja yang paling terbaru
     const finalImagePaths = imagePaths.slice(0, 4)
-
-    console.log('📷 Total image paths to fetch:', finalImagePaths.length, finalImagePaths)
 
     if (finalImagePaths.length > 0) {
       gateImageLoading.value = true
 
       // Fetch all images in parallel
-      const imagePromises = finalImagePaths.map(async (path, idx) => {
+      const imagePromises = finalImagePaths.map(async (item, idx) => {
         try {
-          console.log(`🌐 [${idx + 1}/${finalImagePaths.length}] Fetching image:`, path)
-          const imageData = await transactionApi.fetchImage(path)
-          console.log(`✅ [${idx + 1}/${finalImagePaths.length}] Image data received:`, {
-            success: imageData.success,
-            hasUrl: !!imageData.url,
-            hasBase64: !!imageData.base64,
-            base64Length: imageData.base64 ? imageData.base64.length : 0,
-            urlPreview: imageData.url ? imageData.url.substring(0, 50) : null
-          })
-          return imageData
+          const imageData = await transactionApi.fetchImage(item.path)
+          return { ...imageData, label: item.label }
         } catch (err) {
-          console.error(`❌ [${idx + 1}/${finalImagePaths.length}] Failed to fetch:`, path, err)
-          return { success: false, path, error: err.message }
+          return { success: false, path: item.path, label: item.label, error: err.message }
         }
       })
 
@@ -1392,79 +1379,91 @@ onUnmounted(() => {
               <span class="info-label">Status:</span>
               <span class="badge badge-warning">{{ gateTransactionData.status }}</span>
             </div>
+            <div class="info-item">
+              <span class="info-label">Sumber Gambar Masuk:</span>
+              <span class="badge" :style="gateTransactionData.category === 'request_capture' ? 'background:#7c3aed;color:#fff;' : 'background:#0284c7;color:#fff;'">
+                {{ gateTransactionData.category === 'request_capture' ? '📷 Request Capture (CCTV)' : gateTransactionData.category === 'get_capture' ? '🔍 Get Capture (ANPR)' : gateTransactionData.category || '-' }}
+              </span>
+            </div>
+            <div class="info-item" v-if="gateTransactionData.category_exit">
+              <span class="info-label">Sumber Gambar Keluar:</span>
+              <span class="badge" :style="gateTransactionData.category_exit === 'request_capture' ? 'background:#7c3aed;color:#fff;' : 'background:#0284c7;color:#fff;'">
+                {{ gateTransactionData.category_exit === 'request_capture' ? '📷 Request Capture (CCTV)' : gateTransactionData.category_exit === 'get_capture' ? '🔍 Get Capture (ANPR)' : gateTransactionData.category_exit }}
+              </span>
+            </div>
           </div>
 
-          <!-- Images Display -->
-          <div v-if="gateImages.length > 0 || gateImageLoading" class="gate-images">
-            <label class="form-label">Gambar Entry</label>
+          <!-- Images Display: Entry -->
+          <div class="gate-images-section">
+            <div class="gate-images-section-header">
+              <span class="gate-images-section-icon gate-images-section-icon--entry">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              </span>
+              <span class="gate-images-section-title">Gambar Masuk</span>
+              <span v-if="gateTransactionData.category" class="gate-images-source-badge" :class="gateTransactionData.category === 'request_capture' ? 'source-cctv' : 'source-anpr'">
+                {{ gateTransactionData.category === 'request_capture' ? 'CCTV' : 'ANPR' }}
+              </span>
+            </div>
+
             <div v-if="gateImageLoading" class="gate-images-loading">
               <span class="spinner"></span>
               <span>Memuat gambar...</span>
             </div>
-            <div v-else class="images-grid">
-              <div v-for="(image, index) in gateImages" :key="index" class="image-item">
-                <!-- Display image from URL (with data URI prefix) -->
-                <img v-if="image.url"
-                     :src="image.url"
-                     :alt="`Entry Image ${index + 1}`"
-                     @error="handleImageError"
-                     @load="() => console.log('Image loaded successfully:', index)"
-                     style="width: 100%; height: 100%; object-fit: cover; cursor: pointer;"
-                     @click="openImagePreview(image)"
-                />
-                <!-- Display image from base64 (add data URI prefix) -->
-                <img v-else-if="image.base64"
-                     :src="`data:image/jpeg;base64,${image.base64}`"
-                     :alt="`Entry Image ${index + 1}`"
-                     @error="handleImageError"
-                     @load="() => console.log('Base64 image loaded:', index)"
-                     style="width: 100%; height: 100%; object-fit: cover; cursor: pointer;"
-                     @click="openImagePreview(image)"
-                />
-                <!-- Fallback: Show placeholder with path info -->
-                <div v-else class="image-placeholder">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 32px; height: 32px; margin-bottom: 8px; opacity: 0.5;">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                    <polyline points="21 15 16 10 5 21"></polyline>
-                  </svg>
-                  <div style="font-size: 11px; color: var(--color-text-muted);">
-                    {{ image.success === false ? 'Gagal memuat' : 'Tidak tersedia' }}
+            <template v-else>
+              <!-- Entry images (CCTV view + ANPR entry) -->
+              <div class="images-grid">
+                <template v-for="(image, index) in gateImages" :key="index">
+                  <div v-if="image.label && (image.label.includes('Entry') || image.label.includes('CCTV (Entry)'))" class="image-item" style="position: relative;">
+                    <div class="image-label-overlay" :class="image.label.startsWith('CCTV') ? 'label-cctv' : 'label-anpr'">
+                      {{ image.label }}
+                    </div>
+                    <img v-if="image.url" :src="image.url" :alt="image.label" @error="handleImageError" style="width:100%;height:100%;object-fit:cover;cursor:pointer;" @click="openImagePreview(image)" />
+                    <img v-else-if="image.base64" :src="`data:image/jpeg;base64,${image.base64}`" :alt="image.label" @error="handleImageError" style="width:100%;height:100%;object-fit:cover;cursor:pointer;" @click="openImagePreview(image)" />
+                    <div v-else class="image-placeholder">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:32px;height:32px;margin-bottom:8px;opacity:0.5;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                      <div style="font-size:11px;color:var(--color-text-muted);">{{ image.success === false ? 'Gagal memuat' : 'Tidak tersedia' }}</div>
+                    </div>
                   </div>
-                  <div v-if="image.error" style="font-size: 10px; color: var(--color-danger); margin-top: 4px; padding: 0 8px;">
-                    {{ image.error }}
-                  </div>
-                  <div v-if="image.path" style="font-size: 10px; color: var(--color-text-muted); margin-top: 4px; word-break: break-all; max-width: 100%; padding: 0 8px;">
-                    {{ image.path.split('/').pop() }}
-                  </div>
-                  <!-- Debug info button -->
-                  <button
-                      v-if="image.success === false"
-                      @click="console.log('Image debug:', image)"
-                      style="margin-top: 8px; padding: 4px 8px; font-size: 10px; border: 1px solid var(--color-border); border-radius: 4px; background: white; cursor: pointer;"
-                  >
-                    Debug Info
-                  </button>
+                </template>
+                <div v-if="!gateImages.some(img => img.label && (img.label.includes('Entry') || img.label.includes('CCTV (Entry)')))" class="image-placeholder" style="aspect-ratio:16/9;min-height:90px;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:24px;height:24px;opacity:0.35;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                  <span style="font-size:11px;margin-top:6px;">Tidak ada gambar masuk</span>
                 </div>
               </div>
-            </div>
+            </template>
           </div>
-          <div v-else-if="gateTransactionData" class="gate-images-empty">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width: 24px; height: 24px; opacity: 0.5;">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-              <circle cx="8.5" cy="8.5" r="1.5"></circle>
-              <polyline points="21 15 16 10 5 21"></polyline>
-            </svg>
-            <span>Tidak ada gambar tersedia</span>
-            <details style="margin-top: 10px; font-size: 11px; color: var(--color-text-muted); max-width: 100%; text-align: left;">
-              <summary style="cursor: pointer; font-weight: 600;">Debug Info</summary>
-              <div style="margin-top: 8px; padding: 8px; background: white; border: 1px solid var(--color-border); border-radius: 4px; font-family: monospace;">
-                <div>entry_image_1: {{ gateTransactionData.entry_image_1 || gateTransactionData.entry_image1 || 'null' }}</div>
-                <div>entry_image_2: {{ gateTransactionData.entry_image_2 || gateTransactionData.entry_image2 || 'null' }}</div>
-                <div>entry_image_3: {{ gateTransactionData.entry_image_3 || gateTransactionData.entry_image3 || 'null' }}</div>
-                <div>entry_image_4: {{ gateTransactionData.entry_image_4 || gateTransactionData.entry_image4 || 'null' }}</div>
+
+          <!-- Images Display: Exit -->
+          <div class="gate-images-section" v-if="gateImages.some(img => img.label && img.label.includes('Exit')) || gateTransactionData.category_exit">
+            <div class="gate-images-section-header">
+              <span class="gate-images-section-icon gate-images-section-icon--exit">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              </span>
+              <span class="gate-images-section-title">Gambar Keluar</span>
+              <span v-if="gateTransactionData.category_exit" class="gate-images-source-badge" :class="gateTransactionData.category_exit === 'request_capture' ? 'source-cctv' : 'source-anpr'">
+                {{ gateTransactionData.category_exit === 'request_capture' ? 'CCTV' : 'ANPR' }}
+              </span>
+            </div>
+
+            <div class="images-grid">
+              <template v-for="(image, index) in gateImages" :key="'exit-' + index">
+                <div v-if="image.label && image.label.includes('Exit')" class="image-item" style="position: relative;">
+                  <div class="image-label-overlay" :class="image.label.startsWith('CCTV') ? 'label-cctv' : 'label-anpr'">
+                    {{ image.label }}
+                  </div>
+                  <img v-if="image.url" :src="image.url" :alt="image.label" @error="handleImageError" style="width:100%;height:100%;object-fit:cover;cursor:pointer;" @click="openImagePreview(image)" />
+                  <img v-else-if="image.base64" :src="`data:image/jpeg;base64,${image.base64}`" :alt="image.label" @error="handleImageError" style="width:100%;height:100%;object-fit:cover;cursor:pointer;" @click="openImagePreview(image)" />
+                  <div v-else class="image-placeholder">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:32px;height:32px;margin-bottom:8px;opacity:0.5;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                    <div style="font-size:11px;color:var(--color-text-muted);">{{ image.success === false ? 'Gagal memuat' : 'Tidak tersedia' }}</div>
+                  </div>
+                </div>
+              </template>
+              <div v-if="!gateImages.some(img => img.label && img.label.includes('Exit'))" class="image-placeholder" style="aspect-ratio:16/9;min-height:90px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:24px;height:24px;opacity:0.35;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                <span style="font-size:11px;margin-top:6px;">Belum ada gambar keluar</span>
               </div>
-            </details>
+            </div>
           </div>
         </div>
 
