@@ -1223,7 +1223,7 @@ onUnmounted(() => {
                   </svg>
                 </div>
                 <span class="mqtt-offline-title">MQTT tidak terhubung</span>
-                <span class="mqtt-offline-sub">Topic: <code>{{ GATE_EVENT_TOPIC }}</code></span>
+                <!-- <span class="mqtt-offline-sub">Topic: <code>{{ GATE_EVENT_TOPIC }}</code></span> -->
                 <span v-if="mqttError" class="mqtt-offline-err">{{ mqttError?.message || mqttError }}</span>
               </div>
 

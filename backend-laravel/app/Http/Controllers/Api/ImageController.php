@@ -12,7 +12,7 @@ class ImageController extends Controller
     /**
      * API endpoint untuk image upload service
      */
-    private $imageUploadApiUrl = 'http://192.168.214.7:4000/api/uploads';
+    private $imageUploadApiUrl = 'http://192.168.214.163:4000/api/uploads';
 
     /**
      * Mengambil gambar dari API upload service berdasarkan path
