@@ -216,6 +216,7 @@ class GateController extends Controller
             'period'   => ['nullable', Rule::in(['harian', 'bulanan', 'tahunan'])],
             'date'     => ['nullable', 'string', 'max:20'],
             'gate'     => ['nullable', 'string', 'max:100'],
+            'no_plat'  => ['nullable', 'string', 'max:50'],
             'download' => ['nullable', 'boolean'],
         ]);
     }
@@ -228,10 +229,14 @@ class GateController extends Controller
         $period = $validated['period'] ?? 'bulanan';
         [$from, $to] = $this->resolveDateRange($period, $validated['date'] ?? null);
         $gate = $validated['gate'] ?? null;
+        $noPlat = $validated['no_plat'] ?? null;
 
         $query = GateManualControl::whereBetween('event_ts', [$from, $to]);
         if ($gate) {
             $query->where('gate_id', 'ilike', "%{$gate}%");
+        }
+        if ($noPlat) {
+            $query->where('nomor_plat', 'ilike', "%{$noPlat}%");
         }
         $rawRows = $query->orderBy('event_ts', 'desc')->get();
 
@@ -278,6 +283,7 @@ class GateController extends Controller
             'period_label' => $periodLabels[$period] ?? ucfirst($period),
             'range_label'  => $this->buildRangeLabel($period, $validated['date'] ?? null),
             'gate_filter'  => $gate,
+            'no_plat_filter' => $noPlat,
             'generated_at' => Carbon::now()->locale('id')->isoFormat('D MMMM Y, HH:mm'),
         ];
     }

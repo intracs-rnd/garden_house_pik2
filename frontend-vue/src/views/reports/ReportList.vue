@@ -303,7 +303,6 @@ async function openGateDetail(row) {
 }
 
 async function loadGateControl() {
-  if (gateControlData.value !== null) return // already loaded for current filters
   gateControlLoading.value = true
   gateControlError.value = ''
   try {
@@ -437,6 +436,30 @@ async function download(kind, { format = 'pdf', preview = false } = {}) {
 }
 
 onMounted(generate)
+
+// Reset gate control cache when filters change
+watch(
+  () => ({
+    period: filters.value.period,
+    day: filters.value.day,
+    month: filters.value.month,
+    year: filters.value.year,
+    time_from: filters.value.time_from,
+    time_to: filters.value.time_to,
+    no_plat: filters.value.no_plat,
+    direction: filters.value.direction,
+    access_granted: filters.value.access_granted,
+    gate: filters.value.gate,
+  }),
+  () => {
+    gateControlData.value = null
+    gateControlError.value = ''
+    // If gate sub-tab is active, reload with new filters
+    if (activeDetailType.value === 'gate') {
+      loadGateControl()
+    }
+  },
+)
 
 watch(showDetailModal, (open) => {
   if (!open) {
