@@ -427,7 +427,9 @@ async function loadGateTotals() {
 // Polling dari /api/gate/live-activity yang menggabungkan event RFID otomatis
 // (log_gate) dan kontrol manual operator (gate_manual_control).
 const auth = useAuthStore()
-
+  
+const canControlGate = computed(() => auth.canManage('dashboard') || auth.canManage('kartu_gate'))
+  
 const ACTIVITY_POLL_MS = 5000
 
 const vehicleActivityAll = ref([])
@@ -693,7 +695,7 @@ function isGateReaderOnline(cam) {
 }
 
 function openGateModal(cam) {
-  if (!auth.canManage('kartu_gate')) return
+  if (!canControlGate.value) return
   if (!isGateReaderOnline(cam)) {
     alert('Reader gate offline. Kontrol gate tidak tersedia.')
     return
@@ -1130,7 +1132,7 @@ onUnmounted(() => {
                 </template>
                 <div v-if="cam.id <= 2" class="camera-controls">
                   <Button
-                      v-if="auth.canManage('kartu_gate')"
+                      v-if="canControlGate"
                       size="sm"
                       variant="primary"
                       :disabled="!isGateReaderOnline(cam)"
