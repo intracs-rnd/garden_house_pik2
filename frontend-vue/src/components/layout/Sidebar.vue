@@ -154,7 +154,7 @@ const isLaporanActive = computed(() => laporanRoutes.includes(route.name))
       <span class="brand-logo">GH</span>
       <div class="brand-text">
         <strong>GH PIK2</strong>
-        <small>Admin Panel</small>
+        <small>Garden House</small>
       </div>
     </div>
 
