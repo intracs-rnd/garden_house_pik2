@@ -396,40 +396,42 @@ async function loadCameras() {
           gate_id: gateIds[i] || `GATE_${i + 1}`,
         }
       })
+      // Kalau gate_id dari API beda dengan default, refresh totalnya
+      loadGateTotals()
     }
   } catch {
     // Keep the .env fallbacks if the feed endpoint is unavailable.
-  } finally {
-    loadGateTotals()
   }
 }
 
 async function loadGateTotals() {
+  const requests = []
+
   if (cameras.value.length > 0) {
-    try {
-      const res1 = await gateApi.getLogsByGateId(cameras.value[0].gate_id, { per_page: 1 })
-      gate1Total.value = res1.data?.pagination?.total || 0
-    } catch (e) {
-      console.error('Failed to load total for Kamera 1:', e)
-    }
+    requests.push(
+        gateApi.getLogsByGateId(cameras.value[0].gate_id, { per_page: 1 })
+            .then((res) => { gate1Total.value = res.data?.pagination?.total || 0 })
+            .catch((e) => console.error('Failed to load total for Kamera 1:', e))
+    )
   }
   if (cameras.value.length > 1) {
-    try {
-      const res2 = await gateApi.getLogsByGateId(cameras.value[1].gate_id, { per_page: 1 })
-      gate2Total.value = res2.data?.pagination?.total || 0
-    } catch (e) {
-      console.error('Failed to load total for Kamera 2:', e)
-    }
+    requests.push(
+        gateApi.getLogsByGateId(cameras.value[1].gate_id, { per_page: 1 })
+            .then((res) => { gate2Total.value = res.data?.pagination?.total || 0 })
+            .catch((e) => console.error('Failed to load total for Kamera 2:', e))
+    )
   }
+
+  await Promise.all(requests)
 }
 
 // --- Live Kendaraan In/Out (dari log_gate + gate_manual_control via MQTT) ---
 // Polling dari /api/gate/live-activity yang menggabungkan event RFID otomatis
 // (log_gate) dan kontrol manual operator (gate_manual_control).
 const auth = useAuthStore()
-  
+
 const canControlGate = computed(() => auth.canManage('dashboard') || auth.canManage('kartu_gate'))
-  
+
 const ACTIVITY_POLL_MS = 5000
 
 const vehicleActivityAll = ref([])
@@ -1017,14 +1019,14 @@ const cards = computed(() => [
   },
 ])
 
- // animasi card
+// animasi card
 const animatedCardValues = ref({})
+
 function animateCardValue(key, from, to, duration = 700) {
   if (from === to) return
   const startTime = performance.now()
   function tick(now) {
     const progress = Math.min((now - startTime) / duration, 1)
-    // easeOutExpo biar animasinya cepat di awal, melambat di akhir
     const eased = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress)
     const current = Math.round(from + (to - from) * eased)
     animatedCardValues.value = { ...animatedCardValues.value, [key]: current }
@@ -1037,7 +1039,10 @@ watch(
     cards,
     (newCards) => {
       newCards.forEach((card) => {
-        const prev = animatedCardValues.value[card.label] ?? 0
+        if (!(card.label in animatedCardValues.value)) {
+          animatedCardValues.value[card.label] = 0
+        }
+        const prev = animatedCardValues.value[card.label]
         if (prev !== card.value) {
           animateCardValue(card.label, prev, card.value)
         }
@@ -1045,7 +1050,6 @@ watch(
     },
     { immediate: true, deep: true },
 )
-
 
 async function loadStats() {
   loading.value = true
@@ -1063,6 +1067,7 @@ async function loadStats() {
 onMounted(() => {
   loadStats()
   loadCameras()
+  loadGateTotals()
   startActivityFeed()
   startRfidStatus()
   initMqtt()
