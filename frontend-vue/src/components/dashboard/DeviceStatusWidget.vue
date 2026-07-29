@@ -3,8 +3,8 @@ import { ref, computed } from 'vue'
 
 const props = defineProps({
   /**
-   * List of device statuses received from MQTT topic get/+/status
-   * Each item: { nama_device: string, status: 'online'|'offline', receivedAt: string }
+   * List of device statuses received from MQTT topic gate/+/status
+   * Each item: { device: string, status: 'online'|'offline', receivedAt: string }
    */
   devices: {
     type: Array,
@@ -16,12 +16,14 @@ const props = defineProps({
   },
 })
 
+const emit = defineEmits(['clear'])
+
 const searchQuery = ref('')
 
 const filteredDevices = computed(() => {
   if (!searchQuery.value.trim()) return props.devices
   const q = searchQuery.value.toLowerCase()
-  return props.devices.filter((d) => d.nama_device.toLowerCase().includes(q))
+  return props.devices.filter((d) => (d.device || '').toLowerCase().includes(q))
 })
 
 const onlineCount = computed(() => props.devices.filter((d) => d.status === 'online').length)
@@ -34,6 +36,14 @@ function formatTime(iso) {
   } catch {
     return iso
   }
+}
+
+function clearSearch() {
+  searchQuery.value = ''
+}
+
+function clearData() {
+  emit('clear')
 }
 </script>
 
@@ -58,6 +68,17 @@ function formatTime(iso) {
         <span class="dsw-badge is-offline">
           {{ offlineCount }} Offline
         </span>
+<!--        <button-->
+<!--            v-if="devices.length > 0"-->
+<!--            type="button"-->
+<!--            class="dsw-clear-data-btn"-->
+<!--            title="Hapus semua data device"-->
+<!--            @click="clearData"-->
+<!--        >-->
+<!--          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">-->
+<!--            <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16Z" />-->
+<!--          </svg>-->
+<!--        </button>-->
       </div>
     </div>
 
@@ -77,6 +98,17 @@ function formatTime(iso) {
         <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
       </svg>
       <input v-model="searchQuery" type="text" placeholder="Cari device..." class="dsw-search-input" />
+      <button
+          v-if="searchQuery"
+          type="button"
+          class="dsw-clear-btn"
+          aria-label="Hapus pencarian"
+          @click="clearSearch"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 6L6 18M6 6l12 12" />
+        </svg>
+      </button>
     </div>
 
     <!-- Empty state -->
@@ -86,17 +118,17 @@ function formatTime(iso) {
         <path d="M8 21h8M12 17v4" />
       </svg>
       <span class="dsw-empty-title">Belum ada data device</span>
-      
+
     </div>
 
     <!-- Device list -->
     <div v-else class="dsw-list">
       <TransitionGroup name="dsw-anim" tag="div">
         <div
-          v-for="device in filteredDevices"
-          :key="device.nama_device"
-          class="dsw-item"
-          :class="device.status === 'online' ? 'is-online' : 'is-offline'"
+            v-for="device in filteredDevices"
+            :key="device.device"
+            class="dsw-item"
+            :class="device.status === 'online' ? 'is-online' : 'is-offline'"
         >
           <!-- Status icon -->
           <div class="dsw-item-icon">
@@ -108,7 +140,7 @@ function formatTime(iso) {
 
           <!-- Device info -->
           <div class="dsw-item-info">
-            <span class="dsw-item-name">{{ device.nama_device }}</span>
+            <span class="dsw-item-name">{{ device.device }}</span>
             <span class="dsw-item-time">{{ formatTime(device.receivedAt) }}</span>
           </div>
 
@@ -188,6 +220,29 @@ function formatTime(iso) {
   background: #fee2e2;
   color: #dc2626;
 }
+.dsw-clear-data-btn {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  margin-left: 4px;
+  border: none;
+  background: #f1f5f9;
+  border-radius: 6px;
+  color: var(--color-text-muted, #64748b);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.dsw-clear-data-btn:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+.dsw-clear-data-btn svg {
+  width: 13px;
+  height: 13px;
+}
 
 /* Topic row */
 .dsw-topic-row {
@@ -259,6 +314,29 @@ function formatTime(iso) {
 }
 .dsw-search-input::placeholder {
   color: var(--color-text-muted, #94a3b8);
+}
+.dsw-clear-btn {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  background: #f1f5f9;
+  border-radius: 50%;
+  color: var(--color-text-muted, #64748b);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.dsw-clear-btn:hover {
+  background: #e2e8f0;
+  color: var(--color-text, #1e293b);
+}
+.dsw-clear-btn svg {
+  width: 12px;
+  height: 12px;
+  color: inherit;
 }
 
 /* Empty state */

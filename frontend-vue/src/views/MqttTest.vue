@@ -1,7 +1,7 @@
 <template>
   <div class="mqtt-test-container">
     <!-- ============================================================ -->
-    <!-- DEVICE STATUS TEST (get/+/status wildcard)                  -->
+    <!-- DEVICE STATUS TEST (gate/+/status wildcard)                  -->
     <!-- ============================================================ -->
     <div class="card ds-card">
       <div class="card-header ds-header">
@@ -12,7 +12,7 @@
               <path d="M8 21h8M12 17v4" />
             </svg>
           </span>
-          <span>Device Status Test <code class="ds-code">get/+/status</code></span>
+          <span>Device Status Test <code class="ds-code">gate/+/status</code></span>
         </div>
         <div class="status-indicator" style="margin-bottom:0">
           <span class="status-dot" :class="{ connected: isConnected }"></span>
@@ -32,12 +32,12 @@
             <div class="ds-field">
               <label class="ds-label">Nama Device</label>
               <input
-                v-model="deviceName"
-                type="text"
-                class="input"
-                placeholder="cth: cctv-gerbang, sensor-pintu"
+                  v-model="deviceName"
+                  type="text"
+                  class="input"
+                  placeholder="cth: cctv-gerbang, sensor-pintu"
               />
-              <span class="ds-hint-text">Topic: <code>get/{{ deviceName || 'nama_device' }}/status</code></span>
+              <span class="ds-hint-text">Topic: <code>gate/{{ deviceName || 'nama_device' }}/status</code></span>
             </div>
             <div class="ds-field ds-field-sm">
               <label class="ds-label">Status</label>
@@ -60,13 +60,13 @@
             <code class="ds-preview-code">{{ deviceStatus }}</code>
             <span class="ds-preview-arrow">→</span>
             <span class="ds-preview-label">JSON yang akan di-publish oleh backend ke <code>dashboard/device/status</code>:</span>
-            <code class="ds-preview-code">{{ JSON.stringify({ nama_device: deviceName || 'nama_device', status: deviceStatus }) }}</code>
+            <code class="ds-preview-code">{{ JSON.stringify({ device: deviceName || 'device', status: deviceStatus }) }}</code>
           </div>
 
           <button
-            @click="handlePublishDeviceStatus"
-            :disabled="!isConnected || isPublishingDevice"
-            class="btn btn-publish"
+              @click="handlePublishDeviceStatus"
+              :disabled="!isConnected || isPublishingDevice"
+              class="btn btn-publish"
           >
             <svg v-if="isPublishingDevice" style="width:16px;height:16px;animation:spin 1s linear infinite" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
             <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px">
@@ -84,18 +84,18 @@
           </div>
           <div class="ds-log-list">
             <div
-              v-for="(m, i) in deviceStatusMessages"
-              :key="i"
-              class="ds-log-item"
-              :class="m.status"
+                v-for="(m, i) in deviceStatusMessages"
+                :key="i"
+                class="ds-log-item"
+                :class="m.status"
             >
               <div class="ds-log-left">
                 <span class="ds-status-dot" :class="m.status"></span>
-                <span class="ds-log-device">{{ m.nama_device }}</span>
+                <span class="ds-log-device">{{ m.device }}</span>
               </div>
               <div class="ds-log-mid">
                 <code class="ds-log-topic">{{ m.topic }}</code>
-                <code class="ds-log-json">{{ JSON.stringify({ nama_device: m.nama_device, status: m.status }) }}</code>
+                <code class="ds-log-json">{{ JSON.stringify({ device: m.device, status: m.status }) }}</code>
               </div>
               <span class="ds-log-time">{{ m.time }}</span>
             </div>
@@ -111,7 +111,7 @@
       <div class="card-header">
         <h2>MQTT Connection Test</h2>
       </div>
-      
+
       <div class="card-body">
         <!-- Connection Status -->
         <div class="status-section">
@@ -137,17 +137,17 @@
         <div class="subscribe-section">
           <h3>Subscribe to Topic</h3>
           <div class="input-group">
-            <input 
-              v-model="subscribeTopic" 
-              type="text" 
-              placeholder="e.g., gate/status or get/+/status"
-              class="input"
+            <input
+                v-model="subscribeTopic"
+                type="text"
+                placeholder="e.g., gate/status or gate/+/status"
+                class="input"
             />
             <button @click="handleSubscribe" :disabled="!isConnected" class="btn btn-success">
               Subscribe
             </button>
           </div>
-          
+
           <div v-if="subscribedTopics.length > 0" class="subscribed-list">
             <h4>Subscribed Topics:</h4>
             <div v-for="topic in subscribedTopics" :key="topic" class="topic-item">
@@ -165,19 +165,19 @@
         <div class="publish-section">
           <h3>Publish Message</h3>
           <div class="input-group">
-            <input 
-              v-model="publishTopic" 
-              type="text" 
-              placeholder="Topic (e.g., get/cctv-gerbang/status)"
-              class="input"
+            <input
+                v-model="publishTopic"
+                type="text"
+                placeholder="Topic (e.g., gate/cctv-gerbang/status)"
+                class="input"
             />
           </div>
           <div class="input-group">
-            <textarea 
-              v-model="publishMessage" 
-              placeholder='Message (text or JSON, e.g., online)'
-              class="textarea"
-              rows="3"
+            <textarea
+                v-model="publishMessage"
+                placeholder='Message (text or JSON, e.g., online)'
+                class="textarea"
+                rows="3"
             ></textarea>
           </div>
           <button @click="handlePublish" :disabled="!isConnected" class="btn btn-primary">
@@ -195,16 +195,16 @@
               Clear
             </button>
           </div>
-          
+
           <div class="messages-log">
             <div v-if="messages.length === 0" class="no-messages">
               No messages received yet. Subscribe to a topic and wait for messages.
             </div>
             <div v-else>
-              <div 
-                v-for="(msg, index) in messages" 
-                :key="index" 
-                class="message-item"
+              <div
+                  v-for="(msg, index) in messages"
+                  :key="index"
+                  class="message-item"
               >
                 <div class="message-header">
                   <span class="message-topic">{{ msg.topic }}</span>
@@ -231,8 +231,8 @@
 import { ref, watch } from 'vue'
 import { useMqtt } from '@/composables/useMqtt'
 
-const subscribeTopic = ref('get/+/status')
-const publishTopic = ref('get/cctv-gerbang/status')
+const subscribeTopic = ref('gate/+/status')
+const publishTopic = ref('gate/cctv-gerbang/status')
 const publishMessage = ref('online')
 const subscribedTopics = ref([])
 const messages = ref([])
@@ -254,7 +254,7 @@ async function handlePublishDeviceStatus() {
   }
 
   isPublishingDevice.value = true
-  const topic = `get/${deviceName.value.trim()}/status`
+  const topic = `gate/${deviceName.value.trim()}/status`
   const payload = deviceStatus.value
 
   await publish(topic, payload)
@@ -262,7 +262,7 @@ async function handlePublishDeviceStatus() {
   // Log entry
   deviceStatusMessages.value.unshift({
     topic,
-    nama_device: deviceName.value.trim(),
+    device: deviceName.value.trim(),
     status: payload,
     time: new Date().toLocaleTimeString('id-ID'),
   })
@@ -291,7 +291,7 @@ const handleSubscribe = async () => {
   }
 
   const topic = subscribeTopic.value.trim()
-  
+
   if (subscribedTopics.value.includes(topic)) {
     alert('Already subscribed to this topic')
     return
@@ -303,7 +303,7 @@ const handleSubscribe = async () => {
       message: typeof message === 'object' ? JSON.stringify(message, null, 2) : message,
       time: new Date().toLocaleTimeString()
     })
-    
+
     // Keep only last 50 messages
     if (messages.value.length > 50) {
       messages.value = messages.value.slice(0, 50)
@@ -331,7 +331,7 @@ const handlePublish = async () => {
   }
 
   let messageToSend = publishMessage.value.trim()
-  
+
   // Try to parse as JSON
   try {
     messageToSend = JSON.parse(messageToSend)
@@ -340,7 +340,7 @@ const handlePublish = async () => {
   }
 
   await publish(publishTopic.value.trim(), messageToSend)
-  
+
   // Log sent message
   messages.value.unshift({
     topic: publishTopic.value.trim() + ' (sent)',

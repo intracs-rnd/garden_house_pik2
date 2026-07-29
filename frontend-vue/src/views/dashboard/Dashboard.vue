@@ -30,19 +30,21 @@ const gate2Total = ref(0)
 const RFID_STATUS_TOPIC = 'gate/in/rfid_status'
 const GATE_EVENT_TOPIC  = 'gate/in/event'
 
-// MQTT untuk Device Status (wildcard get/+/status)
-const DEVICE_STATUS_TOPIC = 'get/+/status'
+// MQTT untuk Device Status (wildcard gate/+/status)
+const DEVICE_STATUS_TOPIC = 'gate/+/status'
 
 /**
- * Menyimpan status tiap device yang diterima dari topic get/{nama_device}/status.
- * Map: nama_device → { nama_device, status, receivedAt }
+ * Menyimpan status tiap device yang diterima dari topic gate/{device}/status.
+ * Map: device → { device, status, receivedAt }
  * Disimpan sebagai Map agar update per-device tidak duplikat.
  */
 const deviceStatusMap = ref(new Map())
 const deviceStatusList = computed(() =>
-  Array.from(deviceStatusMap.value.values()).sort((a, b) =>
-    a.nama_device.localeCompare(b.nama_device)
-  )
+    Array.from(deviceStatusMap.value.values()).sort((a, b) => {
+      const devA = a.device || ''
+      const devB = b.device || ''
+      return devA.localeCompare(devB)
+    })
 )
 
 // --- localStorage persistence untuk Status Device ---
@@ -57,8 +59,15 @@ function loadDeviceStatusFromStorage() {
     const saved = JSON.parse(raw)
     if (!Array.isArray(saved) || saved.length === 0) return
 
-    // saved berupa array of [key, value] pairs
-    deviceStatusMap.value = new Map(saved)
+    // migrate data lama (nama_device -> device)
+    const migrated = saved.map(([k, v]) => {
+      if (v && v.nama_device && !v.device) {
+        v.device = v.nama_device
+        delete v.nama_device
+      }
+      return [k, v]
+    })
+    deviceStatusMap.value = new Map(migrated)
     console.log(`[MQTT] ${saved.length} status device dimuat dari localStorage.`)
   } catch (e) {
     console.warn('[MQTT] Gagal memuat status device dari localStorage:', e)
@@ -76,36 +85,46 @@ function saveDeviceStatusToStorage() {
   }
 }
 
+/** Hapus semua status device (dipanggil dari tombol Clear Data di widget) */
+function clearDeviceStatus() {
+  deviceStatusMap.value = new Map()
+  try {
+    localStorage.removeItem(LS_DEVICE_STATUS_KEY)
+  } catch (e) {
+    console.warn('[MQTT] Gagal menghapus status device dari localStorage:', e)
+  }
+}
+
 // Muat data tersimpan segera saat komponen diinisialisasi
 loadDeviceStatusFromStorage()
 
 
 /**
- * Handler untuk topic get/+/status.
- * Menerima JSON {nama_device, status} dan update deviceStatusMap.
+ * Handler untuk topic gate/+/status.
+ * Menerima JSON {device, status} dan update deviceStatusMap.
  */
 function handleDeviceStatus(message, receivedTopic) {
   try {
-    let nama_device = ''
+    let device = ''
     let status = ''
 
-    if (typeof message === 'object' && message !== null && message.nama_device) {
+    if (typeof message === 'object' && message !== null && message.device) {
       // Pesan sudah di-parse JSON oleh mqtt.js service
-      nama_device = message.nama_device
+      device = message.device
       status = (message.status || '').toLowerCase()
     } else {
       // Fallback: ambil nama device dari URL topic
       const parts = (receivedTopic || '').split('/')
-      nama_device = parts[1] || 'unknown'
+      device = parts[1] || 'unknown'
       status = typeof message === 'string' ? message.toLowerCase() : String(message).toLowerCase()
     }
 
-    if (!nama_device) return
+    if (!device) return
 
     // Update atau tambahkan entry di Map
     deviceStatusMap.value = new Map(deviceStatusMap.value)
-    deviceStatusMap.value.set(nama_device, {
-      nama_device,
+    deviceStatusMap.value.set(device, {
+      device,
       status,
       receivedAt: new Date().toISOString(),
     })
@@ -331,7 +350,7 @@ async function initMqtt() {
       await mqttSubscribe(RFID_STATUS_TOPIC, handleRfidStatus, { qos: 1 })
       // Subscribe gate events (QoS 0)
       await mqttSubscribe(GATE_EVENT_TOPIC, handleGateEvent, { qos: 0 })
-      // Subscribe device status wildcard get/+/status (QoS 1)
+      // Subscribe device status wildcard gate/+/status (QoS 1)
       await mqttSubscribe(DEVICE_STATUS_TOPIC, handleDeviceStatus, { qos: 1 })
     }
   } catch (err) {
@@ -485,7 +504,7 @@ async function loadActivity() {
 const filteredActivity = computed(() => {
   const targetDate = selectedDate.value || todayDateStr.value
   return vehicleActivityAll.value.filter(
-    (item) => item.rawEventTs && toLocalDateStr(new Date(item.rawEventTs)) === targetDate,
+      (item) => item.rawEventTs && toLocalDateStr(new Date(item.rawEventTs)) === targetDate,
   )
 })
 
@@ -493,17 +512,17 @@ const filteredActivity = computed(() => {
 const todayActivity = computed(() => {
   const today = todayDateStr.value
   return vehicleActivityAll.value.filter(
-    (item) => item.rawEventTs && toLocalDateStr(new Date(item.rawEventTs)) === today,
+      (item) => item.rawEventTs && toLocalDateStr(new Date(item.rawEventTs)) === today,
   )
 })
 
 // Counter masuk (OPEN SUCCESS) dan keluar (CLOSE SUCCESS) pada tanggal aktif
 const vehicleInCount = computed(
-  () => filteredActivity.value.filter((item) => item.type === 'in').length,
+    () => filteredActivity.value.filter((item) => item.type === 'in').length,
 )
 
 const vehicleOutCount = computed(
-  () => filteredActivity.value.filter((item) => item.type === 'out').length,
+    () => filteredActivity.value.filter((item) => item.type === 'out').length,
 )
 
 const activityPagination = computed(() => ({
@@ -566,7 +585,7 @@ const rfidAllOnline = computed(
 // Aktivitas gate hari ini — didapat dari summary backend (today_total dari
 // log_gate + gate_manual_control) jika tersedia, fallback ke hitung lokal.
 const todayActivityCount = computed(() =>
-  activitySummary.value.today_total || todayActivity.value.length
+    activitySummary.value.today_total || todayActivity.value.length
 )
 
 
@@ -574,7 +593,7 @@ const todayActivityCount = computed(() =>
 const kendaraanDiDalamCount = computed(() => {
   const targetDate = selectedDate.value || todayDateStr.value
   const scoped = vehicleActivityAll.value.filter(
-    (item) => item.rawEventTs && toLocalDateStr(new Date(item.rawEventTs)) === targetDate,
+      (item) => item.rawEventTs && toLocalDateStr(new Date(item.rawEventTs)) === targetDate,
   )
   const inCount = scoped.filter((item) => item.type === 'in').length
   const outCount = scoped.filter((item) => item.type === 'out').length
@@ -582,13 +601,13 @@ const kendaraanDiDalamCount = computed(() => {
 })
 
 const activityCardCount = computed(() =>
-  selectedDate.value ? filteredActivity.value.length : todayActivityCount.value
+    selectedDate.value ? filteredActivity.value.length : todayActivityCount.value
 )
 
 const activityCardSubtitle = computed(() =>
-  selectedDate.value
-    ? `Total event gate pada ${selectedDate.value}`
-    : 'Total event gate hari ini'
+    selectedDate.value
+        ? `Total event gate pada ${selectedDate.value}`
+        : 'Total event gate hari ini'
 )
 
 // --- RFID Gate Detail Modal -------------------------------------------------
@@ -904,7 +923,7 @@ async function openLogImagesModal(log) {
   logImagesError.value = ''
   logImagesLog.value = log
   logImagesSubmitting.value = false
-  
+
   // Kumpulkan semua path gambar yang tersedia beserta labelnya
   const pathItems = []
   if (log.view_image_path) {
@@ -920,7 +939,7 @@ async function openLogImagesModal(log) {
     const p = log[field]
     if (p != null && p !== '') pathItems.push({ path: p, label })
   }
-  
+
   // Deduplikasi berdasarkan path, tanpa batasan jumlah
   const seen = new Set()
   const uniqueItems = pathItems.filter(({ path }) => {
@@ -928,12 +947,12 @@ async function openLogImagesModal(log) {
     seen.add(path)
     return true
   })
-  
+
   if (uniqueItems.length === 0) {
     logImagesLoading.value = false
     return
   }
-  
+
   try {
     const promises = uniqueItems.map(async ({ path, label }) => {
       try {
@@ -1027,28 +1046,6 @@ onUnmounted(() => {
   <div class="page">
     <div class="dashboard-head">
       <PageHeader title="Dashboard" subtitle="Ringkasan data sistem GH PIK2" />
-
-      <!-- Akses cepat ke status RFID Reader (MQTT) -->
-<!--      <button-->
-<!--          type="button"-->
-<!--          class="mqtt-chip"-->
-<!--          :class="mqttConnected ? 'is-online' : 'is-offline'"-->
-<!--          :title="mqttConnected ? `Terhubung ke ${RFID_STATUS_TOPIC}` : 'MQTT tidak terhubung'"-->
-<!--          @click="mqttDetailModal = true"-->
-<!--      >-->
-<!--        <span class="mqtt-chip-icon">-->
-<!--          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">-->
-<!--            <rect x="2" y="4" width="20" height="16" rx="2" />-->
-<!--            <path d="M7 15h.01M11 15h2" />-->
-<!--          </svg>-->
-<!--        </span>-->
-<!--        <span class="mqtt-chip-text">-->
-<!--          <span class="mqtt-chip-label">RFID Reader</span>-->
-<!--          <span class="mqtt-chip-state">{{ mqttConnected ? 'Online' : 'Offline' }}</span>-->
-<!--        </span>-->
-<!--        <span class="status-dot"></span>-->
-<!--      </button>-->
-<!--      </button>-->
     </div>
 
     <Loader v-if="loading" text="Memuat statistik..." />
@@ -1200,17 +1197,17 @@ onUnmounted(() => {
             <!-- Category Filter Tabs -->
             <div class="mqtt-tabs">
               <button
-                v-for="cat in mqttEventCategories"
-                :key="cat"
-                type="button"
-                class="mqtt-tab"
-                :class="{ 'is-active': mqttEventFilter === cat, [`tab-${cat.toLowerCase()}`]: true }"
-                @click="mqttEventFilter = cat"
+                  v-for="cat in mqttEventCategories"
+                  :key="cat"
+                  type="button"
+                  class="mqtt-tab"
+                  :class="{ 'is-active': mqttEventFilter === cat, [`tab-${cat.toLowerCase()}`]: true }"
+                  @click="mqttEventFilter = cat"
               >
                 {{ cat === 'ALL' ? 'Semua' : cat }}
                 <span v-if="cat !== 'ALL'" class="mqtt-tab-badge">{{ mqttEventCounts[cat] }}</span>
               </button>
-              
+
             </div>
 
             <!-- MQTT Event Feed -->
@@ -1223,7 +1220,6 @@ onUnmounted(() => {
                   </svg>
                 </div>
                 <span class="mqtt-offline-title">MQTT tidak terhubung</span>
-                <!-- <span class="mqtt-offline-sub">Topic: <code>{{ GATE_EVENT_TOPIC }}</code></span> -->
                 <span v-if="mqttError" class="mqtt-offline-err">{{ mqttError?.message || mqttError }}</span>
               </div>
 
@@ -1238,10 +1234,10 @@ onUnmounted(() => {
               <!-- Event list -->
               <TransitionGroup v-else name="activity" tag="div">
                 <div
-                  v-for="evt in filteredMqttEvents"
-                  :key="evt.id"
-                  class="mqtt-event-item"
-                  :class="mqttEventMeta(evt).colorClass"
+                    v-for="evt in filteredMqttEvents"
+                    :key="evt.id"
+                    class="mqtt-event-item"
+                    :class="mqttEventMeta(evt).colorClass"
                 >
                   <!-- Category icon -->
                   <span class="mqtt-event-cat-icon">
@@ -1275,84 +1271,17 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <!-- Status Device (MQTT get/+/status) -->
+          <!-- Status Device (MQTT gate/+/status) -->
           <div class="card live-device-status">
             <DeviceStatusWidget
-              :devices="deviceStatusList"
-              :mqtt-connected="mqttConnected"
+                :devices="deviceStatusList"
+                :mqtt-connected="mqttConnected"
+                @clear="clearDeviceStatus"
             />
           </div>
         </div>
 
       </div>
-
-      <!-- Live Kontrol Manual Gate Full Width Data Table -->
-      <!-- <div class="card" style="margin-top: 24px;">
-        <div class="card-header card-header-flex">
-          <span class="card-header-title">
-            <svg class="card-header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-            </svg>
-            Live Gate Manual Control
-          </span>
-          <span class="live-indicator"><span class="live-pulse"></span>Live</span>
-        </div>
-        
-        <div class="card-body" style="padding: 0; overflow-x: auto; max-height: 400px; overflow-y: auto;">
-          <table class="detail-table" style="width: 100%; min-width: 800px;">
-            <thead style="position: sticky; top: 0; background: var(--color-bg-card, #fff); z-index: 1; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-              <tr>
-                <th style="padding-left: 24px;">Waktu</th>
-                <th>Gate ID</th>
-                <th>Nomor Plat</th>
-                <th>Pengguna</th>
-                <th>Aksi</th>
-                <th>Hasil</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-if="logManualLoading && !logManualActivityAll.length">
-                <td colspan="6" class="detail-empty" style="text-align: center;"><span class="spinner"></span> Memuat Log Manual Control...</td>
-              </tr>
-              <tr v-else-if="logManualError && !logManualActivityAll.length">
-                <td colspan="6" class="detail-empty text-danger" style="text-align: center;">{{ logManualError }}</td>
-              </tr>
-              <tr v-else-if="!logManualActivityAll.length">
-                <td colspan="6" class="detail-empty" style="text-align: center;">Belum ada data Log Manual Control</td>
-              </tr>
-              <tr v-else v-for="log in logManualActivityAll" :key="log.id">
-                <td class="detail-time" style="padding-left: 24px;">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px; margin-right: 4px; vertical-align: text-bottom; opacity: 0.7;">
-                    <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-                  </svg>
-                  {{ log.event_ts ? formatDateTime(log.event_ts) : '-' }}
-                </td>
-                <td class="detail-gate-id">
-                  <strong>{{ log.gate_id || 'Unknown Gate' }}</strong>
-                </td>
-                <td>
-                  <span class="badge badge-secondary">{{ log.nomor_plat || '-' }}</span>
-                </td>
-                <td>
-                  {{ log.user_name || '-' }}
-                </td>
-                <td>
-                  <span class="badge" :class="log.action === 'OPEN' ? 'badge-success' : 'badge-info'">
-                    <svg v-if="log.action === 'OPEN'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 12px; height: 12px; margin-right: 4px; display: inline-block;"><path d="M5 21V7l7-4 7 4v14M9 21v-6h6v6" /></svg>
-                    {{ log.action }}
-                  </span>
-                </td>
-                <td>
-                  <span class="badge" :class="log.result === 'SUCCESS' ? 'badge-success' : (log.result === 'ERROR' ? 'badge-danger' : 'badge-warning')">
-                    {{ log.result }}
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div> -->
 
       <!-- Modal: Buka / Tutup Gate (frontend only) -->
       <Modal v-model="gateModal" :title="gateModalTitle">
@@ -1524,11 +1453,6 @@ onUnmounted(() => {
             </div>
           </div>
         </div>
-
-        <!--        <div v-if="gateCamera" class="gate-live-cctv">-->
-        <!--          <label class="form-label">Live CCTV</label>-->
-        <!--          <LiveStream :src="gateCamera.src" />-->
-        <!--        </div>-->
 
         <div v-if="gatePublishError" class="alert alert-danger" style="margin-top: 12px;">
           {{ gatePublishError }}
@@ -1821,8 +1745,8 @@ onUnmounted(() => {
 
       <!-- Modal: Gambar Riwayat Gate -->
       <Modal
-        v-model="logImagesModal"
-        :title="logImagesLog ? `Gambar Riwayat Gate · ${logImagesLog.gate_id || ''}` : 'Gambar Riwayat Gate'"
+          v-model="logImagesModal"
+          :title="logImagesLog ? `Gambar Riwayat Gate · ${logImagesLog.gate_id || ''}` : 'Gambar Riwayat Gate'"
       >
         <!-- Info ringkas log -->
         <div v-if="logImagesLog" class="log-images-meta">

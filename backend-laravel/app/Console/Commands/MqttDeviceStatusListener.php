@@ -133,7 +133,7 @@ class MqttDeviceStatusListener extends Command
             if (count($parts) >= 3 && $parts[0] === 'get' && $parts[2] === 'status') {
                 $deviceName = $parts[1];
                 $status = trim($message);
-                
+
                 // Format the JSON data as requested
                 $data = [
                     'nama_device' => $deviceName,
