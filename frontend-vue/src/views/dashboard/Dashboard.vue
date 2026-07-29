@@ -1017,6 +1017,36 @@ const cards = computed(() => [
   },
 ])
 
+ // animasi card
+const animatedCardValues = ref({})
+function animateCardValue(key, from, to, duration = 700) {
+  if (from === to) return
+  const startTime = performance.now()
+  function tick(now) {
+    const progress = Math.min((now - startTime) / duration, 1)
+    // easeOutExpo biar animasinya cepat di awal, melambat di akhir
+    const eased = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress)
+    const current = Math.round(from + (to - from) * eased)
+    animatedCardValues.value = { ...animatedCardValues.value, [key]: current }
+    if (progress < 1) requestAnimationFrame(tick)
+  }
+  requestAnimationFrame(tick)
+}
+
+watch(
+    cards,
+    (newCards) => {
+      newCards.forEach((card) => {
+        const prev = animatedCardValues.value[card.label] ?? 0
+        if (prev !== card.value) {
+          animateCardValue(card.label, prev, card.value)
+        }
+      })
+    },
+    { immediate: true, deep: true },
+)
+
+
 async function loadStats() {
   loading.value = true
   error.value = ''
@@ -1071,7 +1101,9 @@ onUnmounted(() => {
             </svg>
           </div>
           <div class="stat-meta">
-            <span class="stat-value">{{ card.raw ? card.value : formatNumber(card.value) }}</span>
+            <span class="stat-value" :key="card.label + '-val'">
+              {{ formatNumber(animatedCardValues[card.label] ?? 0) }}
+            </span>
             <span class="stat-label">{{ card.label }}</span>
             <span v-if="card.subtitle" class="stat-subtitle">{{ card.subtitle }}</span>
           </div>
