@@ -44,37 +44,31 @@ onMounted(() => {
 <template>
   <div class="auth-page">
     <div class="auth-container">
-      <!-- Left side - Welcome message with housing theme -->
+      <!-- Left side - brand panel -->
       <div class="auth-welcome">
+        <div class="blueprint-grid" aria-hidden="true"></div>
+
         <div class="welcome-content">
-          <div class="welcome-icon">
-            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <!-- House illustration -->
-              <path d="M20 80V45L50 20L80 45V80" stroke="white" stroke-width="2" fill="none"/>
-              <path d="M50 20L80 45V80H20V45L50 20Z" fill="none" stroke="white" stroke-width="1.5"/>
-              <rect x="35" y="50" width="15" height="20" fill="none" stroke="white" stroke-width="1.5"/>
-              <rect x="50" y="50" width="15" height="20" fill="none" stroke="white" stroke-width="1.5"/>
-              <circle cx="57" cy="56" r="1.5" fill="white"/>
-              <circle cx="42" cy="56" r="1.5" fill="white"/>
-              <path d="M35 50L50 35L65 50" fill="none" stroke="white" stroke-width="1.5"/>
-            </svg>
-          </div>
-          <h2>Selamat Datang</h2>
-          <p>Kelola Perumahan Garden House PIK2 dengan mudah dan aman</p>
-          <div class="features">
-            <div class="feature-item">
-              <span class="check-icon">✓</span>
-              <span>Kelola Data Penghuni</span>
-            </div>
-            <div class="feature-item">
-              <span class="check-icon">✓</span>
-              <span>Monitor Fasilitas</span>
-            </div>
-            <div class="feature-item">
-              <span class="check-icon">✓</span>
-              <span>Laporan Terperinci</span>
-            </div>
-          </div>
+          <span class="eyebrow">Portal Penghuni</span>
+
+          <h2>Rumah Anda,<br />satu genggaman.</h2>
+          <p>Kelola unit, fasilitas, dan administrasi Garden House PIK2 tanpa perlu ke kantor pengelola.</p>
+
+          <!-- Signature element: self-drawing house line-art -->
+          <svg class="house-sketch" viewBox="0 0 220 160" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path class="stroke-draw" d="M20 150V70L110 15L200 70V150" stroke="#C9A96E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path class="stroke-draw delay-1" d="M45 150V95H85V150" stroke="#C9A96E" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <path class="stroke-draw delay-2" d="M130 105H165V135H130Z" stroke="#C9A96E" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <path class="stroke-draw delay-2" d="M110 15V150" stroke="#C9A96E" stroke-width="1" stroke-dasharray="3 4" opacity="0.5"/>
+            <path class="stroke-draw delay-3" d="M20 150H200" stroke="#C9A96E" stroke-width="2"/>
+            <path class="leaf-draw" d="M195 55C205 45 210 30 205 18C193 25 186 38 189 50C191 55 193 56 195 55Z" stroke="#8FAE7A" stroke-width="1.6" stroke-linejoin="round"/>
+          </svg>
+
+          <ul class="features">
+            <li><span class="tick">✓</span>Kelola data penghuni</li>
+            <li><span class="tick">✓</span>Monitor fasilitas bersama</li>
+            <li><span class="tick">✓</span>Laporan iuran terperinci</li>
+          </ul>
         </div>
       </div>
 
@@ -83,10 +77,10 @@ onMounted(() => {
         <div class="auth-brand">
           <div class="auth-logo">
             <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="6" y="10" width="20" height="16" rx="2" fill="white" opacity="0.9"/>
-              <path d="M16 6L24 10H8L16 6Z" fill="white" opacity="0.9"/>
-              <rect x="10" y="13" width="4" height="4" fill="currentColor" opacity="0.3"/>
-              <rect x="18" y="13" width="4" height="4" fill="currentColor" opacity="0.3"/>
+              <path d="M16 5L27 13V27H5V13L16 5Z" stroke="white" stroke-width="1.8" stroke-linejoin="round"/>
+              <rect x="13" y="18" width="6" height="9" fill="white"/>
+              <rect x="9" y="14" width="3.5" height="3.5" fill="white" opacity="0.85"/>
+              <rect x="19.5" y="14" width="3.5" height="3.5" fill="white" opacity="0.85"/>
             </svg>
           </div>
           <h1>GH PIK2</h1>
@@ -100,11 +94,9 @@ onMounted(() => {
 
         <form @submit.prevent="handleSubmit">
           <div class="form-group">
-            <label class="form-label">
-              <span class="label-icon">✉</span>
-              Email
-            </label>
+            <label class="form-label" for="login-email">Email</label>
             <input
+              id="login-email"
               v-model="form.email"
               type="email"
               class="form-control"
@@ -117,11 +109,9 @@ onMounted(() => {
           </div>
 
           <div class="form-group">
-            <label class="form-label">
-              <span class="label-icon">🔐</span>
-              Password
-            </label>
+            <label class="form-label" for="login-password">Password</label>
             <input
+              id="login-password"
               v-model="form.password"
               type="password"
               class="form-control"
@@ -147,132 +137,181 @@ onMounted(() => {
 </template>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap');
+
 * {
   box-sizing: border-box;
 }
 
 .auth-page {
+  --forest: #1E293B;
+  --forest-deep: #0F172A;
+  --brass: #C9A96E;
+  --brass-light: #E3CFA0;
+  --sage: #8FAE7A;
+  --cream: #F7F4EC;
+  --ink: #23201A;
+  --ink-soft: #6B6355;
+  --danger: #C24A3E;
+
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
-  background: url('@/assets/images/perumahan_pik2.png');
+  padding: 32px;
+  background-image: url('@/assets/images/perumahan_pik2.png');
   background-size: cover;
   background-position: center;
-  background-repeat: no-repeat;
   background-attachment: fixed;
+  font-family: 'Inter', -apple-system, sans-serif;
   position: relative;
-  overflow: hidden;
 }
 
-/* Added overlay for better text readability */
 .auth-page::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.4); /* Dark overlay */
-  z-index: 0;
+  inset: 0;
+  background: linear-gradient(160deg, rgba(15, 23, 42, 0.75) 0%, rgba(15, 23, 42, 0.55) 100%);
 }
 
 .auth-container {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 60px;
-  max-width: 1000px;
-  width: 100%;
+  position: relative;
   z-index: 1;
-  align-items: center;
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  max-width: 980px;
+  width: 100%;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
 }
 
+/* ---------- Left panel ---------- */
 .auth-welcome {
+  position: relative;
+  background: linear-gradient(165deg, rgba(30, 41, 59, 0.92) 0%, rgba(15, 23, 42, 0.96) 100%);
+  backdrop-filter: blur(2px);
   color: white;
+  padding: 56px 48px;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.blueprint-grid {
+  position: absolute;
+  inset: 0;
+  opacity: 0.07;
+  background-image:
+    linear-gradient(white 1px, transparent 1px),
+    linear-gradient(90deg, white 1px, transparent 1px);
+  background-size: 28px 28px;
+  pointer-events: none;
 }
 
 .welcome-content {
-  text-align: left;
-}
-
-.welcome-icon {
-  width: 80px;
-  height: 80px;
-  margin-bottom: 24px;
-  animation: pulse 2s ease-in-out infinite;
-}
-
-.welcome-icon svg {
+  position: relative;
+  z-index: 1;
   width: 100%;
-  height: 100%;
 }
 
-@keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
+.eyebrow {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--brass-light);
+  border-bottom: 1px solid rgba(201, 169, 110, 0.4);
+  padding-bottom: 6px;
+  margin-bottom: 22px;
 }
 
 .auth-welcome h2 {
-  font-size: 32px;
-  font-weight: 700;
-  margin-bottom: 12px;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
+  font-size: 34px;
+  line-height: 1.18;
+  margin: 0 0 14px;
+  letter-spacing: -0.01em;
 }
 
 .auth-welcome p {
-  font-size: 16px;
-  margin-bottom: 32px;
-  opacity: 0.95;
-  line-height: 1.5;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  font-size: 15px;
+  line-height: 1.6;
+  color: rgba(247, 244, 236, 0.75);
+  max-width: 340px;
+  margin: 0 0 28px;
+}
+
+.house-sketch {
+  width: 100%;
+  max-width: 160px;
+  height: auto;
+  display: block;
+  margin: 0 0 26px;
+  opacity: 0.85;
+}
+
+.stroke-draw,
+.leaf-draw {
+  stroke-dasharray: 420;
+  stroke-dashoffset: 420;
+  animation: draw 1.4s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+.delay-1 { animation-delay: 0.35s; }
+.delay-2 { animation-delay: 0.6s; }
+.delay-3 { animation-delay: 0.9s; }
+.leaf-draw { animation-delay: 1.05s; stroke-dasharray: 140; stroke-dashoffset: 140; }
+
+@keyframes draw {
+  to { stroke-dashoffset: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stroke-draw, .leaf-draw {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
 }
 
 .features {
+  list-style: none;
+  margin: 0;
+  padding: 20px 0 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
   display: flex;
   flex-direction: column;
-  gap: 16px;
-}
-
-.feature-item {
-  display: flex;
-  align-items: center;
   gap: 12px;
-  font-size: 14px;
 }
 
-.check-icon {
+.features li {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  background: rgba(255, 255, 255, 0.25);
-  border-radius: 50%;
-  font-weight: bold;
-  flex-shrink: 0;
+  gap: 10px;
+  font-size: 13.5px;
+  color: rgba(247, 244, 236, 0.9);
 }
 
+.tick {
+  color: var(--sage);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+/* ---------- Right panel ---------- */
 .auth-card {
-  background: rgba(255, 255, 255, 0.95); /* Slightly less opaque */
-  backdrop-filter: blur(20px);
-  border-radius: 20px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 0 1px rgba(255, 255, 255, 0.5) inset;
-  padding: 48px;
-  width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  transition: transform 0.3s ease-in-out; /* Added transition for hover effect */
-}
-
-.auth-card:hover {
-  transform: translateY(-5px); /* Subtle lift on hover */
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(12px);
+  padding: 56px 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .auth-brand {
-  text-align: center;
+  text-align: left;
   margin-bottom: 32px;
 }
 
@@ -280,155 +319,150 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 64px;
-  height: 64px;
-  background: linear-gradient(135deg, #6d94a0 0%, #478b81 100%);
-  color: white;
-  border-radius: 16px;
-  font-weight: 700;
-  font-size: 20px;
-  margin-bottom: 16px;
-  box-shadow: 0 4px 12px rgba(71, 139, 129, 0.3);
+  width: 52px;
+  height: 52px;
+  background: linear-gradient(150deg, var(--forest) 0%, var(--forest-deep) 100%);
+  border-radius: 14px;
+  margin-bottom: 18px;
+  box-shadow: 0 8px 18px rgba(30, 41, 59, 0.28);
 }
 
 .auth-logo svg {
-  width: 100%;
-  height: 100%;
+  width: 28px;
+  height: 28px;
 }
 
 .auth-brand h1 {
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
   font-size: 24px;
-  color: #2c1810;
-  margin-bottom: 8px;
+  color: var(--ink);
+  margin: 0 0 4px;
 }
 
 .auth-brand p {
-  font-size: 14px;
-  color: #6b5236; /* Changed color for better contrast */
-  font-weight: 500;
+  font-size: 13.5px;
+  color: var(--ink-soft);
+  margin: 0;
 }
 
 .form-group {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .form-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  display: block;
   font-weight: 600;
-  font-size: 14px;
-  color: #2c1810;
-  margin-bottom: 10px;
-}
-
-.label-icon {
-  font-size: 16px;
+  font-size: 13px;
+  color: var(--ink);
+  margin-bottom: 8px;
 }
 
 .form-control {
   width: 100%;
-  padding: 12px 16px;
-  border: 2px solid #E0D4C4;
-  border-radius: 12px;
+  padding: 13px 16px;
+  border: 1.5px solid #E4DFD3;
+  border-radius: 10px;
   font-size: 14px;
-  transition: all 0.3s ease;
-  background: #FBF8F5;
+  font-family: inherit;
+  color: var(--ink);
+  background: var(--cream);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.form-control::placeholder {
+  color: #B3AA98;
 }
 
 .form-control:focus {
   outline: none;
-  border-color: #478b7f;
+  border-color: var(--brass);
   background: white;
-  box-shadow: 0 0 0 3px rgba(139, 111, 71, 0.1);
+  box-shadow: 0 0 0 3px rgba(201, 169, 110, 0.18);
 }
 
 .form-control.is-invalid {
-  border-color: #dc3545;
-  background: #fff5f5;
+  border-color: var(--danger);
+  background: #FCF3F1;
 }
 
 .form-error {
   display: block;
   font-size: 12px;
-  color: #dc3545;
+  color: var(--danger);
   margin-top: 6px;
 }
 
 .btn-login {
-  background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);
+  width: 100%;
+  background: linear-gradient(150deg, var(--forest) 0%, var(--forest-deep) 100%);
   border: none;
+  border-radius: 10px;
   padding: 14px 24px;
   font-weight: 600;
-  letter-spacing: 0.5px;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0, 102, 204, 0.3);
+  font-size: 14.5px;
+  letter-spacing: 0.01em;
+  color: white;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  box-shadow: 0 10px 22px rgba(30, 41, 59, 0.22);
+  margin-top: 6px;
 }
 
 .btn-login:hover:not(:disabled) {
-  transform: translateY(-3px); /* Slightly more pronounced lift */
-  box-shadow: 0 8px 20px rgba(0, 102, 204, 0.4); /* Stronger shadow */
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(30, 41, 59, 0.3);
+  background: linear-gradient(150deg, #2C3E5C 0%, var(--forest-deep) 100%);
 }
 
 .alert {
   padding: 12px 16px;
-  border-radius: 12px;
-  margin-bottom: 24px;
+  border-radius: 10px;
+  margin-bottom: 22px;
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 14px;
-}
-
-.alert-danger {
-  background: #fff5f5;
-  color: #dc3545;
-  border: 1px solid #ffdddd;
+  font-size: 13.5px;
+  background: #FCF3F1;
+  color: var(--danger);
+  border: 1px solid #F3D9D4;
 }
 
 .alert-icon {
   font-weight: bold;
-  font-size: 16px;
 }
 
 .auth-footer {
   margin-top: 24px;
-  text-align: center;
-  font-size: 14px;
-  color: #8B6F47;
+  font-size: 13.5px;
+  color: var(--ink-soft);
 }
 
 .auth-footer a {
-  color: #0066cc; /* Changed to match primary button color */
+  color: var(--forest);
   font-weight: 600;
   text-decoration: none;
-  transition: color 0.2s ease;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s ease, color 0.2s ease;
 }
 
 .auth-footer a:hover {
-  color: #0052a3; /* Darker shade on hover */
-  text-decoration: underline;
+  color: var(--brass);
+  border-color: var(--brass);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 860px) {
   .auth-container {
     grid-template-columns: 1fr;
-    gap: 40px;
+    max-width: 420px;
+    border-radius: 20px;
   }
 
   .auth-welcome {
-    text-align: center;
     display: none;
   }
 
   .auth-card {
-    padding: 32px;
-    max-width: 400px;
-    margin: 0 auto;
-  }
-
-  .auth-welcome h2 {
-    font-size: 24px;
+    padding: 40px 32px;
   }
 }
 
@@ -438,20 +472,11 @@ onMounted(() => {
   }
 
   .auth-card {
-    padding: 24px;
-  }
-
-  .auth-logo {
-    width: 56px;
-    height: 56px;
-  }
-
-  .auth-brand h1 {
-    font-size: 20px;
+    padding: 32px 24px;
   }
 
   .form-control {
-    padding: 11px 14px;
+    padding: 12px 14px;
     font-size: 16px;
   }
 }

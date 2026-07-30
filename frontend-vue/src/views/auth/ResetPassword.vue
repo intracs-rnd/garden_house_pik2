@@ -117,12 +117,22 @@ function validate() {
   <div class="auth-page">
     <div class="auth-card">
       <div class="auth-brand">
-        <span class="auth-logo">GH</span>
-        <h1>Lupa Password</h1>
+        <div class="auth-logo">
+          <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M16 5L27 13V27H5V13L16 5Z" stroke="white" stroke-width="1.8" stroke-linejoin="round"/>
+            <rect x="13" y="18" width="6" height="9" fill="white"/>
+            <rect x="9" y="14" width="3.5" height="3.5" fill="white" opacity="0.85"/>
+            <rect x="19.5" y="14" width="3.5" height="3.5" fill="white" opacity="0.85"/>
+          </svg>
+        </div>
+        <h1>Buat Password Baru</h1>
         <p>Buat password baru untuk akun Anda</p>
       </div>
 
-      <div v-if="generalError" class="alert alert-danger">{{ generalError }}</div>
+      <div v-if="generalError" class="alert alert-danger">
+        <span class="alert-icon">⚠</span>
+        {{ generalError }}
+      </div>
 
       <div v-if="invalidLink" class="auth-footer">
         <RouterLink :to="{ name: 'forgot-password' }">Kembali ke halaman lupa password</RouterLink>
@@ -131,8 +141,9 @@ function validate() {
       <template v-if="!invalidLink">
         <form @submit.prevent="handleSubmit">
           <div class="form-group">
-            <label class="form-label">Email</label>
+            <label class="form-label" for="reset-email">Email</label>
             <input
+              id="reset-email"
               v-model="form.email"
               type="email"
               class="form-control"
@@ -144,8 +155,9 @@ function validate() {
           </div>
 
           <div class="form-group">
-            <label class="form-label">Password Baru</label>
+            <label class="form-label" for="reset-password">Password Baru</label>
             <input
+              id="reset-password"
               v-model="form.password"
               type="password"
               class="form-control"
@@ -159,8 +171,9 @@ function validate() {
           </div>
 
           <div class="form-group">
-            <label class="form-label">Konfirmasi Password</label>
+            <label class="form-label" for="reset-password-confirmation">Konfirmasi Password</label>
             <input
+              id="reset-password-confirmation"
               v-model="form.password_confirmation"
               type="password"
               class="form-control"
@@ -192,11 +205,23 @@ function validate() {
 </template>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap');
+
 * {
   box-sizing: border-box;
 }
 
 .auth-page {
+  --forest: #1E293B;
+  --forest-deep: #0F172A;
+  --brass: #C9A96E;
+  --sage: #8FAE7A;
+  --cream: #F7F4EC;
+  --ink: #23201A;
+  --ink-soft: #6B6355;
+  --danger: #C24A3E;
+  --success: #4C8A5C;
+
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -207,173 +232,186 @@ function validate() {
   background-position: center;
   background-repeat: no-repeat;
   background-attachment: fixed;
+  font-family: 'Inter', -apple-system, sans-serif;
   position: relative;
   overflow: hidden;
 }
 
-/* Added overlay for better text readability */
 .auth-page::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.4); /* Dark overlay */
+  inset: 0;
+  background: linear-gradient(160deg, rgba(15, 23, 42, 0.72) 0%, rgba(15, 23, 42, 0.5) 100%);
   z-index: 0;
 }
 
 .auth-card {
+  position: relative;
+  z-index: 1;
   width: 100%;
   max-width: 420px;
-  background: rgba(255, 255, 255, 0.95); /* Slightly less opaque */
-  backdrop-filter: blur(20px);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 0 1px rgba(255, 255, 255, 0.5) inset;
-  padding: 36px 32px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  transition: transform 0.3s ease-in-out; /* Added transition for hover effect */
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(16px);
+  border-radius: 20px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+  padding: 40px 36px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  transition: transform 0.3s ease-in-out;
 }
 
 .auth-card:hover {
-  transform: translateY(-5px); /* Subtle lift on hover */
+  transform: translateY(-4px);
 }
 
 .auth-brand {
   text-align: center;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
+
 .auth-logo {
-  display: inline-grid;
-  place-items: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 56px;
   height: 56px;
-  background: var(--color-primary);
-  color: #fff;
+  background: linear-gradient(150deg, var(--forest) 0%, var(--forest-deep) 100%);
   border-radius: 14px;
-  font-weight: 700;
-  font-size: 20px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
+  box-shadow: 0 8px 18px rgba(30, 41, 59, 0.28);
 }
+
+.auth-logo svg {
+  width: 30px;
+  height: 30px;
+}
+
 .auth-brand h1 {
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
   font-size: 22px;
+  color: var(--ink);
 }
+
 .auth-brand p {
-  margin-top: 6px;
-  color: #6b5236; /* Changed color for better contrast */
+  margin-top: 8px;
+  color: var(--ink-soft);
   font-size: 14px;
+  line-height: 1.5;
 }
+
 .auth-footer {
-  margin-top: 20px;
+  margin-top: 22px;
   text-align: center;
-  font-size: 14px;
-  color: var(--color-text-muted);
+  font-size: 13.5px;
+  color: var(--ink-soft);
 }
+
 .auth-footer a {
-  color: #0066cc; /* Changed to match primary button color */
+  color: var(--forest);
   font-weight: 600;
   text-decoration: none;
-  transition: color 0.2s ease;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s ease, color 0.2s ease;
 }
 
 .auth-footer a:hover {
-  color: #0052a3; /* Darker shade on hover */
-  text-decoration: underline;
+  color: var(--brass);
+  border-color: var(--brass);
 }
 
 .btn-submit {
-  background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);
+  width: 100%;
+  background: linear-gradient(150deg, var(--forest) 0%, var(--forest-deep) 100%);
   border: none;
+  border-radius: 10px;
   padding: 14px 24px;
   font-weight: 600;
-  letter-spacing: 0.5px;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0, 102, 204, 0.3);
+  font-size: 14.5px;
+  letter-spacing: 0.01em;
+  color: white;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  box-shadow: 0 10px 22px rgba(30, 41, 59, 0.22);
 }
 
 .btn-submit:hover:not(:disabled) {
-  transform: translateY(-3px); /* Slightly more pronounced lift */
-  box-shadow: 0 8px 20px rgba(0, 102, 204, 0.4); /* Stronger shadow */
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(30, 41, 59, 0.3);
+  background: linear-gradient(150deg, #2C3E5C 0%, var(--forest-deep) 100%);
 }
 
-/* Alert styles (copied from Login.vue for consistency) */
 .alert {
   padding: 12px 16px;
-  border-radius: 12px;
-  margin-bottom: 24px;
+  border-radius: 10px;
+  margin-bottom: 22px;
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 14px;
-}
-
-.alert-danger {
-  background: #fff5f5;
-  color: #dc3545;
-  border: 1px solid #ffdddd;
+  font-size: 13.5px;
+  background: #FCF3F1;
+  color: var(--danger);
+  border: 1px solid #F3D9D4;
 }
 
 .alert-icon {
   font-weight: bold;
-  font-size: 16px;
 }
 
-/* Form control styles (copied from Login.vue for consistency) */
 .form-group {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .form-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  display: block;
   font-weight: 600;
-  font-size: 14px;
-  color: #2c1810;
-  margin-bottom: 10px;
-}
-
-.label-icon {
-  font-size: 16px;
+  font-size: 13px;
+  color: var(--ink);
+  margin-bottom: 8px;
 }
 
 .form-control {
   width: 100%;
-  padding: 12px 16px;
-  border: 2px solid #E0D4C4;
-  border-radius: 12px;
+  padding: 13px 16px;
+  border: 1.5px solid #E4DFD3;
+  border-radius: 10px;
   font-size: 14px;
-  transition: all 0.3s ease;
-  background: #FBF8F5;
+  font-family: inherit;
+  color: var(--ink);
+  background: var(--cream);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.form-control::placeholder {
+  color: #B3AA98;
 }
 
 .form-control:focus {
   outline: none;
-  border-color: #478b7f;
+  border-color: var(--brass);
   background: white;
-  box-shadow: 0 0 0 3px rgba(139, 111, 71, 0.1);
+  box-shadow: 0 0 0 3px rgba(201, 169, 110, 0.18);
 }
 
 .form-control.is-invalid {
-  border-color: #dc3545;
-  background: #fff5f5;
+  border-color: var(--danger);
+  background: #FCF3F1;
+}
+
+.form-control.is-valid {
+  border-color: var(--success);
 }
 
 .form-error {
   display: block;
   font-size: 12px;
-  color: #dc3545;
+  color: var(--danger);
   margin-top: 6px;
 }
 
-.form-control.is-valid {
-  border-color: #28a745; /* Green for valid */
-}
 .form-success {
   display: block;
-  margin-top: 5px;
+  margin-top: 6px;
   font-size: 12px;
-  color: #28a745; /* Green for success message */
+  color: var(--success);
 }
 
 @media (max-width: 480px) {
@@ -382,20 +420,11 @@ function validate() {
   }
 
   .auth-card {
-    padding: 24px;
-  }
-
-  .auth-logo {
-    width: 56px;
-    height: 56px;
-  }
-
-  .auth-brand h1 {
-    font-size: 20px;
+    padding: 28px 24px;
   }
 
   .form-control {
-    padding: 11px 14px;
+    padding: 12px 14px;
     font-size: 16px;
   }
 }
