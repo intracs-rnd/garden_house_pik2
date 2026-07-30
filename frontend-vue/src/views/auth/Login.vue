@@ -83,7 +83,7 @@ onMounted(() => {
               <rect x="19.5" y="14" width="3.5" height="3.5" fill="white" opacity="0.85"/>
             </svg>
           </div>
-          <h1>GH PIK2</h1>
+          <h1>GARDEN HOUSE PIK2</h1>
           <p>Portal Manajemen Perumahan</p>
         </div>
 
