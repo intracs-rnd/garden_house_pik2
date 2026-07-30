@@ -1,4 +1,4 @@
-﻿/* ---------- Header ---------- */
+/* ---------- Header ---------- */
 .dashboard-head {
   display: flex;
   align-items: flex-start;
@@ -676,8 +676,7 @@ a.stat-card:hover .stat-arrow {
 
 /* ---------- Riwayat gate table ---------- */
 .detail-history {
-  max-height: 420px;
-  overflow-y: auto;
+  /* Removed max-height and overflow-y: auto to prevent double scrollbar with Modal.vue */
 }
 
 .detail-empty {
