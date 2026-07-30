@@ -64,8 +64,14 @@ const menuGroups = [
     feature: 'reports',
     items: [
       {
+        to: { name: 'reports.kartu' },
+        label: 'Rekap & Detail Kartu',
+        icon: 'M9 17v-6m3 6V7m3 10v-3M6 3h9l5 5v11a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z',
+        feature: 'reports',
+      },
+      {
         to: { name: 'reports.index' },
-        label: 'Laporan Transaksi',
+        label: 'Kontrol Gate',
         icon: 'M9 17v-6m3 6V7m3 10v-3M6 3h9l5 5v11a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z',
         feature: 'reports',
       },
@@ -111,7 +117,7 @@ const menuGroups = [
 ]
 
 // Route names that belong to the laporan dropdown
-const laporanRoutes = ['reports.index', 'reports.gate-activity']
+const laporanRoutes = ['reports.index', 'reports.gate-activity', 'reports.kartu']
 
 const dropdownOpen = ref(laporanRoutes.includes(route.name))
 

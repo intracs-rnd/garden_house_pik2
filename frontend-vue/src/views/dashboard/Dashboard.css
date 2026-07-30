@@ -225,10 +225,10 @@ a.stat-card:hover .stat-arrow {
   padding: 16px;
   text-align: center;
   background: repeating-linear-gradient(45deg,
-      #0f172a,
-      #0f172a 12px,
-      #131c30 12px,
-      #131c30 24px);
+  #0f172a,
+  #0f172a 12px,
+  #131c30 12px,
+  #131c30 24px);
   color: #94a3b8;
 }
 
@@ -746,6 +746,25 @@ a.stat-card:hover .stat-arrow {
   display: flex;
   flex-direction: column;
   max-height: 520px;
+}
+
+/* Di layar medium/tablet ke bawah, kolom CCTV & Aktivitas ditumpuk vertikal
+   supaya tidak overflow horizontal (320px + 360px + gap tidak muat di layar sempit) */
+@media (max-width: 860px) {
+  .live-row {
+    flex-direction: column;
+  }
+
+  .live-cctv,
+  .live-activity {
+    min-width: 0;
+    width: 100%;
+    flex: none;
+  }
+
+  .live-activity {
+    max-height: 460px;
+  }
 }
 
 /* "Live" pulsing indicator */
@@ -1449,6 +1468,58 @@ a.stat-card:hover .stat-arrow {
 
   .rfid-detail-summary {
     grid-template-columns: 1fr;
+  }
+
+  .transaction-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .images-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .live-row {
+    margin-top: 16px;
+  }
+}
+
+/* ---------- Layar sangat kecil (HP) ---------- */
+@media (max-width: 480px) {
+  .images-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .mqtt-summary {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .mqtt-sum-item {
+    flex: 1 1 40%;
+  }
+
+  .mqtt-sum-divider {
+    display: none;
+  }
+
+  .mqtt-tabs {
+    padding: 8px 10px;
+  }
+
+  .stat-card {
+    padding: 18px 16px;
+    gap: 14px;
+  }
+
+  .stat-icon {
+    width: 46px;
+    height: 46px;
+  }
+
+  .stat-value {
+    font-size: 24px;
   }
 }
 

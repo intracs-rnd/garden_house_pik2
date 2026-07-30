@@ -114,12 +114,19 @@ const routes = [
         component: () => import('@/views/iuran/IuranList.vue'),
         meta: { title: 'Iuran Perumahan' },
       },
-      // Laporan (rekap & detail transaksi: harian / bulanan / tahunan, PDF)
+      // Laporan Transaksi Kartu
+      {
+        path: 'laporan/kartu',
+        name: 'reports.kartu',
+        component: () => import('@/views/reports/ReportKartu.vue'),
+        meta: { title: 'Laporan Transaksi Kartu', feature: 'reports' },
+      },
+      // Laporan Kontrol Gate
       {
         path: 'laporan',
         name: 'reports.index',
         component: () => import('@/views/reports/ReportList.vue'),
-        meta: { title: 'Laporan Transaksi', feature: 'reports' },
+        meta: { title: 'Laporan Kontrol Gate', feature: 'reports' },
       },
       // Log & Tren Aktivitas Gate (real-time gate logs + 7-day activity trend chart)
       {
