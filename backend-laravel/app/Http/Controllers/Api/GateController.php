@@ -124,11 +124,21 @@ class GateController extends Controller
     {
         $page = $request->query('page', 1);
         $perPage = $request->query('per_page', 20);
+        $date = $request->query('date');
+        $nomorPlat = $request->query('nomor_plat');
 
         // Query dari gate_manual_control (manual control)
-        $logs = GateManualControl::where('gate_id', $gateId)
-            ->selectRaw("id, gate_id, event_ts, action, result, nomor_plat, 'manual' as control_type, view_image_path, entry_image_1, entry_image_2, entry_image_3, entry_image_4")
-            ->orderBy('event_ts', 'desc')
+        $query = GateManualControl::where('gate_id', $gateId)
+            ->selectRaw("id, gate_id, event_ts, action, result, nomor_plat, 'manual' as control_type, view_image_path, entry_image_1, entry_image_2, entry_image_3, entry_image_4");
+
+        if ($date) {
+            $query->whereDate('event_ts', $date);
+        }
+        if ($nomorPlat) {
+            $query->where('nomor_plat', 'like', '%' . $nomorPlat . '%');
+        }
+
+        $logs = $query->orderBy('event_ts', 'desc')
             ->paginate($perPage, ['*'], 'page', $page);
 
         return response()->json([

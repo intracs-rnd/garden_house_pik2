@@ -882,15 +882,23 @@ const detailGatePagination = ref({
   has_more: false,
 })
 
+const detailGateFilterDate = ref('')
+const detailGateFilterPlate = ref('')
+
 async function loadDetailGateLogs(page = 1) {
   detailGateLoading.value = true
   detailGateError.value = ''
 
   try {
-    const res = await gateApi.getLogsByGateId(detailCamera.value.gate_id, {
+    const params = {
       page,
       per_page: detailGatePerPage,
-    })
+    }
+    
+    if (detailGateFilterDate.value) params.date = detailGateFilterDate.value
+    if (detailGateFilterPlate.value) params.nomor_plat = detailGateFilterPlate.value
+
+    const res = await gateApi.getLogsByGateId(detailCamera.value.gate_id, params)
     detailGateLogs.value = res.data?.logs || []
     detailGatePagination.value = res.data?.pagination || {}
     detailGatePage.value = page
@@ -901,10 +909,18 @@ async function loadDetailGateLogs(page = 1) {
   }
 }
 
+function resetDetailGateFilter() {
+  detailGateFilterDate.value = ''
+  detailGateFilterPlate.value = ''
+  loadDetailGateLogs(1)
+}
+
 async function openDetailModal(cam) {
   detailCamera.value = cam
   detailGateLogs.value = []
   detailGatePage.value = 1
+  detailGateFilterDate.value = ''
+  detailGateFilterPlate.value = ''
   detailModal.value = true
   await loadDetailGateLogs(1)
 }
@@ -1519,6 +1535,22 @@ onUnmounted(() => {
           :title="`Riwayat Gate${detailCamera ? ' · ' + detailCamera.name : ''}`"
       >
         <div class="detail-history">
+          <!-- Filter Riwayat Gate -->
+          <div class="filter-section" style="display: flex; gap: 10px; margin-bottom: 15px; align-items: flex-end; flex-wrap: wrap;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" style="font-size: 12px; margin-bottom: 4px;">Tanggal</label>
+              <input type="date" class="form-control" v-model="detailGateFilterDate" style="font-size: 13px; padding: 6px 10px; height: 34px;" />
+            </div>
+            <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 150px;">
+              <label class="form-label" style="font-size: 12px; margin-bottom: 4px;">Nomor Plat</label>
+              <input type="text" class="form-control" placeholder="Cari Plat..." v-model="detailGateFilterPlate" style="font-size: 13px; padding: 6px 10px; height: 34px;" @keyup.enter="loadDetailGateLogs(1)" />
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <Button variant="primary" type="button" @click="loadDetailGateLogs(1)" style="height: 34px; padding: 0 12px;">Cari</Button>
+              <Button variant="secondary" type="button" @click="resetDetailGateFilter" style="height: 34px; padding: 0 12px;">Reset</Button>
+            </div>
+          </div>
+
           <div v-if="detailGateLoading" class="detail-empty"><span class="spinner"></span>Memuat riwayat...</div>
           <div v-else-if="detailGateError" class="alert alert-danger">{{ detailGateError }}</div>
           <div v-else-if="!detailGateLogs.length" class="detail-empty">Belum ada riwayat gate.</div>
