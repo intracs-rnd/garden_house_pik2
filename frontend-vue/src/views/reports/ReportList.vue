@@ -39,8 +39,6 @@ const filters = ref({
   day: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
   month: `${now.getFullYear()}-${pad(now.getMonth() + 1)}`,
   year: String(now.getFullYear()),
-  time_from: '',
-  time_to: '',
   no_plat: '',
   direction: '',
   access_granted: '',
@@ -66,7 +64,6 @@ function resolveDate() {
 }
 
 function buildParams() {
-  const isDaily = filters.value.period === 'harian'
   return {
     period: filters.value.period,
     date: resolveDate(),
@@ -74,8 +71,6 @@ function buildParams() {
     access_granted: filters.value.access_granted !== '' ? filters.value.access_granted : undefined,
     gate: filters.value.gate || undefined,
     no_plat: filters.value.no_plat || undefined,
-    time_from: isDaily && filters.value.time_from ? filters.value.time_from : undefined,
-    time_to: isDaily && filters.value.time_to ? filters.value.time_to : undefined,
   }
 }
 
@@ -249,8 +244,6 @@ watch(
     day: filters.value.day,
     month: filters.value.month,
     year: filters.value.year,
-    time_from: filters.value.time_from,
-    time_to: filters.value.time_to,
     no_plat: filters.value.no_plat,
     direction: filters.value.direction,
     access_granted: filters.value.access_granted,
@@ -331,17 +324,6 @@ onBeforeUnmount(() => {
               <option v-for="y in yearOptions" :key="y" :value="y">{{ y }}</option>
             </select>
           </div>
-
-          <template v-if="filters.period === 'harian'">
-            <div class="field">
-              <label>Waktu Awal</label>
-              <input v-model="filters.time_from" type="time" class="form-control" />
-            </div>
-            <div class="field">
-              <label>Waktu Akhir</label>
-              <input v-model="filters.time_to" type="time" class="form-control" />
-            </div>
-          </template>
 
           <div class="field">
             <label>No. Plat</label>
