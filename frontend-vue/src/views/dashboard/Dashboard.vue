@@ -1098,7 +1098,7 @@ onUnmounted(() => {
 <template>
   <div class="page">
     <div class="dashboard-head">
-      <PageHeader title="Dashboard" subtitle="Ringkasan data sistem GH PIK2" />
+      <PageHeader title="Dashboard" subtitle="Ringkasan data sistem Garden House PIK2" />
     </div>
 
     <Loader v-if="loading" text="Memuat statistik..." />
