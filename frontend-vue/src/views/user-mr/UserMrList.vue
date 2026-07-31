@@ -49,7 +49,7 @@ async function handleDelete() {
   if (!deleteTarget.value) return
   deleting.value = true
   try {
-    await store.remove(deleteTarget.value.uuid)
+    await store.remove(deleteTarget.value.id)
     toast.success('User MR berhasil dihapus.')
     deleteTarget.value = null
     const page =
@@ -106,7 +106,7 @@ onMounted(() => store.fetchList())
             <Button
               variant="info"
               size="sm"
-              @click="router.push({ name: 'user-mr.edit', params: { uuid: row.uuid } })"
+              @click="router.push({ name: 'user-mr.edit', params: { uuid: row.id } })"
             >
               Edit
             </Button>
