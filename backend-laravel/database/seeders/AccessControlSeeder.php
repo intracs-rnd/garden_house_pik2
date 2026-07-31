@@ -24,11 +24,12 @@ class AccessControlSeeder extends Seeder
             ['key' => 'kartu',          'label' => 'Kartu Akses',            'sort_order' => 2],
             ['key' => 'kartu_gate',     'label' => 'Simulasi Gate',          'sort_order' => 3],
             ['key' => 'users',          'label' => 'Data Warga',             'sort_order' => 4],
-            ['key' => 'iuran',          'label' => 'Iuran Perumahan',       'sort_order' => 5],
-            ['key' => 'kendaraan',      'label' => 'Kendaraan',              'sort_order' => 6],
-            ['key' => 'reports',        'label' => 'Laporan',                'sort_order' => 7],
-            ['key' => 'access_control', 'label' => 'Pengaturan Hak Akses',   'sort_order' => 8],
-            ['key' => 'cameras',        'label' => 'Pengaturan Kamera',      'sort_order' => 9],
+            ['key' => 'user-mr',        'label' => 'User MR',                'sort_order' => 5],
+            ['key' => 'iuran',          'label' => 'Iuran Perumahan',       'sort_order' => 6],
+            ['key' => 'kendaraan',      'label' => 'Kendaraan',              'sort_order' => 7],
+            ['key' => 'reports',        'label' => 'Laporan',                'sort_order' => 8],
+            ['key' => 'access_control', 'label' => 'Pengaturan Hak Akses',   'sort_order' => 9],
+            ['key' => 'cameras',        'label' => 'Pengaturan Kamera',      'sort_order' => 10],
         ];
 
         DB::statement("SELECT setval(pg_get_serial_sequence('features','id'), (SELECT COALESCE(MAX(id), 1) FROM features))");

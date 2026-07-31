@@ -25,7 +25,9 @@ const columns = computed(() => {
     { key: 'username', label: 'Username' },
     { key: 'created_at', label: 'Terbuat' },
   ]
-  base.push({ key: 'aksi', label: 'Aksi', align: 'right' })
+  if (auth.canManage('user-mr')) {
+    base.push({ key: 'aksi', label: 'Aksi', align: 'right' })
+  }
   return base
 })
 
@@ -69,7 +71,7 @@ onMounted(() => store.fetchList())
   <div class="page">
     <PageHeader title="User MR" subtitle="Kelola akun user MR sistem">
       <template #actions>
-        <Button variant="primary" @click="router.push({ name: 'user-mr.create' })">
+        <Button v-if="auth.canManage('user-mr')" variant="primary" @click="router.push({ name: 'user-mr.create' })">
           + Tambah User MR
         </Button>
       </template>
