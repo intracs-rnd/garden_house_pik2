@@ -55,12 +55,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/error-logs', [ErrorLogController::class, 'clear']);
     });
 
-    // ---- User MR management (SUPER ADMIN ONLY) ----
+    // ---- User MR management ----
     // CRUD operations for managing MR users with bcrypt password hashing.
-    Route::middleware('superadmin')->group(function () {
+    Route::middleware('feature:user-mr,view')->group(function () {
         Route::get('/user-mr', [UserMrController::class, 'index']);
-        Route::post('/user-mr', [UserMrController::class, 'store']);
         Route::get('/user-mr/{uuid}', [UserMrController::class, 'show']);
+    });
+    Route::middleware('feature:user-mr,manage')->group(function () {
+        Route::post('/user-mr', [UserMrController::class, 'store']);
         Route::match(['put', 'patch'], '/user-mr/{uuid}', [UserMrController::class, 'update']);
         Route::delete('/user-mr/{uuid}', [UserMrController::class, 'destroy']);
     });
