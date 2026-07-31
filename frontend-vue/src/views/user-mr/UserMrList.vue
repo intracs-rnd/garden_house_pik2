@@ -118,19 +118,17 @@ onMounted(() => store.fetchList())
       </DataTable>
     </div>
 
-    <Modal
-      v-if="deleteTarget"
-      title="Hapus User MR"
-      @close="deleteTarget = null"
-      @confirm="handleDelete"
-      :loading="deleting"
-    >
+    <!-- Delete confirmation -->
+    <Modal :model-value="!!deleteTarget" title="Hapus User MR" @update:model-value="deleteTarget = null">
       <p>
         Apakah Anda yakin ingin menghapus user MR
-        <strong>{{ deleteTarget.username }}</strong
-        >?
+        <strong>{{ deleteTarget?.username }}</strong>?
       </p>
       <p style="font-size: 12px; color: var(--color-muted)">Tindakan ini tidak dapat diurungkan.</p>
+      <template #footer>
+        <Button variant="secondary" @click="deleteTarget = null">Batal</Button>
+        <Button variant="danger" :loading="deleting" @click="handleDelete">Hapus</Button>
+      </template>
     </Modal>
   </div>
 </template>

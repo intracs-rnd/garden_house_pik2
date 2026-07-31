@@ -116,11 +116,8 @@ function onSubmit() {
           class="form-control"
           :class="{ 'is-invalid': errors.username }"
           placeholder="Masukkan username unik"
-          :readonly="isEdit"
-          :title="isEdit ? 'Username tidak dapat diubah' : ''"
         />
         <span v-if="errors.username" class="form-error">{{ errors.username }}</span>
-        <span v-else-if="isEdit" class="form-hint">Username tidak dapat diubah</span>
       </div>
 
       <div class="form-group">
