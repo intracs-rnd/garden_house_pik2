@@ -28,7 +28,7 @@ const loading = ref(true)
 onMounted(async () => {
   try {
     await store.fetchOne(props.uuid)
-    const user = store.current.data
+    const user = store.current
     form.name = user.name
     form.username = user.username
     form.password = ''
