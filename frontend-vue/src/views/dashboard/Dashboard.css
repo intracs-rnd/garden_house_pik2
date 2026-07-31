@@ -1,4 +1,4 @@
-/* ---------- Header ---------- */
+﻿/* ---------- Header ---------- */
 .dashboard-head {
   display: flex;
   align-items: flex-start;
@@ -225,10 +225,10 @@ a.stat-card:hover .stat-arrow {
   padding: 16px;
   text-align: center;
   background: repeating-linear-gradient(45deg,
-  #0f172a,
-  #0f172a 12px,
-  #131c30 12px,
-  #131c30 24px);
+      #0f172a,
+      #0f172a 12px,
+      #131c30 12px,
+      #131c30 24px);
   color: #94a3b8;
 }
 
@@ -675,9 +675,7 @@ a.stat-card:hover .stat-arrow {
 }
 
 /* ---------- Riwayat gate table ---------- */
-.detail-history {
-  /* Removed max-height and overflow-y: auto to prevent double scrollbar with Modal.vue */
-}
+
 
 .detail-empty {
   display: flex;
@@ -2123,7 +2121,8 @@ a.stat-card:hover .stat-arrow {
 }
 
 .stat-value {
-  font-variant-numeric: tabular-nums; /* biar digit nggak "goyang" lebar saat berubah */
+  font-variant-numeric: tabular-nums;
+  /* biar digit nggak "goyang" lebar saat berubah */
   transition: color 0.2s ease;
 }
 
@@ -2137,6 +2136,7 @@ a.stat-card:hover .stat-arrow {
     opacity: 0;
     transform: translateY(6px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
