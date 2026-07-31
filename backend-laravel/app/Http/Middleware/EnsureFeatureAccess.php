@@ -27,7 +27,24 @@ class EnsureFeatureAccess
     {
         $user = $request->user();
 
-        if (! $user || ! $this->permissions->roleCan($user->role, $feature, $level)) {
+        if (! $user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki izin untuk mengakses fitur ini.',
+            ], 403);
+        }
+
+        $features = explode('|', $feature);
+        $hasAccess = false;
+
+        foreach ($features as $f) {
+            if ($this->permissions->roleCan($user->role, $f, $level)) {
+                $hasAccess = true;
+                break;
+            }
+        }
+
+        if (! $hasAccess) {
             return response()->json([
                 'success' => false,
                 'message' => 'Anda tidak memiliki izin untuk mengakses fitur ini.',
