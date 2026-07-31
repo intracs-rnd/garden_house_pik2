@@ -41,7 +41,7 @@
 <body>
     <div class="doc-header">
         <h1>Laporan Kontrol Gate</h1>
-        <div class="subtitle">GH PIK2 &middot; Log Buka / Tutup Gate Manual</div>
+        <div class="subtitle">Garden House PIK2 &middot; Log Buka / Tutup Gate Manual</div>
     </div>
 
     <table class="meta-table">
