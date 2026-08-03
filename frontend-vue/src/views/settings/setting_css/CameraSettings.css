@@ -1,0 +1,124 @@
+.cam-loading {
+    display: grid;
+    place-items: center;
+    padding: 48px;
+}
+.cam-error {
+    color: #b91c1c;
+    padding: 16px;
+}
+.cam-hint {
+    font-size: 13px;
+    color: #64748b;
+    margin: 0 0 16px;
+}
+.cam-hint code {
+    background: #f1f5f9;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+.cam-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+.cam-card {
+    background: #fff;
+    border: 1px solid var(--color-border, #e2e8f0);
+    border-radius: var(--radius, 8px);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.cam-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.cam-path {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+}
+.cam-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    cursor: pointer;
+}
+.cam-preview {
+    border-radius: 8px;
+    overflow: hidden;
+}
+.cam-preview-off {
+    aspect-ratio: 16 / 9;
+    display: grid;
+    place-items: center;
+    background: #0f172a;
+    color: #64748b;
+    font-size: 13px;
+    border-radius: 8px;
+}
+.cam-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13px;
+}
+.cam-field span {
+    font-weight: 600;
+    color: #334155;
+}
+.cam-field input {
+    padding: 8px 10px;
+    border: 1px solid var(--color-border, #cbd5e1);
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+}
+.cam-field input:focus {
+    outline: none;
+    border-color: var(--color-primary, #2563eb);
+}
+.cam-status {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+}
+.cam-status strong {
+    font-size: 12px;
+}
+.cam-status.ok {
+    background: #ecfdf5;
+    color: #047857;
+}
+.cam-status.error {
+    background: #fef2f2;
+    color: #b91c1c;
+}
+.cam-status.warn {
+    background: #fffbeb;
+    color: #b45309;
+}
+.cam-status.muted {
+    background: #f1f5f9;
+    color: #64748b;
+}
+.cam-unsaved {
+    margin-top: 12px;
+    font-size: 13px;
+    color: #b45309;
+}
+@media (max-width: 768px) {
+    .cam-grid {
+        grid-template-columns: 1fr;
+    }
+}
