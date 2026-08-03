@@ -2,6 +2,7 @@
 defineProps({
   modelValue: { type: Boolean, default: false },
   title: { type: String, default: '' },
+  size: { type: String, default: 'default' }, // default | lg | xl | full
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -15,7 +16,7 @@ function close() {
   <Teleport to="body">
     <Transition name="modal">
       <div v-if="modelValue" class="modal-overlay" @click.self="close">
-        <div class="modal-dialog" role="dialog" aria-modal="true">
+        <div class="modal-dialog" :class="`modal-size-${size}`" role="dialog" aria-modal="true">
           <div class="modal-header">
             <h3>{{ title }}</h3>
             <button class="modal-close" type="button" @click="close">&times;</button>
@@ -52,6 +53,18 @@ function close() {
   max-height: 90vh;
   display: flex;
   flex-direction: column;
+}
+.modal-dialog.modal-size-lg {
+  max-width: 720px;
+}
+.modal-dialog.modal-size-xl {
+  max-width: 1080px;
+}
+.modal-dialog.modal-size-full {
+  max-width: 96vw;
+  width: 96vw;
+  max-height: 96vh;
+  height: 96vh;
 }
 .modal-header {
   display: flex;

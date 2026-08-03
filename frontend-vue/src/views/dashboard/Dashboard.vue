@@ -740,40 +740,47 @@ async function searchPlateNumber() {
     console.log('✅ Transaction found:', response.data)
     gateTransactionData.value = response.data
 
-    // Collect image paths with labels
-    const imagePaths = []
+    // Collect image paths with labels from the backend-resolved list.
+    // Each item: { path, label, source: 'MR'|'CCTV'|'ANPR', direction: 'entry'|'exit' }
+    let imagePaths = []
 
-    if (response.data.view_image_path) {
-      imagePaths.push({ path: response.data.view_image_path, label: 'CCTV (Entry)' })
-    }
-    if (response.data.entry_image_1 || response.data.entry_image1) {
-      imagePaths.push({ path: response.data.entry_image_1 || response.data.entry_image1, label: 'ANPR (Entry 1)' })
-    }
-    if (response.data.entry_image_2 || response.data.entry_image2) {
-      imagePaths.push({ path: response.data.entry_image_2 || response.data.entry_image2, label: 'ANPR (Entry 2)' })
-    }
-    if (response.data.exit_view_image_path) {
-      imagePaths.push({ path: response.data.exit_view_image_path, label: 'CCTV (Exit)' })
-    }
-    if (response.data.exit_image_1 || response.data.exit_image1) {
-      imagePaths.push({ path: response.data.exit_image_1 || response.data.exit_image1, label: 'ANPR (Exit 1)' })
-    }
-    if (response.data.exit_image_2 || response.data.exit_image2) {
-      imagePaths.push({ path: response.data.exit_image_2 || response.data.exit_image2, label: 'ANPR (Exit 2)' })
+    if (Array.isArray(response.data.resolved_images) && response.data.resolved_images.length) {
+      imagePaths = response.data.resolved_images
+          .filter(item => item && item.path)
+          .map(item => ({
+            path: item.path,
+            label: item.label,
+            source: item.source || 'MR',
+            direction: item.direction || 'entry',
+          }))
+    } else {
+      // Fallback: legacy flat fields
+      if (response.data.view_image_path) {
+        imagePaths.push({ path: response.data.view_image_path, label: 'CCTV (Masuk)', source: 'CCTV', direction: 'entry' })
+      }
+      if (response.data.exit_view_image_path) {
+        imagePaths.push({ path: response.data.exit_view_image_path, label: 'CCTV (Keluar)', source: 'CCTV', direction: 'exit' })
+      }
     }
 
-    const finalImagePaths = imagePaths.slice(0, 4)
+    // Deduplicate by path while keeping the first (most specific) label.
+    const seenPaths = new Set()
+    const finalImagePaths = imagePaths.filter(item => {
+      if (seenPaths.has(item.path)) return false
+      seenPaths.add(item.path)
+      return true
+    })
 
     if (finalImagePaths.length > 0) {
       gateImageLoading.value = true
 
       // Fetch all images in parallel
-      const imagePromises = finalImagePaths.map(async (item, idx) => {
+      const imagePromises = finalImagePaths.map(async (item) => {
         try {
           const imageData = await transactionApi.fetchImage(item.path)
-          return { ...imageData, label: item.label }
+          return { ...imageData, label: item.label, source: item.source, direction: item.direction }
         } catch (err) {
-          return { success: false, path: item.path, label: item.label, error: err.message }
+          return { success: false, path: item.path, label: item.label, source: item.source, direction: item.direction, error: err.message }
         }
       })
 
@@ -821,8 +828,8 @@ function submitGateAction() {
 
   gateSubmitting.value = true
 
-  const viewPath = gateImages.value.find(img => img.label && img.label.includes('CCTV'))?.path || null
-  const anprPaths = gateImages.value.filter(img => img.label && img.label.includes('ANPR')).map(img => img.path)
+  const viewPath = gateImages.value.find(img => img.source === 'CCTV')?.path || null
+  const anprPaths = gateImages.value.filter(img => img.source === 'ANPR' || img.source === 'MR').map(img => img.path)
 
   // Publish gate action ke MQTT dan log dengan nomor plat + gambar
   publishGateAction(gateCamera.value.gate_id, gateAction.value === 'open', {
@@ -1339,7 +1346,7 @@ onUnmounted(() => {
       </div>
 
       <!-- Modal: Buka / Tutup Gate (frontend only) -->
-      <Modal v-model="gateModal" :title="gateModalTitle">
+      <Modal v-model="gateModal" :title="gateModalTitle" :size="gateTransactionData ? 'full' : 'lg'">
         <div class="gate-steps">
           <span class="gate-step" :class="{ 'is-active': !gateTransactionData, 'is-done': gateTransactionData }">
             <span class="gate-step-num">
@@ -1395,6 +1402,48 @@ onUnmounted(() => {
           </div>
         </form>
 
+        <!-- Empty / Searching state (sebelum data transaksi ditemukan) -->
+        <div v-if="!gateTransactionData" class="gate-empty-state">
+          <div v-if="gateSearching" class="gate-empty-searching">
+            <span class="gate-empty-radar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            </span>
+            <p class="gate-empty-title">Mencari kendaraan…</p>
+            <p class="gate-empty-sub">Memvalidasi nomor plat & mengambil data transaksi.</p>
+          </div>
+          <template v-else>
+            <div class="gate-empty-illustration">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 16H9m10 0h3v-3.15a1 1 0 0 0-.84-.99L16 11l-2.7-3.6a1 1 0 0 0-.8-.4H5.24a2 2 0 0 0-1.8 1.1l-.8 1.63A6 6 0 0 0 2 12.42V16h2"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg>
+            </div>
+            <p class="gate-empty-title">Cari data kendaraan</p>
+            <p class="gate-empty-sub">Masukkan nomor plat di atas, lalu klik <b>Cari</b> untuk menampilkan detail transaksi beserta gambar CCTV, ANPR, dan MR.</p>
+            <div class="gate-empty-tips">
+              <div class="gate-empty-tip">
+                <span class="gate-empty-tip-icon tip-cctv">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg>
+                </span>
+                <span>Gambar CCTV masuk & keluar</span>
+              </div>
+              <div class="gate-empty-tip">
+                <span class="gate-empty-tip-icon tip-anpr">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9v6M12 9v6M17 9v6"/></svg>
+                </span>
+                <span>Snapshot plat dari ANPR</span>
+              </div>
+              <div class="gate-empty-tip">
+                <span class="gate-empty-tip-icon tip-mr">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+                </span>
+                <span>Foto kendaraan dari MR</span>
+              </div>
+            </div>
+            <div class="gate-empty-hintbar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+              <span>Tekan <b>Enter</b> pada kolom nomor plat untuk mencari lebih cepat.</span>
+            </div>
+          </template>
+        </div>
+
         <!-- Transaction Data Display -->
         <div v-if="gateTransactionData" class="gate-transaction-info">
           <div class="transaction-info-header">
@@ -1435,6 +1484,8 @@ onUnmounted(() => {
             </div>
           </div>
 
+          <!-- Images Display: Entry + Exit side-by-side -->
+          <div class="gate-images-columns">
           <!-- Images Display: Entry -->
           <div class="gate-images-section">
             <div class="gate-images-section-header">
@@ -1452,11 +1503,11 @@ onUnmounted(() => {
               <span>Memuat gambar...</span>
             </div>
             <template v-else>
-              <!-- Entry images (CCTV view + ANPR entry) -->
+              <!-- Entry images: MR + CCTV + ANPR -->
               <div class="images-grid">
-                <template v-for="(image, index) in gateImages" :key="index">
-                  <div v-if="image.label && (image.label.includes('Entry') || image.label.includes('CCTV (Entry)'))" class="image-item" style="position: relative;">
-                    <div class="image-label-overlay" :class="image.label.startsWith('CCTV') ? 'label-cctv' : 'label-anpr'">
+                <template v-for="(image, index) in gateImages" :key="'entry-' + index">
+                  <div v-if="image.direction === 'entry'" class="image-item" style="position: relative;">
+                    <div class="image-label-overlay" :class="image.source === 'CCTV' ? 'label-cctv' : image.source === 'MR' ? 'label-mr' : 'label-anpr'">
                       {{ image.label }}
                     </div>
                     <img v-if="image.url" :src="image.url" :alt="image.label" @error="handleImageError" style="width:100%;height:100%;object-fit:cover;cursor:pointer;" @click="openImagePreview(image)" />
@@ -1467,7 +1518,7 @@ onUnmounted(() => {
                     </div>
                   </div>
                 </template>
-                <div v-if="!gateImages.some(img => img.label && (img.label.includes('Entry') || img.label.includes('CCTV (Entry)')))" class="image-placeholder" style="aspect-ratio:16/9;min-height:90px;">
+                <div v-if="!gateImages.some(img => img.direction === 'entry')" class="image-placeholder" style="aspect-ratio:16/9;min-height:90px;">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:24px;height:24px;opacity:0.35;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
                   <span style="font-size:11px;margin-top:6px;">Tidak ada gambar masuk</span>
                 </div>
@@ -1476,7 +1527,7 @@ onUnmounted(() => {
           </div>
 
           <!-- Images Display: Exit -->
-          <div class="gate-images-section" v-if="gateImages.some(img => img.label && img.label.includes('Exit')) || gateTransactionData.category_exit">
+          <div class="gate-images-section" v-if="gateImages.some(img => img.direction === 'exit') || gateTransactionData.category_exit">
             <div class="gate-images-section-header">
               <span class="gate-images-section-icon gate-images-section-icon--exit">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
@@ -1489,8 +1540,8 @@ onUnmounted(() => {
 
             <div class="images-grid">
               <template v-for="(image, index) in gateImages" :key="'exit-' + index">
-                <div v-if="image.label && image.label.includes('Exit')" class="image-item" style="position: relative;">
-                  <div class="image-label-overlay" :class="image.label.startsWith('CCTV') ? 'label-cctv' : 'label-anpr'">
+                <div v-if="image.direction === 'exit'" class="image-item" style="position: relative;">
+                  <div class="image-label-overlay" :class="image.source === 'CCTV' ? 'label-cctv' : image.source === 'MR' ? 'label-mr' : 'label-anpr'">
                     {{ image.label }}
                   </div>
                   <img v-if="image.url" :src="image.url" :alt="image.label" @error="handleImageError" style="width:100%;height:100%;object-fit:cover;cursor:pointer;" @click="openImagePreview(image)" />
@@ -1501,11 +1552,12 @@ onUnmounted(() => {
                   </div>
                 </div>
               </template>
-              <div v-if="!gateImages.some(img => img.label && img.label.includes('Exit'))" class="image-placeholder" style="aspect-ratio:16/9;min-height:90px;">
+              <div v-if="!gateImages.some(img => img.direction === 'exit')" class="image-placeholder" style="aspect-ratio:16/9;min-height:90px;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:24px;height:24px;opacity:0.35;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
                 <span style="font-size:11px;margin-top:6px;">Belum ada gambar keluar</span>
               </div>
             </div>
+          </div>
           </div>
         </div>
 
