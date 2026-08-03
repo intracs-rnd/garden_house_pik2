@@ -39,7 +39,7 @@ const columns = computed(() => {
     { key: 'pemilik', label: 'Pemilik' },
     { key: 'masa_berlaku', label: 'Masa Berlaku' },
     { key: 'tenggang', label: 'Tenggang' },
-    { key: 'iuran', label: 'Iuran' },
+    // { key: 'iuran', label: 'Iuran' },
     { key: 'status', label: 'Status' },
     { key: 'akses', label: 'Akses' },
     { key: 'blacklist_reason', label: 'Keterangan Blacklist' },
