@@ -19,17 +19,17 @@ const PERIODS = [
   { value: 'tahunan', label: 'Tahunan' },
 ]
 
-const DIRECTIONS = [
-  { value: '', label: 'Semua Arah' },
-  { value: 1, label: 'Tab In' },
-  { value: 2, label: 'Tab Out' },
-]
+// const DIRECTIONS = [
+//   { value: '', label: 'Semua Arah' },
+//   { value: 1, label: 'Tab In' },
+//   { value: 2, label: 'Tab Out' },
+// ]
 
-const RESULTS = [
-  { value: '', label: 'Semua Hasil' },
-  { value: '1', label: 'Diterima' },
-  { value: '0', label: 'Ditolak' },
-]
+// const RESULTS = [
+//   { value: '', label: 'Semua Hasil' },
+//   { value: '1', label: 'Diterima' },
+//   { value: '0', label: 'Ditolak' },
+// ]
 
 const now = new Date()
 const pad = (n) => String(n).length === 1 ? `0${n}` : String(n)
@@ -330,19 +330,19 @@ onBeforeUnmount(() => {
             <input v-model="filters.no_plat" type="text" class="form-control" placeholder="Semua plat" />
           </div>
 
-          <div class="field">
-            <label>Arah</label>
-            <select v-model="filters.direction" class="form-control">
-              <option v-for="d in DIRECTIONS" :key="d.label" :value="d.value">{{ d.label }}</option>
-            </select>
-          </div>
+<!--          <div class="field">-->
+<!--            <label>Arah</label>-->
+<!--            <select v-model="filters.direction" class="form-control">-->
+<!--              <option v-for="d in DIRECTIONS" :key="d.label" :value="d.value">{{ d.label }}</option>-->
+<!--            </select>-->
+<!--          </div>-->
 
-          <div class="field">
-            <label>Hasil</label>
-            <select v-model="filters.access_granted" class="form-control">
-              <option v-for="r in RESULTS" :key="r.label" :value="r.value">{{ r.label }}</option>
-            </select>
-          </div>
+<!--          <div class="field">-->
+<!--            <label>Hasil</label>-->
+<!--            <select v-model="filters.access_granted" class="form-control">-->
+<!--              <option v-for="r in RESULTS" :key="r.label" :value="r.value">{{ r.label }}</option>-->
+<!--            </select>-->
+<!--          </div>-->
 
           <div class="field">
             <label>Gate</label>
