@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AccessControlController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CameraController;
+use App\Http\Controllers\Api\CardImportController;
 use App\Http\Controllers\Api\CardReplicationController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\DashboardController;
@@ -232,5 +233,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('superadmin')->group(function () {
         Route::post('/cards/replication/retry-failed', [CardReplicationController::class, 'retryFailedSyncs']);
         Route::post('/cards/replication/refresh-status', [CardReplicationController::class, 'refreshReplicationStatus']);
+        // Bulk import cards via CSV + list + direct edit/delete (Super Admin only)
+        Route::get('/cards', [CardImportController::class, 'index']);
+        Route::post('/cards/import', [CardImportController::class, 'import']);
+        Route::put('/cards/manage/{id}', [CardImportController::class, 'update']);
+        Route::delete('/cards/manage/{id}', [CardImportController::class, 'destroy']);
     });
 });

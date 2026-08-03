@@ -156,6 +156,13 @@ const routes = [
         component: () => import('@/views/logs/LogList.vue'),
         meta: { title: 'Log Error', superAdmin: true },
       },
+      // Import Cards CSV — khusus Super Admin.
+      {
+        path: 'cards/import',
+        name: 'cards.import',
+        component: () => import('@/views/cards/CardImport.vue'),
+        meta: { title: 'Import Cards CSV', superAdmin: true },
+      },
       // MQTT Test (untuk development/testing)
       {
         path: 'mqtt-test',
