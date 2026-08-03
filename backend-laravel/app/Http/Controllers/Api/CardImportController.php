@@ -17,7 +17,7 @@ class CardImportController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Card::query()->orderByDesc('id');
+        $query = Card::writeQuery()->orderByDesc('id');
 
         if ($search = trim($request->query('search', ''))) {
             $query->where(function ($q) use ($search) {
@@ -177,7 +177,8 @@ class CardImportController extends Controller
      */
     public function update(Request $request, int $id): JsonResponse
     {
-        $card = Card::find($id);
+        // Force read dari write host agar konsisten dengan operasi DML
+        $card = Card::writeQuery()->find($id);
 
         if (! $card) {
             return response()->json([
@@ -194,21 +195,33 @@ class CardImportController extends Controller
             'grace_days' => 'sometimes|nullable|integer|min:0',
         ]);
 
+        // Kosongkan expiry jika dikirim sebagai string kosong
+        if (array_key_exists('expiry', $validated) && $validated['expiry'] === '') {
+            $validated['expiry'] = null;
+        }
+
+        // Pastikan name & unit tidak null agar tidak melanggar NOT NULL constraint di DB
+        if (array_key_exists('name', $validated) && $validated['name'] === null) {
+            $validated['name'] = '';
+        }
+        if (array_key_exists('unit', $validated) && $validated['unit'] === null) {
+            $validated['unit'] = '';
+        }
+
         try {
-            $card->update($validated);
+            $card->fill($validated)->save();
 
             return response()->json([
                 'success' => true,
                 'message' => 'Card berhasil diperbarui.',
-                'data'    => $card->fresh(),
+                'data'    => Card::writeQuery()->find($id),
             ]);
         } catch (\Exception $e) {
             Log::error("CardImport update #{$id}: " . $e->getMessage());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal memperbarui card.',
-                'error'   => $e->getMessage(),
+                'message' => 'Gagal memperbarui card: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -219,7 +232,8 @@ class CardImportController extends Controller
      */
     public function destroy(int $id): JsonResponse
     {
-        $card = Card::find($id);
+        // Force read dari write host
+        $card = Card::writeQuery()->find($id);
 
         if (! $card) {
             return response()->json([
@@ -240,8 +254,7 @@ class CardImportController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal menghapus card.',
-                'error'   => $e->getMessage(),
+                'message' => 'Gagal menghapus card: ' . $e->getMessage(),
             ], 500);
         }
     }

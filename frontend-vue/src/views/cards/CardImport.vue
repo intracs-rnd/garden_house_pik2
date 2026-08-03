@@ -154,7 +154,17 @@ async function saveEdit() {
   editSaving.value = true
   editError.value  = ''
   try {
-    await cardsApi.update(editTarget.value.id, editForm.value)
+    // Kirim hanya field yang berisi nilai, jangan kirim expiry kosong sebagai string
+    const payload = {
+      status:     editForm.value.status,
+      name:       editForm.value.name       ?? '',
+      unit:       editForm.value.unit       ?? '',
+      grace_days: editForm.value.grace_days ?? 0,
+    }
+    if (editForm.value.expiry) {
+      payload.expiry = editForm.value.expiry.substring(0, 10)
+    }
+    await cardsApi.update(editTarget.value.id, payload)
     toast.success('Card berhasil diperbarui.')
     editOpen.value = false
     fetchCards()
