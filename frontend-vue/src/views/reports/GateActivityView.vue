@@ -106,4 +106,4 @@ onUnmounted(() => {
   </div>
 </template>
 
-<style scoped src="./Reports/GateActivityView.css"></style>
+<style scoped src="./Reports_css/GateActivityView.css"></style>

@@ -623,5 +623,5 @@ onBeforeUnmount(() => {
   </div>
 </template>
 
-<style scoped src="./Reports/ReportKartu.css"></style>
+<style scoped src="./Reports_css/ReportKartu.css"></style>
 
