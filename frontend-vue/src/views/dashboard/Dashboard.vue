@@ -834,6 +834,8 @@ function submitGateAction() {
   // Publish gate action ke MQTT dan log dengan nomor plat + gambar
   publishGateAction(gateCamera.value.gate_id, gateAction.value === 'open', {
     nomor_plat: gateForm.value.nomor_plat,
+    // Simpan kode transaksi agar Riwayat Gate bisa resolve ulang seluruh gambar (MR/CCTV/ANPR)
+    code_transaction: gateTransactionData.value?.code_transaction || null,
     // Masukkan gambar CCTV ke view_image_path, sisanya (baik entry maupun exit) ke slot entry_image_1 s/d 4
     view_image_path: viewPath,
     entry_image_1: anprPaths[0] || null,
@@ -933,7 +935,7 @@ async function openDetailModal(cam) {
 }
 
 function hasImages(log) {
-  return !!(log.view_image_path || log.entry_image_1 || log.entry_image_2 || log.entry_image_3 || log.entry_image_4)
+  return !!(log.code_transaction || log.view_image_path || log.entry_image_1 || log.entry_image_2 || log.entry_image_3 || log.entry_image_4)
 }
 
 const logImagesModal = ref(false)
@@ -951,20 +953,41 @@ async function openLogImagesModal(log) {
   logImagesLog.value = log
   logImagesSubmitting.value = false
 
-  // Kumpulkan semua path gambar yang tersedia beserta labelnya
-  const pathItems = []
-  if (log.view_image_path) {
-    pathItems.push({ path: log.view_image_path, label: 'CCTV (View)' })
+  // Kumpulkan path gambar beserta label + sumber + arah.
+  let pathItems = []
+
+  // Prioritas: jika ada code_transaction, resolve ulang SELURUH gambar (MR/CCTV/ANPR,
+  // masuk & keluar) langsung dari transaksi agar konsisten dengan modal konfirmasi.
+  if (log.code_transaction) {
+    try {
+      const resp = await transactionApi.getByCode(log.code_transaction)
+      const resolved = resp?.data?.resolved_images
+      if (Array.isArray(resolved) && resolved.length) {
+        pathItems = resolved
+            .filter(item => item && item.path)
+            .map(item => ({
+              path: item.path,
+              label: item.label,
+              source: item.source || 'MR',
+              direction: item.direction || 'entry',
+            }))
+      }
+    } catch (err) {
+      console.warn('⚠️ Gagal resolve gambar dari code_transaction, fallback ke data tersimpan:', err?.message)
+    }
   }
-  const entryFields = [
-    { field: 'entry_image_1', label: 'ANPR (Entry 1)' },
-    { field: 'entry_image_2', label: 'ANPR (Entry 2)' },
-    { field: 'entry_image_3', label: 'ANPR (Entry 3)' },
-    { field: 'entry_image_4', label: 'ANPR (Entry 4)' },
-  ]
-  for (const { field, label } of entryFields) {
-    const p = log[field]
-    if (p != null && p !== '') pathItems.push({ path: p, label })
+
+  // Fallback: pakai gambar snapshot yang tersimpan di baris gate_manual_control.
+  if (pathItems.length === 0) {
+    if (log.view_image_path) {
+      pathItems.push({ path: log.view_image_path, label: 'CCTV (Masuk)', source: 'CCTV', direction: 'entry' })
+    }
+    for (let i = 1; i <= 4; i++) {
+      const p = log['entry_image_' + i]
+      if (p != null && p !== '') {
+        pathItems.push({ path: p, label: 'Gambar ' + i, source: 'MR', direction: 'entry' })
+      }
+    }
   }
 
   // Deduplikasi berdasarkan path, tanpa batasan jumlah
@@ -981,12 +1004,12 @@ async function openLogImagesModal(log) {
   }
 
   try {
-    const promises = uniqueItems.map(async ({ path, label }) => {
+    const promises = uniqueItems.map(async ({ path, label, source, direction }) => {
       try {
         const imageData = await transactionApi.fetchImage(path)
-        return { ...imageData, label }
+        return { ...imageData, label, source, direction }
       } catch (err) {
-        return { success: false, path, label, error: err.message }
+        return { success: false, path, label, source, direction, error: err.message }
       }
     })
     logImagesData.value = await Promise.all(promises)
@@ -1869,6 +1892,7 @@ onUnmounted(() => {
       <!-- Modal: Gambar Riwayat Gate -->
       <Modal
           v-model="logImagesModal"
+          :size="logImagesData.length > 4 ? 'full' : 'lg'"
           :title="logImagesLog ? `Gambar Riwayat Gate · ${logImagesLog.gate_id || ''}` : 'Gambar Riwayat Gate'"
       >
         <!-- Info ringkas log -->
@@ -1880,6 +1904,7 @@ onUnmounted(() => {
           <span class="badge" :class="logImagesLog.action === 'OPEN' ? 'badge-success' : 'badge-info'">{{ logImagesLog.action }}</span>
           <span class="badge" :class="logImagesLog.result === 'SUCCESS' ? 'badge-success' : 'badge-danger'">{{ logImagesLog.result }}</span>
           <span v-if="logImagesLog.event_ts" class="log-images-time">{{ formatDateTime(logImagesLog.event_ts) }}</span>
+          <span v-if="logImagesLog.code_transaction" class="log-images-time" style="font-weight:600;">{{ logImagesLog.code_transaction }}</span>
         </div>
 
         <div v-if="logImagesLoading" class="gate-images-loading">
@@ -1888,35 +1913,54 @@ onUnmounted(() => {
         </div>
         <div v-else-if="logImagesError" class="alert alert-danger">{{ logImagesError }}</div>
         <div v-else-if="logImagesData.length > 0" class="gate-images">
-          <div class="images-grid">
-            <div v-for="(image, index) in logImagesData" :key="index" class="image-item" style="position:relative;">
-              <!-- Label overlay -->
-              <div v-if="image.label" class="image-label-overlay" :class="image.label.startsWith('CCTV') ? 'label-cctv' : 'label-anpr'">
-                {{ image.label }}
+          <div class="gate-images-columns">
+            <!-- Gambar Masuk -->
+            <div class="gate-images-section" v-if="logImagesData.some(img => img.direction === 'entry')">
+              <div class="gate-images-section-header">
+                <span class="gate-images-section-icon gate-images-section-icon--entry">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </span>
+                <span class="gate-images-section-title">Gambar Masuk</span>
               </div>
-              <img v-if="image.url"
-                   :src="image.url"
-                   :alt="image.label || `Gambar ${index + 1}`"
-                   @error="handleImageError"
-                   style="width: 100%; height: 100%; object-fit: cover; cursor: pointer;"
-                   @click="openImagePreview(image)"
-              />
-              <img v-else-if="image.base64"
-                   :src="`data:image/jpeg;base64,${image.base64}`"
-                   :alt="image.label || `Gambar ${index + 1}`"
-                   @error="handleImageError"
-                   style="width: 100%; height: 100%; object-fit: cover; cursor: pointer;"
-                   @click="openImagePreview(image)"
-              />
-              <div v-else class="image-placeholder">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 32px; height: 32px; margin-bottom: 8px; opacity: 0.5;">
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                  <polyline points="21 15 16 10 5 21"></polyline>
-                </svg>
-                <div style="font-size: 11px; color: var(--color-text-muted);">
-                  {{ image.success === false ? 'Gagal memuat' : 'Tidak tersedia' }}
-                </div>
+              <div class="images-grid">
+                <template v-for="(image, index) in logImagesData" :key="'hist-entry-' + index">
+                  <div v-if="image.direction === 'entry'" class="image-item" style="position:relative;">
+                    <div v-if="image.label" class="image-label-overlay" :class="image.source === 'CCTV' ? 'label-cctv' : image.source === 'MR' ? 'label-mr' : 'label-anpr'">
+                      {{ image.label }}
+                    </div>
+                    <img v-if="image.url" :src="image.url" :alt="image.label || `Gambar ${index + 1}`" @error="handleImageError" style="width:100%;height:100%;object-fit:cover;cursor:pointer;" @click="openImagePreview(image)" />
+                    <img v-else-if="image.base64" :src="`data:image/jpeg;base64,${image.base64}`" :alt="image.label || `Gambar ${index + 1}`" @error="handleImageError" style="width:100%;height:100%;object-fit:cover;cursor:pointer;" @click="openImagePreview(image)" />
+                    <div v-else class="image-placeholder">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:32px;height:32px;margin-bottom:8px;opacity:0.5;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                      <div style="font-size:11px;color:var(--color-text-muted);">{{ image.success === false ? 'Gagal memuat' : 'Tidak tersedia' }}</div>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <!-- Gambar Keluar -->
+            <div class="gate-images-section" v-if="logImagesData.some(img => img.direction === 'exit')">
+              <div class="gate-images-section-header">
+                <span class="gate-images-section-icon gate-images-section-icon--exit">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                </span>
+                <span class="gate-images-section-title">Gambar Keluar</span>
+              </div>
+              <div class="images-grid">
+                <template v-for="(image, index) in logImagesData" :key="'hist-exit-' + index">
+                  <div v-if="image.direction === 'exit'" class="image-item" style="position:relative;">
+                    <div v-if="image.label" class="image-label-overlay" :class="image.source === 'CCTV' ? 'label-cctv' : image.source === 'MR' ? 'label-mr' : 'label-anpr'">
+                      {{ image.label }}
+                    </div>
+                    <img v-if="image.url" :src="image.url" :alt="image.label || `Gambar ${index + 1}`" @error="handleImageError" style="width:100%;height:100%;object-fit:cover;cursor:pointer;" @click="openImagePreview(image)" />
+                    <img v-else-if="image.base64" :src="`data:image/jpeg;base64,${image.base64}`" :alt="image.label || `Gambar ${index + 1}`" @error="handleImageError" style="width:100%;height:100%;object-fit:cover;cursor:pointer;" @click="openImagePreview(image)" />
+                    <div v-else class="image-placeholder">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:32px;height:32px;margin-bottom:8px;opacity:0.5;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                      <div style="font-size:11px;color:var(--color-text-muted);">{{ image.success === false ? 'Gagal memuat' : 'Tidak tersedia' }}</div>
+                    </div>
+                  </div>
+                </template>
               </div>
             </div>
           </div>

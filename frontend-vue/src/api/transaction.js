@@ -178,6 +178,16 @@ const transactionApi = {
       params: { plate_number: plateNumber }
     })
     return response.data
+  },
+
+  /**
+   * Get transaction (with resolved images) by its code_transaction
+   * @param {string} code - The code_transaction to search
+   * @returns {Promise} Transaction data with resolved_images
+   */
+  async getByCode(code) {
+    const response = await api.get(`/transactions/by-code/${encodeURIComponent(code)}`)
+    return response.data
   }
 }
 

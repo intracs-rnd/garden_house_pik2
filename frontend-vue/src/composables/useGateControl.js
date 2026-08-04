@@ -59,6 +59,7 @@ export function useGateControl() {
         await gateApi.logManualControl({
           gate_id: gateId,
           nomor_plat: options.nomor_plat,
+          code_transaction: options.code_transaction || null,
           action: open ? 'OPEN' : 'CLOSE',
           view_image_path: options.view_image_path || null,
           entry_image_1: options.entry_image_1 || null,

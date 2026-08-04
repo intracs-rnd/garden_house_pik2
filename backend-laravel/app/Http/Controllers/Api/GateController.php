@@ -77,30 +77,32 @@ class GateController extends Controller
     public function logManualControl(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'gate_id'         => 'required|string|max:100',
-            'nomor_plat'      => 'required|string|max:50',
-            'action'          => 'required|in:OPEN,CLOSE',
-            'view_image_path' => 'nullable|string',
-            'entry_image_1'   => 'nullable|string',
-            'entry_image_2'   => 'nullable|string',
-            'entry_image_3'   => 'nullable|string',
-            'entry_image_4'   => 'nullable|string',
+            'gate_id'          => 'required|string|max:100',
+            'nomor_plat'       => 'required|string|max:50',
+            'code_transaction' => 'nullable|string|max:100',
+            'action'           => 'required|in:OPEN,CLOSE',
+            'view_image_path'  => 'nullable|string',
+            'entry_image_1'    => 'nullable|string',
+            'entry_image_2'    => 'nullable|string',
+            'entry_image_3'    => 'nullable|string',
+            'entry_image_4'    => 'nullable|string',
         ]);
 
         try {
             $manualControl = GateManualControl::create([
-                'gate_id'         => $validated['gate_id'],
-                'nomor_plat'      => $validated['nomor_plat'],
-                'action'          => $validated['action'],
-                'result'          => 'SUCCESS',
-                'user_id'         => auth()->id(),
-                'user_name'       => auth()->user()?->name,
-                'event_ts'        => now(),
-                'view_image_path' => $validated['view_image_path'] ?? null,
-                'entry_image_1'   => $validated['entry_image_1'] ?? null,
-                'entry_image_2'   => $validated['entry_image_2'] ?? null,
-                'entry_image_3'   => $validated['entry_image_3'] ?? null,
-                'entry_image_4'   => $validated['entry_image_4'] ?? null,
+                'gate_id'          => $validated['gate_id'],
+                'nomor_plat'       => $validated['nomor_plat'],
+                'code_transaction' => $validated['code_transaction'] ?? null,
+                'action'           => $validated['action'],
+                'result'           => 'SUCCESS',
+                'user_id'          => auth()->id(),
+                'user_name'        => auth()->user()?->name,
+                'event_ts'         => now(),
+                'view_image_path'  => $validated['view_image_path'] ?? null,
+                'entry_image_1'    => $validated['entry_image_1'] ?? null,
+                'entry_image_2'    => $validated['entry_image_2'] ?? null,
+                'entry_image_3'    => $validated['entry_image_3'] ?? null,
+                'entry_image_4'    => $validated['entry_image_4'] ?? null,
             ]);
 
             return response()->json([
@@ -129,7 +131,7 @@ class GateController extends Controller
 
         // Query dari gate_manual_control (manual control)
         $query = GateManualControl::where('gate_id', $gateId)
-            ->selectRaw("id, gate_id, event_ts, action, result, nomor_plat, 'manual' as control_type, view_image_path, entry_image_1, entry_image_2, entry_image_3, entry_image_4");
+            ->selectRaw("id, gate_id, event_ts, action, result, nomor_plat, code_transaction, 'manual' as control_type, view_image_path, entry_image_1, entry_image_2, entry_image_3, entry_image_4");
 
         if ($date) {
             $query->whereDate('event_ts', $date);

@@ -185,6 +185,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Get active transaction by plate number for gate control validation
     Route::get('/transactions/active', [TransactionController::class, 'getActiveTransaction']);
     Route::get('/transactions/validate', [TransactionController::class, 'validatePlate']);
+    // Get transaction (with resolved images) by its code_transaction
+    Route::get('/transactions/by-code/{code}', [TransactionController::class, 'getByCode']);
     
     // Complete a transaction (update status to COMPLETED)
     Route::patch('/transactions/{id}/complete', [TransactionController::class, 'completeTransaction']);

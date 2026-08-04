@@ -147,6 +147,33 @@ class TransactionController extends Controller
     }
 
     /**
+     * Get a transaction by its code_transaction, with resolved images.
+     * Used by the Gate History (Riwayat Gate) modal to show the full,
+     * source-labeled image set for a historical manual gate action.
+     *
+     * @param string $code
+     * @return JsonResponse
+     */
+    public function getByCode(string $code): JsonResponse
+    {
+        $transaction = Transaction::with([
+            'logCctv', 'logAnprRecord', 'logAnprCctvRecord',
+            'exitLogCctv', 'exitLogAnprRecord', 'exitLogAnprCctvRecord',
+        ])
+            ->whereRaw('UPPER(TRIM(code_transaction)) = ?', [strtoupper(trim($code))])
+            ->orderBy('id', 'desc')
+            ->first();
+
+        if (!$transaction) {
+            return $this->errorResponse('Transaction not found', 404);
+        }
+
+        $this->attachResolvedImages($transaction);
+
+        return $this->successResponse($transaction, 'Transaction retrieved successfully.');
+    }
+
+    /**
      * Build a structured list of every image tied to the transaction and attach
      * it as `resolved_images` on the model, WITHOUT overwriting the MR image
      * columns (entry_image1..4 / exit_image1..4).

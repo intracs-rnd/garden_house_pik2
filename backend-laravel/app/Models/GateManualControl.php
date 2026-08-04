@@ -11,6 +11,7 @@ class GateManualControl extends Model
     protected $fillable = [
         'gate_id',
         'nomor_plat',
+        'code_transaction',
         'action',
         'result',
         'user_id',
