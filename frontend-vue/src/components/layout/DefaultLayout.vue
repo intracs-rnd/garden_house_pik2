@@ -54,8 +54,7 @@ function closeSidebar() {
 }
 .layout-content {
   flex: 1;
-  padding: 24px;
-  max-width: 1200px;
+  padding: 24px 32px;
   width: 100%;
   margin: 0 auto;
 }
