@@ -1608,6 +1608,7 @@ onUnmounted(() => {
       <Modal
           v-model="detailModal"
           :title="`Riwayat Gate${detailCamera ? ' · ' + detailCamera.name : ''}`"
+          size="full"
       >
         <div class="detail-history">
           <!-- Filter Riwayat Gate -->
