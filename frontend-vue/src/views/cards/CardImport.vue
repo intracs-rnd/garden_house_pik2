@@ -20,8 +20,8 @@ const importResult = ref(null)
 const importError  = ref('')
 
 const SAMPLE_CSV = `No,UID,Status,Datetime
-1,1100EE00E200470D896064267408010C9684,BLACKLIST,2026-08-03 10:15:24
-2,1100EE00E20047061C506426FD37010C8EE4,BLACKLIST,2026-08-03 10:15:29`
+1,1100EE00E200470D896064267408010C9684,ALLOW,2026-08-03 10:15:24
+2,1100EE00E20047061C506426FD37010C8EE4,REJECT,2026-08-03 10:15:29`
 
 function onFileChange(e) {
   const f = e.target.files?.[0]
@@ -119,16 +119,14 @@ function onSearch() { fetchCards(1) }
 
 function statusClass(status) {
   switch ((status || '').toUpperCase()) {
-    case 'ACTIVE':    return 'badge-success'
-    case 'BLACKLIST': return 'badge-danger'
-    case 'INACTIVE':  return 'badge-muted'
-    case 'EXPIRED':   return 'badge-warning'
-    default:          return 'badge-muted'
+    case 'ALLOW':  return 'badge-success'
+    case 'REJECT': return 'badge-danger'
+    default:       return 'badge-muted'
   }
 }
 
 // --- Edit Modal ---
-const STATUSES = ['ACTIVE', 'BLACKLIST', 'INACTIVE', 'EXPIRED']
+const STATUSES = ['ALLOW', 'REJECT']
 
 const editOpen   = ref(false)
 const editTarget = ref(null)

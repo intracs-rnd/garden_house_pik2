@@ -120,7 +120,7 @@ class CardImportController extends Controller
             }
 
             // Validate allowed status values
-            $allowedStatuses = ['ACTIVE', 'BLACKLIST', 'INACTIVE', 'EXPIRED'];
+            $allowedStatuses = ['ALLOW', 'REJECT'];
             if (!in_array($status, $allowedStatuses, true)) {
                 $errors[] = "Baris $rowNum: Status '$status' tidak dikenal.";
                 continue;
@@ -190,7 +190,7 @@ class CardImportController extends Controller
         $validated = $request->validate([
             'name'       => 'sometimes|nullable|string',
             'unit'       => 'sometimes|nullable|string',
-            'status'     => 'sometimes|required|string|in:ACTIVE,BLACKLIST,INACTIVE,EXPIRED',
+            'status'     => 'sometimes|required|string|in:ALLOW,REJECT',
             'expiry'     => 'sometimes|nullable|date',
             'grace_days' => 'sometimes|nullable|integer|min:0',
         ]);
