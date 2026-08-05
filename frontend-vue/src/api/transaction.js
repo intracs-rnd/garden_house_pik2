@@ -159,6 +159,19 @@ const transactionApi = {
   },
 
   /**
+   * Proxy capture ke Node-RED via Laravel (hindari CORS di production)
+   * @param {string} device - Nama device (e.g., "DASHBOARD-OUT")
+   * @returns {Promise} Response dari Node-RED
+   */
+  async cctvCapture(device) {
+    const response = await api.post('/cctv/capture', {
+      device,
+      capture: ['anpr', 'view'],
+    })
+    return response.data
+  },
+
+  /**
    * Set flags=1 pada log_cctv record terbaru setelah Node-RED capture insert
    * @returns {Promise}
    */

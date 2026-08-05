@@ -395,6 +395,32 @@ class TransactionController extends Controller
     }
 
     /**
+     * Proxy request ke Node-RED CCTV capture API.
+     * Frontend tidak perlu akses langsung ke Node-RED (hindari CORS).
+     */
+    public function cctvCapture(Request $request): JsonResponse
+    {
+        $request->validate([
+            'device'  => 'required|string',
+            'capture' => 'required|array',
+        ]);
+
+        $nodeRedUrl = 'http://192.168.214.163:1880/cctv';
+
+        $response = \Illuminate\Support\Facades\Http::timeout(15)
+            ->post($nodeRedUrl, [
+                'device'  => $request->input('device'),
+                'capture' => $request->input('capture'),
+            ]);
+
+        if ($response->failed()) {
+            return $this->errorResponse('Node-RED capture gagal: HTTP ' . $response->status(), 502);
+        }
+
+        return response()->json($response->json());
+    }
+
+    /**
      * Set flags=1 pada 2 log_cctv record terbaru (by log_time).
      * Node-RED insert 2 record sekaligus (anpr + view) saat capture,
      * sehingga keduanya perlu di-update.

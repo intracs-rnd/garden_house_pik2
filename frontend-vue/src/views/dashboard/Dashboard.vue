@@ -888,15 +888,8 @@ async function captureFromCctv() {
 
   gateCaptureLoading.value = true
   try {
-    const response = await fetch('/nodered/cctv', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ device, capture: ['anpr', 'view'] }),
-    })
-
-    if (!response.ok) throw new Error(`HTTP ${response.status}`)
-
-    const data = await response.json()
+    const response = await transactionApi.cctvCapture(device)
+    const data = response
     console.log('📷 CCTV capture response:', data)
 
     const captured = []

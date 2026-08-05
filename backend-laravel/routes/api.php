@@ -193,6 +193,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Set flags pada log_cctv record terbaru (setelah capture dari Node-RED)
     Route::patch('/log-cctv/flag-latest', [TransactionController::class, 'setLogCctvFlags']);
+
+    // Proxy ke Node-RED capture API (hindari CORS di production)
+    Route::post('/cctv/capture', [TransactionController::class, 'cctvCapture']);
     
     // Full CRUD for transactions
     Route::get('/transactions', [TransactionController::class, 'index']);
