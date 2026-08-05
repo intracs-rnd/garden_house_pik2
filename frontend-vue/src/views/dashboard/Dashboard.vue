@@ -28,7 +28,8 @@ const gate2Total = ref(0)
 
 // MQTT untuk RFID Status
 const RFID_STATUS_TOPIC = 'gate/in/rfid_status'
-const GATE_EVENT_TOPIC  = 'gate/in/event'
+const GATE_EVENT_TOPIC     = 'gate/in/event'
+const GATE_OUT_EVENT_TOPIC = 'gate/out/event'
 
 // MQTT untuk Device Status (wildcard gate/+/status)
 const DEVICE_STATUS_TOPIC = 'gate/+/status'
@@ -350,6 +351,7 @@ async function initMqtt() {
       await mqttSubscribe(RFID_STATUS_TOPIC, handleRfidStatus, { qos: 1 })
       // Subscribe gate events (QoS 0)
       await mqttSubscribe(GATE_EVENT_TOPIC, handleGateEvent, { qos: 0 })
+      await mqttSubscribe(GATE_OUT_EVENT_TOPIC, handleGateEvent, { qos: 0 })
       // Subscribe device status wildcard gate/+/status (QoS 1)
       await mqttSubscribe(DEVICE_STATUS_TOPIC, handleDeviceStatus, { qos: 1 })
     }
@@ -935,6 +937,14 @@ async function captureFromCctv() {
       gateImages.value = [...gateImages.value, ...newImages]
     }
 
+    // Set flags=1 pada log_cctv record terbaru yang baru di-insert Node-RED
+    try {
+      await transactionApi.setLogCctvFlags()
+      console.log('✅ log_cctv flags=1 set on latest record')
+    } catch (flagErr) {
+      console.warn('⚠️ Gagal set flags log_cctv:', flagErr.message)
+    }
+
     gateCaptureValidated.value = true
     toastSuccess('Capture CCTV berhasil, silakan konfirmasi untuk membuka gate')
   } catch (err) {
@@ -1501,7 +1511,7 @@ onUnmounted(() => {
                   v-else
                   type="button"
                   variant="secondary"
-                  @click="gateTransactionData = null; gateImages = []; gateForm.nomor_plat = ''"
+                  @click="gateTransactionData = null; gateImages = []; gateForm.nomor_plat = ''; gateCaptureValidated = false; gateCaptureImages = []"
                   style="white-space: nowrap;"
               >
                 Reset

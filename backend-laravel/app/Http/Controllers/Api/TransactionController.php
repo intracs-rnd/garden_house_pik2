@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Transaction;
+use App\Models\LogCctv;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -391,5 +392,30 @@ class TransactionController extends Controller
         $transaction->delete();
 
         return $this->successResponse(null, 'Transaction deleted successfully.');
+    }
+
+    /**
+     * Set flags=1 pada 2 log_cctv record terbaru (by log_time).
+     * Node-RED insert 2 record sekaligus (anpr + view) saat capture,
+     * sehingga keduanya perlu di-update.
+     */
+    public function setLogCctvFlags(Request $request): JsonResponse
+    {
+        $latest = LogCctv::orderBy('log_time', 'desc')
+            ->limit(2)
+            ->get();
+
+        if ($latest->isEmpty()) {
+            return $this->errorResponse('Tidak ada record log_cctv', 404);
+        }
+
+        $ids = $latest->pluck('id')->toArray();
+
+        LogCctv::whereIn('id', $ids)->update(['flags' => 1]);
+
+        return $this->successResponse(
+            ['updated_ids' => $ids, 'flags' => 1],
+            'Flags berhasil diupdate.'
+        );
     }
 }

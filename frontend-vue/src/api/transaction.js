@@ -159,6 +159,15 @@ const transactionApi = {
   },
 
   /**
+   * Set flags=1 pada log_cctv record terbaru setelah Node-RED capture insert
+   * @returns {Promise}
+   */
+  async setLogCctvFlags() {
+    const response = await api.patch('/log-cctv/flag-latest')
+    return response.data
+  },
+
+  /**
    * Update transaction status to COMPLETED
    * @param {string} transactionId - The transaction ID to update
    * @returns {Promise} Update result

@@ -190,6 +190,9 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Complete a transaction (update status to COMPLETED)
     Route::patch('/transactions/{id}/complete', [TransactionController::class, 'completeTransaction']);
+
+    // Set flags pada log_cctv record terbaru (setelah capture dari Node-RED)
+    Route::patch('/log-cctv/flag-latest', [TransactionController::class, 'setLogCctvFlags']);
     
     // Full CRUD for transactions
     Route::get('/transactions', [TransactionController::class, 'index']);
