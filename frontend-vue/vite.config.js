@@ -20,6 +20,11 @@ export default defineConfig({
         target: 'http://localhost:8000',
         changeOrigin: true,
       },
+      '/nodered': {
+        target: 'http://192.168.214.163:1880',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/nodered/, ''),
+      },
     },
   },
 })

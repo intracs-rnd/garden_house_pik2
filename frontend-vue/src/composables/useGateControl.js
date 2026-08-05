@@ -48,16 +48,19 @@ export function useGateControl() {
       // Publish ke MQTT
       await publish(TOPIC_GATE_CMD, message)
 
+      // Untuk logging ke DB, gunakan log_gate_id jika tersedia (agar filter per gate tetap bisa)
+      const logGateId = options.log_gate_id || gateId
+
       // Log ke database via API (dengan event_ts dari server)
       await gateApi.logGateAction({
-        gate_id: gateId,
+        gate_id: logGateId,
         open: open,
       })
 
       // Jika ada nomor_plat, log ke manual control table (beserta gambar jika tersedia)
       if (options.nomor_plat) {
         await gateApi.logManualControl({
-          gate_id: gateId,
+          gate_id: logGateId,
           nomor_plat: options.nomor_plat,
           code_transaction: options.code_transaction || null,
           action: open ? 'OPEN' : 'CLOSE',

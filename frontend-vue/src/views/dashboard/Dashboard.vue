@@ -663,6 +663,9 @@ const gateSearching = ref(false)
 const gateTransactionData = ref(null)
 const gateImages = ref([])
 const gateImageLoading = ref(false)
+const gateCaptureValidated = ref(false)
+const gateCaptureLoading = ref(false)
+const gateCaptureImages = ref([]) // gambar hasil capture dari CCTV API
 
 const imagePreviewModal = ref(false)
 const previewImageUrl = ref('')
@@ -680,13 +683,12 @@ function openImagePreview(image) {
 const gateActionLabel = computed(() => (gateAction.value === 'open' ? 'Buka Gate' : 'Tutup Gate'))
 
 // Judul modal mengikuti step yang sedang berjalan:
-// - Belum ada data transaksi tervalidasi -> masih tahap pencarian plat.
-// - Sudah ada data transaksi -> siap konfirmasi buka gate.
+// 1 -> Cari Kendaraan, 2 -> Validasi CCTV, 3 -> Konfirmasi Buka Gate
 const gateModalTitle = computed(() => {
   const camPart = gateCamera.value ? ' · ' + gateCamera.value.name : ''
-  return gateTransactionData.value
-      ? `Konfirmasi Buka Gate${camPart}`
-      : `Cari Kendaraan${camPart}`
+  if (!gateTransactionData.value) return `Cari Kendaraan${camPart}`
+  if (!gateCaptureValidated.value) return `Validasi CCTV${camPart}`
+  return `Konfirmasi Buka Gate${camPart}`
 })
 
 function isGateReaderOnline(cam) {
@@ -694,6 +696,10 @@ function isGateReaderOnline(cam) {
   const gateId = cam.gate_id || cam.id // Fallback ke cam.id jika gate_id tidak ada
   const gate = rfidGates.value.find(g => g.gate_id === gateId || g.id === gateId)
   return gate ? gate.is_online : true // Default true jika gate tidak ditemukan
+}
+
+function isOutGate(cam) {
+  return (cam?.gate_id || '').toUpperCase().includes('OUT')
 }
 
 function openGateModal(cam) {
@@ -708,6 +714,8 @@ function openGateModal(cam) {
   gateErrors.value = {}
   gateTransactionData.value = null
   gateImages.value = []
+  gateCaptureValidated.value = false
+  gateCaptureImages.value = []
   gateModal.value = true
 }
 
@@ -832,7 +840,8 @@ function submitGateAction() {
   const anprPaths = gateImages.value.filter(img => img.source === 'ANPR' || img.source === 'MR').map(img => img.path)
 
   // Publish gate action ke MQTT dan log dengan nomor plat + gambar
-  publishGateAction(gateCamera.value.gate_id, gateAction.value === 'open', {
+  publishGateAction('VISITOR_OUT', gateAction.value === 'open', {
+    log_gate_id: gateCamera.value.gate_id, // disimpan ke DB untuk filter per gate
     nomor_plat: gateForm.value.nomor_plat,
     // Simpan kode transaksi agar Riwayat Gate bisa resolve ulang seluruh gambar (MR/CCTV/ANPR)
     code_transaction: gateTransactionData.value?.code_transaction || null,
@@ -867,6 +876,73 @@ function submitGateAction() {
       .finally(() => {
         gateSubmitting.value = false
       })
+}
+
+// --- Capture dari CCTV sebelum Buka Gate ---
+async function captureFromCctv() {
+  if (!gateCamera.value) return
+
+  const device = 'DASHBOARD-OUT'
+
+  gateCaptureLoading.value = true
+  try {
+    const response = await fetch('/nodered/cctv', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ device, capture: ['anpr', 'view'] }),
+    })
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+
+    const data = await response.json()
+    console.log('📷 CCTV capture response:', data)
+
+    const captured = []
+
+    // Format: { anpr: "base64...", view: "base64..." }
+    if (data.anpr) {
+      captured.push({ base64: data.anpr, label: 'ANPR', source: 'ANPR', success: true })
+    }
+    if (data.view) {
+      captured.push({ base64: data.view, label: 'View', source: 'CCTV', success: true })
+    }
+
+    // Format: { data: { anpr: "...", view: "..." } }
+    if (data.data?.anpr) {
+      captured.push({ base64: data.data.anpr, label: 'ANPR', source: 'ANPR', success: true })
+    }
+    if (data.data?.view) {
+      captured.push({ base64: data.data.view, label: 'View', source: 'CCTV', success: true })
+    }
+
+    // Format: array images
+    if (Array.isArray(data.images)) {
+      data.images.forEach(img => {
+        captured.push({
+          base64: img.base64 || null,
+          url: img.url || null,
+          label: img.label || img.type || 'Capture',
+          source: img.type || 'CCTV',
+          success: true,
+        })
+      })
+    }
+
+    gateCaptureImages.value = captured
+    // Juga tambahkan ke gateImages direction exit untuk disimpan ke log gate
+    const newImages = captured.map(img => ({ ...img, direction: 'exit' }))
+    if (newImages.length > 0) {
+      gateImages.value = [...gateImages.value, ...newImages]
+    }
+
+    gateCaptureValidated.value = true
+    toastSuccess('Capture CCTV berhasil, silakan konfirmasi untuk membuka gate')
+  } catch (err) {
+    console.error('❌ Capture CCTV error:', err)
+    toastError(`Gagal capture dari CCTV: ${err.message}`)
+  } finally {
+    gateCaptureLoading.value = false
+  }
 }
 
 function handleImageError(event) {
@@ -1213,7 +1289,7 @@ onUnmounted(() => {
                     </span>
                   </div>
                 </template>
-                <div v-if="cam.id <= 2" class="camera-controls">
+                <div class="camera-controls">
                   <Button
                       v-if="canControlGate"
                       size="sm"
@@ -1379,15 +1455,25 @@ onUnmounted(() => {
             Cari Plat
           </span>
           <span class="gate-step-line" :class="{ 'is-done': gateTransactionData }"></span>
-          <span class="gate-step" :class="{ 'is-active': gateTransactionData }">
-            <span class="gate-step-num">2</span>
+          <span class="gate-step" :class="{ 'is-active': gateTransactionData && !gateCaptureValidated, 'is-done': gateCaptureValidated }">
+            <span class="gate-step-num">
+              <svg v-if="gateCaptureValidated" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+              <template v-else>2</template>
+            </span>
+            Validasi CCTV
+          </span>
+          <span class="gate-step-line" :class="{ 'is-done': gateCaptureValidated }"></span>
+          <span class="gate-step" :class="{ 'is-active': gateCaptureValidated }">
+            <span class="gate-step-num">3</span>
             Buka Gate
           </span>
         </div>
         <p class="gate-hint">
-          {{ gateTransactionData
-            ? 'Data transaksi ditemukan. Periksa detail di bawah, lalu klik "Buka Gate" untuk membuka.'
-            : 'Masukkan nomor plat kendaraan dan klik Cari untuk validasi.' }}
+          {{ !gateTransactionData
+            ? 'Masukkan nomor plat kendaraan dan klik Cari untuk validasi.'
+            : !gateCaptureValidated
+              ? 'Data transaksi ditemukan. Klik "Validasi" untuk mengambil gambar CCTV terkini sebelum membuka gate.'
+              : 'Gambar CCTV berhasil diambil. Periksa detail di bawah, lalu klik "Buka Gate" untuk membuka.' }}
         </p>
         <form class="gate-form" @submit.prevent="searchPlateNumber">
           <div class="form-group">
@@ -1584,14 +1670,76 @@ onUnmounted(() => {
           </div>
         </div>
 
+        <!-- Section: Gambar Validasi CCTV (muncul setelah tombol Validasi diklik) -->
+        <div v-if="gateCaptureValidated || gateCaptureLoading" class="gate-capture-section">
+          <div class="gate-capture-header">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;flex-shrink:0;">
+              <path d="m22 8-6 4 6 4V8Z"/><rect x="2" y="6" width="14" height="12" rx="2"/>
+            </svg>
+            <span>Gambar Validasi CCTV</span>
+            <span class="gate-capture-badge">DASHBOARD-OUT</span>
+          </div>
+
+          <!-- Loading state -->
+          <div v-if="gateCaptureLoading" class="gate-capture-loading">
+            <span class="spinner"></span>
+            <span>Mengambil gambar dari CCTV…</span>
+          </div>
+
+          <!-- Images hasil capture -->
+<!--          <template v-else>-->
+<!--            <div v-if="gateCaptureImages.length === 0" class="gate-capture-empty">-->
+<!--              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:28px;height:28px;opacity:0.35;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>-->
+<!--              <span>Tidak ada gambar diterima dari CCTV</span>-->
+<!--            </div>-->
+<!--            <div v-else class="gate-capture-images">-->
+<!--              <div v-for="(img, i) in gateCaptureImages" :key="'cap-' + i" class="gate-capture-img-wrap">-->
+<!--                <div class="image-label-overlay" :class="img.source === 'CCTV' ? 'label-cctv' : 'label-anpr'">{{ img.label }}</div>-->
+<!--                <img-->
+<!--                    v-if="img.base64"-->
+<!--                    :src="`data:image/jpeg;base64,${img.base64}`"-->
+<!--                    :alt="img.label"-->
+<!--                    style="width:100%;height:100%;object-fit:cover;cursor:pointer;"-->
+<!--                    @click="openImagePreview(img)"-->
+<!--                    @error="handleImageError"-->
+<!--                />-->
+<!--                <img-->
+<!--                    v-else-if="img.url"-->
+<!--                    :src="img.url"-->
+<!--                    :alt="img.label"-->
+<!--                    style="width:100%;height:100%;object-fit:cover;cursor:pointer;"-->
+<!--                    @click="openImagePreview(img)"-->
+<!--                    @error="handleImageError"-->
+<!--                />-->
+<!--                <div v-else class="image-placeholder">-->
+<!--                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:28px;height:28px;opacity:0.5;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>-->
+<!--                  <span style="font-size:11px;margin-top:6px;">Gagal memuat</span>-->
+<!--                </div>-->
+<!--              </div>-->
+<!--            </div>-->
+<!--          </template>-->
+        </div>
+
         <div v-if="gatePublishError" class="alert alert-danger" style="margin-top: 12px;">
           {{ gatePublishError }}
         </div>
 
         <template #footer>
-          <Button variant="secondary" type="button" @click="gateModal = false" :disabled="gateSubmitting || gateConnecting">Batal</Button>
+          <Button variant="secondary" type="button" @click="gateModal = false" :disabled="gateSubmitting || gateConnecting || gateCaptureLoading">Batal</Button>
+          <!-- Step 2: Validasi - ambil gambar CCTV terkini sebelum buka gate -->
           <Button
-              v-if="gateTransactionData"
+              v-if="gateTransactionData && !gateCaptureValidated"
+              variant="warning"
+              type="button"
+              :loading="gateCaptureLoading"
+              @click="captureFromCctv"
+          >
+            <span v-if="gateCaptureLoading">Mengambil Gambar...</span>
+            <span v-else>Validasi</span>
+          </Button>
+          <!-- Step 3: Buka Gate - setelah capture CCTV divalidasi -->
+          <Button
+              v-if="gateTransactionData && gateCaptureValidated"
               :variant="gateAction === 'open' ? 'primary' : 'danger'"
               type="button"
               :loading="gateSubmitting || gateConnecting"
