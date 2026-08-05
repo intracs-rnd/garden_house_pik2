@@ -1292,7 +1292,7 @@ onUnmounted(() => {
                     </span>
                   </div>
                 </template>
-                <div class="camera-controls">
+                <div v-if="cam.id <= 2" class="camera-controls">
                   <Button
                       v-if="canControlGate"
                       size="sm"
