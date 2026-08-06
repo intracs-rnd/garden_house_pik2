@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
+import { onMounted, onUnmounted, ref, computed, watch, reactive } from 'vue'
 import { RouterLink } from 'vue-router'
 import dashboardApi from '@/api/dashboard'
 import rfidApi from '@/api/rfid'
@@ -22,8 +22,7 @@ import DeviceStatusWidget from '@/components/dashboard/DeviceStatusWidget.vue'
 const loading = ref(true)
 const error = ref('')
 const stats = ref(null)
-const gate1Total = ref(0)
-const gate2Total = ref(0)
+const gateTotal = ref(0)
 
 
 // MQTT untuk RFID Status
@@ -408,25 +407,123 @@ async function loadCameras() {
 }
 
 async function loadGateTotals() {
-  const requests = []
-
-  if (cameras.value.length > 0) {
-    requests.push(
-        gateApi.getLogsByGateId(cameras.value[0].gate_id, { per_page: 1 })
-            .then((res) => { gate1Total.value = res.data?.pagination?.total || 0 })
-            .catch((e) => console.error('Failed to load total for Kamera 1:', e))
-    )
+  try {
+    const res = await gateApi.getManualControlTotal()
+    gateTotal.value = res.data?.total ?? 0
+  } catch {
+    gateTotal.value = 0
   }
-  if (cameras.value.length > 1) {
-    requests.push(
-        gateApi.getLogsByGateId(cameras.value[1].gate_id, { per_page: 1 })
-            .then((res) => { gate2Total.value = res.data?.pagination?.total || 0 })
-            .catch((e) => console.error('Failed to load total for Kamera 2:', e))
-    )
-  }
-
-  await Promise.all(requests)
 }
+
+// --- CCTV Snapshot Slideshow (menggantikan Live Stream di dashboard) ---------
+// Ambil 8 foto terbaru dari log_cctv, tampilkan sebagai slideshow dengan
+// crossfade + Ken-Burns zoom, ganti slide otomatis tiap 4 detik.
+const CCTV_SNAP_REFRESH_MS = 30_000
+const CCTV_SLIDE_INTERVAL_MS = 4_000
+
+const cctvSlides = ref([])       // [{ id, cctv, view_image_path, log_time, imageUrl, loading, error }]
+const cctvRefreshing = ref(false)
+const cctvLastRefreshed = ref(null)
+const cctvActiveSlide = ref(0)   // index slide yang sedang tampil
+const cctvSlidePrev = ref(-1)    // index slide sebelumnya (untuk crossfade out)
+let cctvSnapshotTimer = null
+let cctvSlideTimer = null
+
+const uploadsApiUrl = (import.meta.env.VITE_UPLOADS_API_URL || 'http://192.168.214.163:4000/api/uploads').replace(/\/+$/, '')
+
+async function fetchSlideImage(slide) {
+  slide.loading = true
+  slide.error = false
+  try {
+    const res = await fetch(uploadsApiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: slide.view_image_path }),
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const blob = await res.blob()
+    if (slide.imageUrl) URL.revokeObjectURL(slide.imageUrl)
+    slide.imageUrl = URL.createObjectURL(blob)
+    slide.loading = false
+  } catch (err) {
+    console.warn('[CCTV Slideshow] Gagal fetch gambar:', slide.cctv, err.message)
+    slide.loading = false
+    slide.error = true
+  }
+}
+
+async function loadCctvSnapshots() {
+  cctvRefreshing.value = true
+  try {
+    const res = await transactionApi.getLatestCctvSnapshots()
+    const records = res.data || []
+
+    // Cek apakah ada foto baru yang belum ada di slides
+    const existingPaths = new Set(cctvSlides.value.map(s => s.view_image_path))
+    for (const rec of records) {
+      if (!existingPaths.has(rec.view_image_path)) {
+        const slide = reactive({
+          id: rec.id,
+          cctv: rec.cctv,
+          view_image_path: rec.view_image_path,
+          log_time: rec.log_time,
+          imageUrl: null,
+          loading: true,
+          error: false,
+        })
+        cctvSlides.value.unshift(slide)
+        fetchSlideImage(slide)
+      }
+    }
+    // Batasi maksimum 8 slide, buang yang lama & revoke URL-nya
+    if (cctvSlides.value.length > 8) {
+      const dropped = cctvSlides.value.splice(8)
+      dropped.forEach(s => { if (s.imageUrl) URL.revokeObjectURL(s.imageUrl) })
+    }
+    // Reset index bila out-of-bounds
+    if (cctvActiveSlide.value >= cctvSlides.value.length) {
+      cctvActiveSlide.value = 0
+      cctvSlidePrev.value = -1
+    }
+    cctvLastRefreshed.value = new Date()
+  } catch (err) {
+    console.warn('[CCTV Slideshow] Gagal memuat daftar foto:', err.message)
+  } finally {
+    cctvRefreshing.value = false
+  }
+}
+
+function advanceSlide() {
+  if (cctvSlides.value.length < 2) return
+  cctvSlidePrev.value = cctvActiveSlide.value
+  cctvActiveSlide.value = (cctvActiveSlide.value + 1) % cctvSlides.value.length
+}
+
+function goToSlide(idx) {
+  if (idx === cctvActiveSlide.value) return
+  cctvSlidePrev.value = cctvActiveSlide.value
+  cctvActiveSlide.value = idx
+  // Reset auto-advance timer agar tidak lompat terlalu cepat
+  if (cctvSlideTimer) {
+    clearInterval(cctvSlideTimer)
+    cctvSlideTimer = setInterval(advanceSlide, CCTV_SLIDE_INTERVAL_MS)
+  }
+}
+
+function startCctvSnapshots() {
+  loadCctvSnapshots()
+  cctvSnapshotTimer = setInterval(loadCctvSnapshots, CCTV_SNAP_REFRESH_MS)
+  cctvSlideTimer = setInterval(advanceSlide, CCTV_SLIDE_INTERVAL_MS)
+}
+
+function stopCctvSnapshots() {
+  if (cctvSnapshotTimer) { clearInterval(cctvSnapshotTimer); cctvSnapshotTimer = null }
+  if (cctvSlideTimer)    { clearInterval(cctvSlideTimer);    cctvSlideTimer    = null }
+  cctvSlides.value.forEach(s => { if (s.imageUrl) URL.revokeObjectURL(s.imageUrl) })
+}
+
+// Kamera pertama saja yang dipakai untuk kontrol gate
+const cam1 = computed(() => cameras.value[0] || null)
 
 // --- Live Kendaraan In/Out (dari log_gate + gate_manual_control via MQTT) ---
 // Polling dari /api/gate/live-activity yang menggabungkan event RFID otomatis
@@ -1126,21 +1223,23 @@ const cards = computed(() => [
     icon: 'M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm-1 5h20M6 15h4',
   },
   {
-    label: 'Riwayat Kamera 1',
-    value: gate1Total.value,
+    label: 'Total Riwayat Gate',
+    value: gateTotal.value,
     to: { name: 'reports.index' },
-    color: '#10b981', // emerald
-    icon: 'M23 7l-7 5 7 5V7z M3 5h11a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2H3a2 2 0 0 1 -2 -2V7a2 2 0 0 1 2 -2z',
-    subtitle: 'Total Riwayat Gate Kamera 1',
+    color: '#10b981',
+    icon: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10',
+    subtitle: 'Total log aktivitas gate',
   },
-  {
-    label: 'Riwayat Kamera 2',
-    value: gate2Total.value,
-    to: { name: 'reports.index' },
-    color: '#f59e0b', // amber
-    icon: 'M23 7l-7 5 7 5V7z M3 5h11a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2H3a2 2 0 0 1 -2 -2V7a2 2 0 0 1 2 -2z',
-    subtitle: 'Total Riwayat Gate Kamera 2',
-  },
+  ...(canControlGate.value ? [{
+    label: 'Kontrol Gate',
+    value: null,
+    to: null,
+    color: '#ef4444',
+    icon: 'M5 21V7l7-4 7 4v14M9 21v-6h6v6',
+    subtitle: cam1.value ? (isGateReaderOnline(cam1.value) ? 'Reader Online — Siap dikontrol' : 'Reader Offline') : 'Buka / Tutup Gate',
+    onClick: () => cam1.value && openGateModal(cam1.value),
+    isAction: true,
+  }] : []),
 ])
 
 // animasi card
@@ -1194,12 +1293,14 @@ onMounted(() => {
   loadGateTotals()
   startActivityFeed()
   startRfidStatus()
+  startCctvSnapshots()
   initMqtt()
 })
 
 onUnmounted(() => {
   clearInterval(activityTimer)
   clearInterval(rfidTimer)
+  stopCctvSnapshots()
 })
 </script>
 
@@ -1221,6 +1322,7 @@ onUnmounted(() => {
             :key="card.label"
             :to="card.to"
             class="stat-card"
+            :class="{ 'stat-card-action': card.isAction }"
             @click="card.onClick ? card.onClick() : null"
             :style="card.onClick ? 'cursor: pointer;' : ''"
         >
@@ -1230,13 +1332,22 @@ onUnmounted(() => {
             </svg>
           </div>
           <div class="stat-meta">
-            <span class="stat-value" :key="card.label + '-val'">
+            <span v-if="card.isAction" class="stat-value stat-value-action">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;">
+                <path d="M5 21V7l7-4 7 4v14M9 21v-6h6v6"/>
+              </svg>
+              Buka / Tutup
+            </span>
+            <span v-else class="stat-value" :key="card.label + '-val'">
               {{ formatNumber(animatedCardValues[card.label] ?? 0) }}
             </span>
             <span class="stat-label">{{ card.label }}</span>
             <span v-if="card.subtitle" class="stat-subtitle">{{ card.subtitle }}</span>
           </div>
           <svg v-if="card.to" class="stat-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 18l6-6-6-6" />
+          </svg>
+          <svg v-else-if="card.isAction" class="stat-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M9 18l6-6-6-6" />
           </svg>
         </component>
@@ -1255,62 +1366,118 @@ onUnmounted(() => {
         </span>
       </div>
 
-      <!-- Live CCTV + Kendaraan In/Out + Status Device -->
+      <!-- Foto CCTV Terkini + Kendaraan In/Out + Status Device -->
       <div class="row live-row">
-        <!-- Live CCTV streams -->
+        <!-- Slideshow foto CCTV terbaru -->
         <div class="card live-cctv">
           <div class="card-header card-header-flex">
             <span class="card-header-title">
               <svg class="card-header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M23 7l-7 5 7 5V7z" /><rect x="1" y="5" width="15" height="14" rx="2" />
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
               </svg>
-              Live CCTV
+              Foto CCTV Terkini
             </span>
-            <span class="stream-count">{{ cameras.length }} kamera</span>
-          </div>
-          <div class="card-body">
-            <div class="camera-grid">
-              <div v-for="cam in cameras" :key="cam.id" class="camera-tile">
-                <div v-if="cam.enabled === false" class="camera-off">
-                  <svg class="camera-off-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M1 1l22 22M21 21H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h1m4-1h4l2 2h4a2 2 0 0 1 2 2v9M9.5 9.5a3 3 0 0 0 4 4" />
-                  </svg>
-                  <span class="camera-off-title">Kamera dinonaktifkan</span>
-                  <small class="camera-off-sub">{{ cam.name }} sedang dimatikan</small>
-                  <RouterLink
-                      v-if="auth.canManage('cameras')"
-                      :to="{ name: 'settings.cameras' }"
-                      class="camera-off-link"
-                  >Aktifkan di Pengaturan Kamera</RouterLink>
-                </div>
-                <template v-else>
-                  <div class="camera-stream-wrap">
-                    <LiveStream :src="cam.src" :label="cam.name" />
-                    <span class="camera-badge" :class="isGateReaderOnline(cam) ? 'is-online' : 'is-offline'">
-                      <span class="status-dot"></span>{{ cam.gate_id }}
-                    </span>
-                  </div>
-                </template>
-                <div v-if="cam.id <= 2" class="camera-controls">
-                  <Button
-                      v-if="canControlGate"
-                      size="sm"
-                      variant="primary"
-                      :disabled="!isGateReaderOnline(cam)"
-                      :title="isGateReaderOnline(cam) ? 'Kontrol gate' : 'Reader offline - Kontrol tidak tersedia'"
-                      @click="openGateModal(cam)"
-                  >
-                    <svg class="ctrl-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V7l7-4 7 4v14M9 21v-6h6v6" /></svg>
-                    Kontrol Gate
-                  </Button>
-                  <!-- Tombol Detail sementara disembunyikan -->
-                  <!-- <Button size="sm" variant="secondary" @click="openDetailModal(cam)">
-                    <svg class="ctrl-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8h.01M11 12h1v4h1M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" /></svg>
-                    Detail
-                  </Button> -->
-                </div>
-              </div>
+            <div class="snapshot-header-right">
+              <span v-if="cctvLastRefreshed" class="stream-count">
+                {{ cctvLastRefreshed.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) }}
+              </span>
+              <button
+                class="snap-refresh-btn"
+                :class="{ 'is-spinning': cctvRefreshing }"
+                :disabled="cctvRefreshing"
+                title="Refresh foto"
+                @click="loadCctvSnapshots"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="23 4 23 10 17 10"/>
+                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                </svg>
+              </button>
             </div>
+          </div>
+
+          <div class="card-body snap-card-body">
+
+            <!-- ── Slideshow ── -->
+            <div class="cctv-slideshow">
+
+              <!-- Empty / loading state (sebelum foto pertama dimuat) -->
+              <div v-if="cctvSlides.length === 0" class="snap-empty">
+                <span v-if="cctvRefreshing" class="snap-spinner"></span>
+                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:36px;height:36px;opacity:.35;">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                  <circle cx="8.5" cy="8.5" r="1.5"/>
+                  <polyline points="21 15 16 10 5 21"/>
+                </svg>
+                <span class="snap-empty-text">{{ cctvRefreshing ? 'Memuat foto…' : 'Belum ada foto CCTV' }}</span>
+              </div>
+
+              <!-- Slide stack -->
+              <template v-else>
+                <div
+                  v-for="(slide, idx) in cctvSlides"
+                  :key="slide.id"
+                  class="cctv-slide"
+                  :class="{
+                    'is-active':  idx === cctvActiveSlide,
+                    'is-leaving': idx === cctvSlidePrev,
+                  }"
+                >
+                  <!-- Loading skeleton -->
+                  <div v-if="slide.loading" class="snap-loading">
+                    <span class="snap-spinner"></span>
+                  </div>
+                  <!-- Error -->
+                  <div v-else-if="slide.error" class="snap-error">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="width:28px;height:28px;opacity:.4;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  </div>
+                  <!-- Foto -->
+                  <img
+                    v-else-if="slide.imageUrl"
+                    :src="slide.imageUrl"
+                    :alt="`CCTV ${slide.cctv}`"
+                    class="slide-img"
+                    :class="idx === cctvActiveSlide ? 'ken-burns' : ''"
+                  />
+                </div>
+
+                <!-- Overlay: kamera + waktu -->
+                <div class="slide-overlay">
+                  <span class="slide-cam-badge">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px;flex-shrink:0;">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                    </svg>
+                    {{ cctvSlides[cctvActiveSlide]?.cctv || 'CCTV' }}
+                  </span>
+                  <span v-if="cctvSlides[cctvActiveSlide]?.log_time" class="slide-time-badge">
+                    {{ formatDateTime(cctvSlides[cctvActiveSlide].log_time) }}
+                  </span>
+                </div>
+
+                <!-- Dot indicators -->
+                <div class="slide-dots">
+                  <button
+                    v-for="(_, i) in cctvSlides"
+                    :key="i"
+                    class="slide-dot"
+                    :class="{ active: i === cctvActiveSlide }"
+                    @click="goToSlide(i)"
+                    :aria-label="`Foto ${i + 1}`"
+                  />
+                </div>
+
+                <!-- Prev / Next arrows -->
+                <button class="slide-arrow slide-arrow-prev" @click="goToSlide((cctvActiveSlide - 1 + cctvSlides.length) % cctvSlides.length)" aria-label="Sebelumnya">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                </button>
+                <button class="slide-arrow slide-arrow-next" @click="goToSlide((cctvActiveSlide + 1) % cctvSlides.length)" aria-label="Selanjutnya">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                </button>
+              </template>
+            </div>
+
           </div>
         </div>
 

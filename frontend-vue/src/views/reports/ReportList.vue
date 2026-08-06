@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import reportApi from '@/api/report'
+import transactionApi from '@/api/transaction'
 import { useToast } from '@/composables/useToast'
 import { extractErrorMessage } from '@/utils/helper'
 import { formatNumber } from '@/utils/formatter'
@@ -158,26 +159,69 @@ async function openGateDetail(row) {
   cleanupGateDetailImages()
   gateDetailImageError.value = ''
   showGateDetailModal.value = true
-
-  const paths = Array.isArray(row.image_paths) ? row.image_paths : []
-  if (paths.length === 0) return
-
   gateDetailLoadingImages.value = true
-  const labels = ['CCTV', 'Gambar 2', 'Gambar 3', 'Gambar 4']
+
+  let pathItems = []
+
+  // Prioritas: kalau ada code_transaction, resolve semua gambar dari transaksi
+  // (MR + CCTV + ANPR, masuk & keluar) — sama persis seperti dashboard
+  if (row.code_transaction) {
+    try {
+      const resp = await transactionApi.getByCode(row.code_transaction)
+      const resolved = resp?.data?.resolved_images
+      if (Array.isArray(resolved) && resolved.length) {
+        pathItems = resolved
+          .filter(item => item && item.path)
+          .map(item => ({
+            path: item.path,
+            label: item.label || 'Gambar',
+            source: item.source || 'MR',
+          }))
+      }
+    } catch (err) {
+      console.warn('⚠️ Gagal resolve via code_transaction, fallback ke image_paths:', err?.message)
+    }
+  }
+
+  // Fallback: gunakan image_paths yang tersimpan di row gate_manual_control
+  if (pathItems.length === 0) {
+    const paths = Array.isArray(row.image_paths) ? row.image_paths : []
+    const sourceLabels = ['CCTV', 'Gambar 2', 'Gambar 3', 'Gambar 4', 'Gambar 5']
+    pathItems = paths.map((path, idx) => ({
+      path,
+      label: sourceLabels[idx] || `Gambar ${idx + 1}`,
+      source: idx === 0 ? 'CCTV' : 'MR',
+    }))
+  }
+
+  if (pathItems.length === 0) {
+    gateDetailLoadingImages.value = false
+    return
+  }
+
+  // Deduplikasi
+  const seen = new Set()
+  const unique = pathItems.filter(({ path }) => {
+    if (seen.has(path)) return false
+    seen.add(path)
+    return true
+  })
+
   const resolved = await Promise.all(
-    paths.map(async (path, idx) => {
+    unique.map(async ({ path, label }) => {
       try {
         const src = await fetchImageSource(path)
-        return { key: `img-${idx}`, label: labels[idx] || `Gambar ${idx + 1}`, src }
+        return { key: path, label, src }
       } catch {
         return null
       }
     }),
   )
+
   gateDetailLoadingImages.value = false
   gateDetailImages.value = resolved.filter(Boolean)
   if (!gateDetailImages.value.length) {
-    gateDetailImageError.value = 'Gagal memuat gambar CCTV.'
+    gateDetailImageError.value = 'Gagal memuat gambar.'
   }
 }
 
@@ -382,7 +426,7 @@ onBeforeUnmount(() => {
       </template>
     </template>
 
-    <Modal v-model="showGateDetailModal" title="Detail Kontrol Gate">
+    <Modal v-model="showGateDetailModal" title="Detail Kontrol Gate" size="xl">
       <div v-if="selectedGateRow" class="detail-modal">
         <div class="detail-image">
           <div v-if="gateDetailLoadingImages" class="detail-image-placeholder">

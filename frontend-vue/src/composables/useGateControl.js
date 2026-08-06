@@ -58,9 +58,10 @@ export function useGateControl() {
       })
 
       // Jika ada nomor_plat, log ke manual control table (beserta gambar jika tersedia)
+      // gate_id di gate_manual_control selalu 'VISITOR_OUT' sesuai kebutuhan sistem
       if (options.nomor_plat) {
         await gateApi.logManualControl({
-          gate_id: logGateId,
+          gate_id: 'VISITOR_OUT',
           nomor_plat: options.nomor_plat,
           code_transaction: options.code_transaction || null,
           action: open ? 'OPEN' : 'CLOSE',

@@ -421,6 +421,34 @@ class TransactionController extends Controller
     }
 
     /**
+     * Ambil 8 foto CCTV terbaru dari log_cctv (untuk slideshow dashboard).
+     * Tidak dibatasi per kamera — ambil saja yang paling baru.
+     */
+    public function getLatestCctvSnapshots(Request $request): JsonResponse
+    {
+        try {
+            $limit = min((int) $request->query('limit', 8), 20);
+
+            $snapshots = LogCctv::whereNotNull('view_image_path')
+                ->where('view_image_path', '!=', '')
+                ->orderBy('log_time', 'desc')
+                ->limit($limit)
+                ->get(['id', 'cctv', 'view_image_path', 'log_time'])
+                ->values()
+                ->map(fn($r) => [
+                    'id'              => $r->id,
+                    'cctv'            => $r->cctv,
+                    'view_image_path' => $r->view_image_path,
+                    'log_time'        => $r->log_time,
+                ]);
+
+            return $this->successResponse($snapshots, 'Snapshots CCTV terbaru.');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Gagal mengambil snapshots: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
      * Set flags=1 pada 2 log_cctv record terbaru (by log_time).
      * Node-RED insert 2 record sekaligus (anpr + view) saat capture,
      * sehingga keduanya perlu di-update.

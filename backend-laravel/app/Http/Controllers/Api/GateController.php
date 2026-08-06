@@ -268,21 +268,21 @@ class GateController extends Controller
                 $row->entry_image_3,
                 $row->entry_image_4,
             ];
-            $imagePaths = array_values(array_slice(
-                array_unique(array_filter($candidates, fn ($p) => (string) $p !== '')),
-                0, 4
+            $imagePaths = array_values(array_unique(
+                array_filter($candidates, fn ($p) => (string) $p !== '')
             ));
 
             return [
-                'no'           => $i + 1,
-                'event_ts'     => $ts ? $ts->format('d/m/Y H:i:s') : '—',
-                'gate_id'      => $row->gate_id ?: '—',
-                'action'       => $row->action ?: '—',
-                'action_label' => strtoupper((string) $row->action) === 'OPEN' ? 'Buka' : 'Tutup',
-                'result'       => $row->result ?: '—',
-                'nomor_plat'   => $row->nomor_plat ?: '—',
-                'user_name'    => $row->user_name ?: '—',
-                'image_paths'  => $imagePaths,
+                'no'               => $i + 1,
+                'event_ts'         => $ts ? $ts->format('d/m/Y H:i:s') : '—',
+                'gate_id'          => $row->gate_id ?: '—',
+                'action'           => $row->action ?: '—',
+                'action_label'     => strtoupper((string) $row->action) === 'OPEN' ? 'Buka' : 'Tutup',
+                'result'           => $row->result ?: '—',
+                'nomor_plat'       => $row->nomor_plat ?: '—',
+                'user_name'        => $row->user_name ?: '—',
+                'code_transaction' => $row->code_transaction ?: null,
+                'image_paths'      => $imagePaths,
             ];
         })->all();
 
@@ -404,6 +404,17 @@ class GateController extends Controller
             'total' => $logs->count(),
             'logs' => $logs,
         ]);
+    }
+
+    /**
+     * GET /api/gate/manual-control/total
+     * Kembalikan total keseluruhan baris di gate_manual_control (tanpa limit).
+     */
+    public function getManualControlTotal(Request $request): JsonResponse
+    {
+        $total = GateManualControl::count();
+
+        return response()->json(['total' => $total]);
     }
 
     /**

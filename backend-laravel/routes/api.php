@@ -72,6 +72,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/gate/log', [GateController::class, 'logGateAction']);
     Route::get('/gate/logs', [GateController::class, 'getAllLogs']);
     Route::get('/gate/manual-control/logs', [GateController::class, 'getManualLogs']);
+    Route::get('/gate/manual-control/total', [GateController::class, 'getManualControlTotal']);
     Route::get('/gate/logs/{gateId}', [GateController::class, 'getLogsByGateId']);
     // Live activity feed (log_gate + gate_manual_control) untuk dashboard
     Route::get('/gate/live-activity', [GateController::class, 'getLiveActivity']);
@@ -193,6 +194,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Set flags pada log_cctv record terbaru (setelah capture dari Node-RED)
     Route::patch('/log-cctv/flag-latest', [TransactionController::class, 'setLogCctvFlags']);
+
+    // Snapshot CCTV terbaru per kamera (untuk dashboard)
+    Route::get('/log-cctv/latest-snapshots', [TransactionController::class, 'getLatestCctvSnapshots']);
 
     // Proxy ke Node-RED capture API (hindari CORS di production)
     Route::post('/cctv/capture', [TransactionController::class, 'cctvCapture']);

@@ -27,6 +27,11 @@ export const gateApi = {
   getLogsByGateId: (gateId, params = {}) => axios.get(`/gate/logs/${gateId}`, { params }),
 
   /**
+   * Get total count of all manual gate control records
+   */
+  getManualControlTotal: () => axios.get('/gate/manual-control/total'),
+
+  /**
    * Get all manual gate control logs
    * @param {object} params - { limit?, gate_id? }
    */

@@ -181,6 +181,15 @@ const transactionApi = {
   },
 
   /**
+   * Ambil snapshot CCTV terbaru per kamera dari log_cctv
+   * @returns {Promise} Array of { id, cctv, view_image_path, log_time }
+   */
+  async getLatestCctvSnapshots() {
+    const response = await api.get('/log-cctv/latest-snapshots')
+    return response.data
+  },
+
+  /**
    * Update transaction status to COMPLETED
    * @param {string} transactionId - The transaction ID to update
    * @returns {Promise} Update result
