@@ -377,8 +377,8 @@ function clearMqttEvents() {
 const defaultCameras = [
   { id: 1, name: 'Kamera 1', enabled: true, src: import.meta.env.VITE_STREAM_URL_1 || 'http://localhost:1984/api/ws?src=cam1', gate_id: 'GATE_IN_01' },
   { id: 2, name: 'Kamera 2', enabled: true, src: import.meta.env.VITE_STREAM_URL_2 || 'http://localhost:1984/api/ws?src=cam2', gate_id: 'GATE_IN_02' },
-  { id: 3, name: 'Kamera 3', enabled: true, src: import.meta.env.VITE_STREAM_URL_3 || 'http://localhost:1984/api/ws?src=cam3', gate_id: 'GATE_OUT_01' },
-  { id: 4, name: 'Kamera 4', enabled: true, src: import.meta.env.VITE_STREAM_URL_4 || 'http://localhost:1984/api/ws?src=cam4', gate_id: 'GATE_OUT_02' },
+  // { id: 3, name: 'Kamera 3', enabled: true, src: import.meta.env.VITE_STREAM_URL_3 || 'http://localhost:1984/api/ws?src=cam3', gate_id: 'GATE_OUT_01' },
+  // { id: 4, name: 'Kamera 4', enabled: true, src: import.meta.env.VITE_STREAM_URL_4 || 'http://localhost:1984/api/ws?src=cam4', gate_id: 'GATE_OUT_02' },
 ]
 
 const cameras = ref(defaultCameras)
@@ -388,7 +388,8 @@ async function loadCameras() {
     const res = await cameraApi.getFeeds()
     const feeds = res.data?.cameras || []
     if (feeds.length) {
-      cameras.value = feeds.map((c, i) => {
+      // Kamera 3 dan 4 sementara tidak digunakan — batasi ke 2 kamera pertama
+      cameras.value = feeds.slice(0, 2).map((c, i) => {
         const gateIds = ['GATE_IN_01', 'GATE_IN_02', 'GATE_OUT_01', 'GATE_OUT_02']
         return {
           id: i + 1,
@@ -1127,20 +1128,18 @@ const cards = computed(() => [
   {
     label: 'Riwayat Kamera 1',
     value: gate1Total.value,
-    to: null,
+    to: { name: 'reports.index' },
     color: '#10b981', // emerald
     icon: 'M23 7l-7 5 7 5V7z M3 5h11a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2H3a2 2 0 0 1 -2 -2V7a2 2 0 0 1 2 -2z',
     subtitle: 'Total Riwayat Gate Kamera 1',
-    onClick: () => { if (cameras.value[0]) openDetailModal(cameras.value[0]) },
   },
   {
     label: 'Riwayat Kamera 2',
     value: gate2Total.value,
-    to: null,
+    to: { name: 'reports.index' },
     color: '#f59e0b', // amber
     icon: 'M23 7l-7 5 7 5V7z M3 5h11a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2H3a2 2 0 0 1 -2 -2V7a2 2 0 0 1 2 -2z',
     subtitle: 'Total Riwayat Gate Kamera 2',
-    onClick: () => { if (cameras.value[1]) openDetailModal(cameras.value[1]) },
   },
 ])
 
@@ -1304,10 +1303,11 @@ onUnmounted(() => {
                     <svg class="ctrl-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V7l7-4 7 4v14M9 21v-6h6v6" /></svg>
                     Kontrol Gate
                   </Button>
-                  <Button size="sm" variant="secondary" @click="openDetailModal(cam)">
+                  <!-- Tombol Detail sementara disembunyikan -->
+                  <!-- <Button size="sm" variant="secondary" @click="openDetailModal(cam)">
                     <svg class="ctrl-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8h.01M11 12h1v4h1M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" /></svg>
                     Detail
-                  </Button>
+                  </Button> -->
                 </div>
               </div>
             </div>

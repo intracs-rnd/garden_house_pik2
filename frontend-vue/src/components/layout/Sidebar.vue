@@ -98,7 +98,6 @@ const menuGroups = [
         label: 'Kamera',
         icon: 'M23 7l-7 5 7 5V7zM1 5h13a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H1a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z',
         feature: 'cameras',
-        featureLevel: 'manage',
       },
       {
         to: { name: 'logs.index' },

@@ -51,6 +51,15 @@
     font-size: 13px;
     cursor: pointer;
 }
+.cam-toggle-readonly {
+    font-size: 13px;
+    color: #64748b;
+}
+.cam-field input:disabled {
+    background: #f8fafc;
+    color: #94a3b8;
+    cursor: not-allowed;
+}
 .cam-preview {
     border-radius: 8px;
     overflow: hidden;

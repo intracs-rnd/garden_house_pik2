@@ -147,7 +147,7 @@ const routes = [
         path: 'pengaturan/kamera',
         name: 'settings.cameras',
         component: () => import('@/views/settings/CameraSettings.vue'),
-        meta: { title: 'Pengaturan Kamera', feature: 'cameras', featureLevel: 'manage' },
+        meta: { title: 'Pengaturan Kamera', feature: 'cameras' },
       },
       // Log error / bug aplikasi — hanya untuk Super Admin.
       {
