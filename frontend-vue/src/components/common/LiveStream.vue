@@ -11,6 +11,11 @@ import './video-rtc.js'
  * The vendored go2rtc web component negotiates WebRTC first (sub-second
  * latency, no more MediaMTX/HLS delay) and falls back to MSE/HLS/MJPEG.
  * `http(s)://` URLs are accepted and converted to `ws(s)://` automatically.
+ *
+ * Lazy connection: the WebRTC/WebSocket connection is only opened while the
+ * player is BOTH visible in the viewport AND the browser tab is active.
+ * This prevents continuous video decode + bandwidth usage on the server when
+ * the user has scrolled away or switched to another tab.
  */
 const props = defineProps({
   src: { type: String, required: true },
@@ -20,27 +25,30 @@ const props = defineProps({
   label: { type: String, default: '' },
 })
 
-const containerRef = ref(null)
-const loading = ref(true)
-const error = ref('')
+const wrapperRef   = ref(null)   // outer .live-stream div (observed)
+const containerRef = ref(null)   // inner .live-video div (player is appended here)
+const loading      = ref(false)  // true while stream is connecting
+const error        = ref('')
+const isIntersecting = ref(false) // true when element is in the viewport
 
 // Text shown inside the loading overlay while the stream connects.
 const statusText = computed(() => 'Menghubungkan ke stream...')
 
+// Show standby placeholder when not in viewport and not currently loading/playing.
+const standby = computed(() => !isIntersecting.value && !loading.value && !error.value)
+
 /** @type {HTMLElement & Record<string, any> | null} */
-let player = null
+let player   = null
 let watchdog = null
 let onPlaying = null
+let intersectionObserver = null
 
 // If nothing actually plays within this window, go2rtc is almost certainly not
 // running (or the camera is unreachable) — stop the endless spinner and say so.
 const WATCHDOG_MS = 15000
 
 function clearWatchdog() {
-  if (watchdog) {
-    clearTimeout(watchdog)
-    watchdog = null
-  }
+  if (watchdog) { clearTimeout(watchdog); watchdog = null }
 }
 
 function setError(message) {
@@ -56,13 +64,12 @@ function teardown() {
     // ondisconnect directly so the WebSocket/PeerConnection close immediately.
     try {
       if (typeof player.ondisconnect === 'function') player.ondisconnect()
-    } catch (_e) {
-      /* ignore */
-    }
+    } catch (_e) { /* ignore */ }
     if (player.parentNode) player.parentNode.removeChild(player)
     player = null
   }
   onPlaying = null
+  loading.value = false
 }
 
 function initPlayer() {
@@ -88,6 +95,7 @@ function initPlayer() {
   player.background = false
   // Don't attach a permanent document 'visibilitychange' listener per player
   // (the component never removes it); avoids leaks with many mounts/remounts.
+  // We manage visibility ourselves via the Page Visibility API below.
   player.visibilityCheck = false
   player.style.display = 'block'
   player.style.width = '100%'
@@ -99,10 +107,7 @@ function initPlayer() {
   const video = player.video
   if (video) {
     video.muted = props.muted
-    onPlaying = () => {
-      clearWatchdog()
-      loading.value = false
-    }
+    onPlaying = () => { clearWatchdog(); loading.value = false }
     video.addEventListener('playing', onPlaying)
   }
 
@@ -124,16 +129,59 @@ function retry() {
   initPlayer()
 }
 
-onMounted(initPlayer)
-onBeforeUnmount(teardown)
-watch(() => props.src, initPlayer)
+/** Pause stream when browser tab becomes hidden; resume when visible again. */
+function handleVisibilityChange() {
+  if (document.hidden) {
+    teardown()
+  } else if (isIntersecting.value) {
+    initPlayer()
+  }
+}
+
+onMounted(() => {
+  // Intersection Observer: only stream while the element is in the viewport.
+  // Threshold 0.25 = connect when at least 25 % of the player is on screen.
+  intersectionObserver = new IntersectionObserver(
+    (entries) => {
+      const visible = entries[0].isIntersecting
+      isIntersecting.value = visible
+      if (visible && !document.hidden) {
+        initPlayer()
+      } else {
+        teardown()
+      }
+    },
+    { threshold: 0.25 },
+  )
+  if (wrapperRef.value) intersectionObserver.observe(wrapperRef.value)
+
+  // Page Visibility API: disconnect when the user switches tabs.
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+})
+
+onBeforeUnmount(() => {
+  teardown()
+  intersectionObserver?.disconnect()
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
+})
+
+// When the src changes, reinit only if currently visible and tab is active.
+watch(() => props.src, () => {
+  if (isIntersecting.value && !document.hidden) initPlayer()
+})
 </script>
 
 <template>
-  <div class="live-stream">
+  <div ref="wrapperRef" class="live-stream">
     <div ref="containerRef" class="live-video"></div>
 
-    <div v-if="loading && !error" class="live-overlay">
+    <!-- Standby: stream paused because element is out of viewport -->
+    <div v-if="standby" class="live-overlay live-overlay-standby">
+      <span class="live-standby-icon" aria-hidden="true">⏸</span>
+      <span>Kamera standby</span>
+    </div>
+
+    <div v-else-if="loading && !error" class="live-overlay">
       <span class="live-spinner" aria-hidden="true"></span>
       <span>{{ statusText }}</span>
     </div>
@@ -143,7 +191,7 @@ watch(() => props.src, initPlayer)
       <button type="button" class="live-retry" @click="retry">Coba lagi</button>
     </div>
 
-    <span v-if="!loading && !error" class="live-badge">
+    <span v-if="!loading && !error && !standby" class="live-badge">
       <span class="live-dot"></span> LIVE
     </span>
 
@@ -187,6 +235,16 @@ watch(() => props.src, initPlayer)
 }
 .live-overlay-error {
   color: #fca5a5;
+}
+.live-overlay-standby {
+  color: #9ca3af;
+  background: rgba(0, 0, 0, 0.75);
+  font-size: 13px;
+  gap: 8px;
+}
+.live-standby-icon {
+  font-size: 22px;
+  line-height: 1;
 }
 .live-spinner {
   width: 30px;
