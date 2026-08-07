@@ -296,6 +296,8 @@ function renderChart() {
 
   console.log('Chart instance created successfully:', chartInstance.value)
 }
+
+function startAutoRefresh() {
   if (!props.autoRefresh) return
   refreshTimer = setInterval(loadData, props.refreshInterval)
 }
