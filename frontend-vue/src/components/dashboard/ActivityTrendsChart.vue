@@ -125,13 +125,7 @@ async function loadData() {
       params.end_date = selectedEndDate.value
     }
     const res = await dashboardApi.activityTrends(params)
-    console.log('Activity Trends Response:', res)
     trendsData.value = res.data || []
-    console.log('Trends Data:', trendsData.value)
-
-    if (trendsData.value.length === 0) {
-      console.warn('No trends data available')
-    }
   } catch (err) {
     console.error('Failed to load activity trends:', err)
     error.value = extractErrorMessage(err, 'Gagal memuat data trend aktivitas.')
@@ -153,26 +147,8 @@ async function loadData() {
 }
 
 function renderChart() {
-  console.log('renderChart called', {
-    hasCanvas: !!chartCanvas.value,
-    dataLength: trendsData.value.length,
-    data: trendsData.value
-  })
-
-  if (!chartCanvas.value) {
-    console.error('Canvas element not found')
-    return
-  }
-
-  if (trendsData.value.length === 0) {
-    console.warn('No data to render')
-    return
-  }
-
-  // Destroy existing chart
-  if (chartInstance.value) {
-    chartInstance.value.destroy()
-  }
+  if (!chartCanvas.value) return
+  if (trendsData.value.length === 0) return
 
   // Prepare data
   const labels = trendsData.value.map(item => {
@@ -180,12 +156,23 @@ function renderChart() {
     return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
   })
 
-  const vehiclesIn = trendsData.value.map(item => item.vehicles_in)
-  const vehiclesOut = trendsData.value.map(item => item.vehicles_out)
-  const vehiclesInside = trendsData.value.map(item => item.vehicles_inside)
+  const vehiclesIn      = trendsData.value.map(item => item.vehicles_in)
+  const vehiclesOut     = trendsData.value.map(item => item.vehicles_out)
+  const vehiclesInside  = trendsData.value.map(item => item.vehicles_inside)
   const totalActivities = trendsData.value.map(item => item.total_activities)
 
-  // Create chart
+  // Update existing chart instead of destroy+recreate to avoid CPU spikes
+  if (chartInstance.value) {
+    chartInstance.value.data.labels              = labels
+    chartInstance.value.data.datasets[0].data    = vehiclesIn
+    chartInstance.value.data.datasets[1].data    = vehiclesOut
+    chartInstance.value.data.datasets[2].data    = vehiclesInside
+    chartInstance.value.data.datasets[3].data    = totalActivities
+    chartInstance.value.update('none') // skip animation on refresh
+    return
+  }
+
+  // First render: create a new Chart instance
   const ctx = chartCanvas.value.getContext('2d')
   chartInstance.value = new Chart(ctx, {
     type: 'line',
@@ -309,8 +296,6 @@ function renderChart() {
 
   console.log('Chart instance created successfully:', chartInstance.value)
 }
-
-function startAutoRefresh() {
   if (!props.autoRefresh) return
   refreshTimer = setInterval(loadData, props.refreshInterval)
 }
@@ -323,7 +308,6 @@ function stopAutoRefresh() {
 }
 
 onMounted(() => {
-  console.log('ActivityTrendsChart mounted')
   loadData()
   startAutoRefresh()
 })

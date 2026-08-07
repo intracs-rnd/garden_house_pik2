@@ -319,7 +319,7 @@ function mqttEventMeta(evt) {
 }
 
 // Setup MQTT connection
-const { isConnected, error: mqttErr, connect: mqttConnect, subscribe: mqttSubscribe } = useMqtt(null, { autoConnect: false })
+const { isConnected, error: mqttErr, connect: mqttConnect, subscribe: mqttSubscribe, unsubscribe: mqttUnsubscribe, disconnect: mqttDisconnect } = useMqtt(null, { autoConnect: false })
 
 // Setup Gate Control
 const { publishGateAction, isPublishing: gatePublishing, publishError: gatePublishError, isConnecting: gateConnecting } = useGateControl()
@@ -532,7 +532,7 @@ const auth = useAuthStore()
 
 const canControlGate = computed(() => auth.canManage('dashboard') || auth.canManage('kartu_gate'))
 
-const ACTIVITY_POLL_MS = 5000
+const ACTIVITY_POLL_MS = 15000
 
 const vehicleActivityAll = ref([])
 const activitySummary = ref({ today_total: 0, today_auto: 0, today_manual: 0 })
@@ -590,8 +590,11 @@ function mapLog(log) {
 
 async function loadActivity() {
   try {
-    const params = { limit: 1000 }
-    if (selectedDate.value) params.date = selectedDate.value
+    // Always filter by the active date (today when none selected) so the server
+    // returns only the relevant day's rows — avoids loading 1000 records from all
+    // dates and filtering client-side.
+    const targetDate = selectedDate.value || todayDateStr.value
+    const params = { limit: 200, date: targetDate }
     const res = await gateApi.getLiveActivity(params)
     const payload = res.data?.data || res.data || []
     vehicleActivityAll.value = Array.isArray(payload) ? payload.map(mapLog) : []
@@ -1301,6 +1304,12 @@ onUnmounted(() => {
   clearInterval(activityTimer)
   clearInterval(rfidTimer)
   stopCctvSnapshots()
+  // Cleanup MQTT subscriptions to prevent memory leaks on component remount
+  mqttUnsubscribe(RFID_STATUS_TOPIC)
+  mqttUnsubscribe(GATE_EVENT_TOPIC)
+  mqttUnsubscribe(GATE_OUT_EVENT_TOPIC)
+  mqttUnsubscribe(DEVICE_STATUS_TOPIC)
+  mqttDisconnect()
 })
 </script>
 

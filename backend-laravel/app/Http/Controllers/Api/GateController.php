@@ -250,11 +250,20 @@ class GateController extends Controller
         if ($noPlat) {
             $query->where('nomor_plat', 'ilike', "%{$noPlat}%");
         }
-        $rawRows = $query->orderBy('event_ts', 'desc')->get();
 
-        $total = $rawRows->count();
-        $open  = $rawRows->filter(fn ($r) => strtoupper((string) $r->action) === 'OPEN')->count();
-        $close = $rawRows->filter(fn ($r) => strtoupper((string) $r->action) === 'CLOSE')->count();
+        // Use SQL aggregation for summary counts — avoids loading all rows into
+        // PHP memory just to count them.
+        $counts = (clone $query)->selectRaw(
+            "COUNT(*) as total,
+             SUM(CASE WHEN action = 'OPEN'  THEN 1 ELSE 0 END) as open_count,
+             SUM(CASE WHEN action = 'CLOSE' THEN 1 ELSE 0 END) as close_count"
+        )->first();
+
+        $total = (int) ($counts->total ?? 0);
+        $open  = (int) ($counts->open_count ?? 0);
+        $close = (int) ($counts->close_count ?? 0);
+
+        $rawRows = $query->orderBy('event_ts', 'desc')->get();
 
         $mappedRows = $rawRows->values()->map(function ($row, $i) {
             $ts = $row->event_ts instanceof Carbon

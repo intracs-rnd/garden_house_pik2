@@ -12,6 +12,7 @@ use App\Repositories\KartuRepository;
 use App\Repositories\KendaraanRepository;
 use App\Repositories\UserRepository;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
@@ -38,26 +39,25 @@ class DashboardController extends Controller
      */
     public function index(): JsonResponse
     {
-        $today    = now()->startOfDay();
-        $todayEnd = now()->endOfDay();
+        // Cache dashboard stats for 30 seconds — the dashboard polls every 15 s
+        // so this halves the DB hit rate while keeping numbers reasonably fresh.
+        $stats = Cache::remember('dashboard_stats', 30, function () {
+            $today    = now()->startOfDay();
+            $todayEnd = now()->endOfDay();
 
-        // Kendaraan di dalam = transaksi dengan status ACTIVE (belum keluar)
-        $kendaraanDiDalam = Transaction::where('status', Transaction::STATUS_ACTIVE)->count();
+            $todayGateAuto   = LogGate::whereBetween('event_ts', [$today, $todayEnd])->count();
+            $todayGateManual = GateManualControl::whereBetween('event_ts', [$today, $todayEnd])->count();
 
-        // Aktivitas gate hari ini = log_gate + gate_manual_control
-        $todayGateAuto   = LogGate::whereBetween('event_ts', [$today, $todayEnd])->count();
-        $todayGateManual = GateManualControl::whereBetween('event_ts', [$today, $todayEnd])->count();
-        $todayGateTotal  = $todayGateAuto + $todayGateManual;
-
-        $stats = [
-            'total_users'         => $this->userRepository->query()->where('role', 'user')->where('type', 'warga')->count(),
-            'total_kendaraan'     => $this->kendaraanRepository->query()->count(),
-            'total_category'      => $this->categoryRepository->query()->count(),
-            'total_kartu'         => $this->kartuRepository->query()->count(),
-            'kartu_by_status'     => $this->kartuRepository->countByStatus(),
-            'kendaraan_di_dalam'  => $kendaraanDiDalam,
-            'today_gate_activity' => $todayGateTotal,
-        ];
+            return [
+                'total_users'         => $this->userRepository->query()->where('role', 'user')->where('type', 'warga')->count(),
+                'total_kendaraan'     => $this->kendaraanRepository->query()->count(),
+                'total_category'      => $this->categoryRepository->query()->count(),
+                'total_kartu'         => $this->kartuRepository->query()->count(),
+                'kartu_by_status'     => $this->kartuRepository->countByStatus(),
+                'kendaraan_di_dalam'  => Transaction::where('status', Transaction::STATUS_ACTIVE)->count(),
+                'today_gate_activity' => $todayGateAuto + $todayGateManual,
+            ];
+        });
 
         return $this->successResponse($stats, 'Dashboard statistics retrieved successfully.');
     }

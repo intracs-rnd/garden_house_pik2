@@ -46,6 +46,15 @@ class ImageController extends Controller
                 // Jika response adalah binary image (JPEG/PNG/etc)
                 if ($contentType && str_contains($contentType, 'image')) {
                     $imageData = $response->body();
+
+                    // Reject images larger than 10 MB to prevent OOM on base64 encode
+                    if (strlen($imageData) > 10 * 1024 * 1024) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Gambar terlalu besar (maks 10 MB)',
+                        ], 413);
+                    }
+
                     $base64 = base64_encode($imageData);
                     
                     return response()->json([
