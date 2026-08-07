@@ -39,7 +39,7 @@ fs.writeFileSync("frontend-vue/src/views/reports/ReportKartu.vue", kartu_content
 // Refactor ReportList.vue (Make it exclusively for Gate Control)
 let list_content = fs.readFileSync("frontend-vue/src/views/reports/ReportList.vue", "utf-8");
 
-list_content = list_content.replace('title="Laporan Transaksi"', 'title="Laporan Kontrol Gate"');
+list_content = list_content.replace('title="Laporan Transaksi"', 'title="Laporan Kunjuangan Visitor"');
 list_content = list_content.replace('subtitle="Rekap & detail transaksi akses kartu (harian, bulanan, tahunan)"', 'subtitle="Laporan aktivitas kontrol gate (harian, bulanan, tahunan)"');
 
 // Script cleanup for Gate Control

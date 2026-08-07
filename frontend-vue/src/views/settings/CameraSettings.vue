@@ -11,6 +11,16 @@ import LiveStream from '@/components/common/LiveStream.vue'
 
 const auth = useAuthStore()
 const canManage = computed(() => auth.canManage('cameras'))
+const isSuperAdmin = computed(() => auth.isSuperAdmin)
+
+const pageTitle = computed(() =>
+  isSuperAdmin.value ? 'Pengaturan Kamera' : 'Live CCTV'
+)
+const pageSubtitle = computed(() =>
+  isSuperAdmin.value
+    ? 'Atur URL RTSP tiap kamera. Perubahan langsung diterapkan ke go2rtc (live CCTV).'
+    : 'Pantau siaran langsung dari kamera yang terpasang.'
+)
 
 const toast = useToast()
 
@@ -113,8 +123,8 @@ onMounted(load)
 <template>
   <div>
     <PageHeader
-        title="Pengaturan Kamera"
-        subtitle="Atur URL RTSP tiap kamera. Perubahan langsung diterapkan ke go2rtc (live CCTV)."
+        :title="pageTitle"
+        :subtitle="pageSubtitle"
     >
       <template v-if="canManage" #actions>
         <Button variant="secondary" :disabled="saving || loading || reapplying" :loading="reapplying" @click="handleReapply">

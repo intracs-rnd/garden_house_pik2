@@ -121,12 +121,12 @@ const routes = [
         component: () => import('@/views/reports/ReportKartu.vue'),
         meta: { title: 'Laporan Transaksi Kartu', feature: 'reports' },
       },
-      // Laporan Kontrol Gate
+      // Laporan Kunjuangan Visitor
       {
         path: 'laporan',
         name: 'reports.index',
         component: () => import('@/views/reports/ReportList.vue'),
-        meta: { title: 'Laporan Kontrol Gate', feature: 'reports' },
+        meta: { title: 'Laporan Kunjuangan Visitor', feature: 'reports' },
       },
       // Log & Tren Aktivitas Gate (real-time gate logs + 7-day activity trend chart)
       {

@@ -234,7 +234,7 @@ async function loadGateControl() {
     gateControlData.value = res.data
     gateControlPage.value = 1
   } catch (err) {
-    gateControlError.value = extractErrorMessage(err, 'Gagal memuat data kontrol gate.')
+    gateControlError.value = extractErrorMessage(err, 'Gagal memuat data kunjungan visitor.')
   } finally {
     loading.value = false
   }
@@ -263,14 +263,14 @@ async function download(kind, { format = 'pdf', preview = false } = {}) {
     
     if (format === 'excel') {
       const blob = await reportApi.gateControlExcel(buildParams())
-      downloadBlob(blob, `laporan-kontrol-gate-${filters.value.period}-${stamp}.xlsx`)
+      downloadBlob(blob, `laporan-kunjungan-visitor-${filters.value.period}-${stamp}.xlsx`)
       toast.success('Excel berhasil diunduh.')
     } else if (preview) {
       const blob = await reportApi.gateControlPdf(params)
       openBlob(blob)
     } else {
       const blob = await reportApi.gateControlPdf(params)
-      downloadBlob(blob, `laporan-kontrol-gate-${filters.value.period}-${stamp}.pdf`)
+      downloadBlob(blob, `laporan-kunjungan-visitor-${filters.value.period}-${stamp}.pdf`)
       toast.success('PDF berhasil diunduh.')
     }
   } catch (err) {
@@ -315,8 +315,8 @@ onBeforeUnmount(() => {
 <template>
   <div class="page">
     <PageHeader
-      title="Laporan Kontrol Gate"
-      subtitle="Laporan aktivitas kontrol gate (harian, bulanan, tahunan)"
+      title="Laporan Kunjungan Visitor"
+      subtitle="Laporan aktivitas kunjungan visitor (harian, bulanan, tahunan)"
     />
 
     <div v-if="error" class="alert alert-danger">{{ error }}</div>
@@ -399,7 +399,7 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <Loader v-if="loading" text="Memuat data kontrol gate..." />
+      <Loader v-if="loading" text="Memuat data kunjungan visitor..." />
       <div v-else-if="gateControlError" class="alert alert-danger">{{ gateControlError }}</div>
       <template v-else>
         <DataTable
@@ -410,7 +410,7 @@ onBeforeUnmount(() => {
           :per-page="gateControlPerPage"
           :total="gateTotal"
           :last-page="gateLastPage"
-          empty-text="Tidak ada event kontrol gate pada periode ini."
+          empty-text="Tidak ada data kunjungan visitor pada periode ini."
           @change-page="onGateChangePage"
           @change-per-page="onGateChangePerPage"
         >
@@ -426,7 +426,7 @@ onBeforeUnmount(() => {
       </template>
     </template>
 
-    <Modal v-model="showGateDetailModal" title="Detail Kontrol Gate" size="xl">
+    <Modal v-model="showGateDetailModal" title="Detail Kunjungan Visitor" size="xl">
       <div v-if="selectedGateRow" class="detail-modal">
         <div class="detail-image">
           <div v-if="gateDetailLoadingImages" class="detail-image-placeholder">

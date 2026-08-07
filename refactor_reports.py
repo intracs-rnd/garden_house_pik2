@@ -43,7 +43,7 @@ with open("frontend-vue/src/views/reports/ReportKartu.vue", "w", encoding="utf-8
 with open("frontend-vue/src/views/reports/ReportList.vue", "r", encoding="utf-8") as f:
     list_content = f.read()
 
-list_content = list_content.replace('title="Laporan Transaksi"', 'title="Laporan Kontrol Gate"')
+list_content = list_content.replace('title="Laporan Transaksi"', 'title="Laporan Kunjuangan Visitor"')
 list_content = list_content.replace('subtitle="Rekap & detail transaksi akses kartu (harian, bulanan, tahunan)"', 'subtitle="Laporan aktivitas kontrol gate (harian, bulanan, tahunan)"')
 
 # Script cleanup for Gate Control

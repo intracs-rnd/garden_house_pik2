@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="utf-8">
-    <title>Laporan Kontrol Gate</title>
+    <title>Laporan Kunjuangan Visitor</title>
     <style>
         * { font-family: 'DejaVu Sans', sans-serif; }
         body { color: #1f2937; font-size: 11px; margin: 0; }
@@ -40,7 +40,7 @@
 </head>
 <body>
     <div class="doc-header">
-        <h1>Laporan Kontrol Gate</h1>
+        <h1>Laporan Kunjuangan Visitor</h1>
         <div class="subtitle">Garden House PIK2 &middot; Log Buka / Tutup Gate Manual</div>
     </div>
 

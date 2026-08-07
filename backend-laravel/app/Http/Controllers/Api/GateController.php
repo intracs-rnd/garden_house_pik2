@@ -169,7 +169,7 @@ class GateController extends Controller
         return $this->successResponse([
             'rows'    => $report['rows'],
             'summary' => $report['summary'],
-        ], 'Laporan kontrol gate berhasil dimuat.');
+        ], 'Laporan Kunjuangan Visitor berhasil dimuat.');
     }
 
     /**
