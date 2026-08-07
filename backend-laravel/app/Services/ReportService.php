@@ -32,11 +32,11 @@ class ReportService
 
     /**
      * Build the recap (aggregated) report payload.
+     * All aggregations are pushed to SQL — no rows are loaded into PHP memory.
      */
     public function recap(string $period, ?string $date, array $filters = []): array
     {
         $range = $this->applyTimeWindow($this->resolveRange($period, $date), $filters);
-        $rows  = $this->reports->recapRows($range['from'], $range['to'], $filters);
 
         return [
             'type'         => 'rekap',
@@ -44,34 +44,60 @@ class ReportService
             'period_label' => $this->periodLabel($range['period']),
             'range'        => $this->rangeMeta($range),
             'filters'      => $this->filterMeta($filters),
-            'summary'      => $this->summarize($rows),
-            'timeline'     => $this->timeline($rows, $range),
-            'by_reason'    => $this->reasonBreakdown($rows),
-            'by_gate'      => $this->gateBreakdown($rows),
+            'summary'      => $this->reports->summarySQL($range['from'], $range['to'], $filters),
+            'timeline'     => $this->buildTimelineSQL($range, $filters),
+            'by_reason'    => $this->reports->reasonBreakdownSQL($range['from'], $range['to'], $filters),
+            'by_gate'      => $this->reports->gateBreakdownSQL($range['from'], $range['to'], $filters),
             'generated_at' => $this->humanNow(),
         ];
     }
 
     /**
      * Build the detail (per-tap) report payload.
+     * Summary uses SQL aggregation; rows are capped at MAX_DETAIL_ROWS.
      */
     public function detail(string $period, ?string $date, array $filters = []): array
     {
-        $range = $this->applyTimeWindow($this->resolveRange($period, $date), $filters);
-        $rows  = $this->reports->detailRows($range['from'], $range['to'], $filters);
+        $range  = $this->applyTimeWindow($this->resolveRange($period, $date), $filters);
+        $result = $this->reports->detailRows($range['from'], $range['to'], $filters);
+        $rows   = $result['rows'];
 
         return [
-            'type'         => 'detail',
-            'period'       => $range['period'],
-            'period_label' => $this->periodLabel($range['period']),
-            'range'        => $this->rangeMeta($range),
-            'filters'      => $this->filterMeta($filters),
-            'summary'      => $this->summarize($rows),
-            'rows'         => $rows->values()->map(function ($row, $index) {
+            'type'          => 'detail',
+            'period'        => $range['period'],
+            'period_label'  => $this->periodLabel($range['period']),
+            'range'         => $this->rangeMeta($range),
+            'filters'       => $this->filterMeta($filters),
+            'summary'       => $this->reports->summarySQL($range['from'], $range['to'], $filters),
+            'total_records' => $result['total'],
+            'truncated'     => $result['truncated'],
+            'rows'          => $rows->values()->map(function ($row, $index) {
                 return $this->mapDetailRow($row, $index + 1);
             })->all(),
-            'generated_at' => $this->humanNow(),
+            'generated_at'  => $this->humanNow(),
         ];
+    }
+
+    /**
+     * Build the timeline array from SQL aggregation data.
+     * Fills all bucket slots (hours/days/months) including empty ones with zero.
+     */
+    protected function buildTimelineSQL(array $range, array $filters): array
+    {
+        $keys    = $this->bucketKeys($range);
+        $grouped = $this->reports->timelineSQL($range['from'], $range['to'], $filters, $range['bucket']);
+
+        return collect($keys)->map(function ($key) use ($grouped, $range) {
+            $bucket = $grouped[$key] ?? ['total' => 0, 'in' => 0, 'out' => 0, 'granted' => 0, 'denied' => 0];
+            return [
+                'label'   => $this->bucketLabel($key, $range['bucket']),
+                'total'   => $bucket['total'],
+                'in'      => $bucket['in'],
+                'out'     => $bucket['out'],
+                'granted' => $bucket['granted'],
+                'denied'  => $bucket['denied'],
+            ];
+        })->all();
     }
 
     /*
