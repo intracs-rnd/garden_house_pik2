@@ -161,8 +161,9 @@ class CameraService
             }
         } catch (\Throwable $e) {
             $status['status'] = 'unreachable';
-            $status['detail'] = 'Tidak dapat menghubungi go2rtc. Pastikan streamer berjalan '
-                .'(streaming/start-stream.ps1) dan API aktif.';
+            $status['detail'] = 'Tidak dapat menghubungi go2rtc API ('
+                .config('services.go2rtc.api_url')
+                .'). Pastikan proses go2rtc berjalan dan port 1984 dapat diakses.';
         }
 
         return $status;

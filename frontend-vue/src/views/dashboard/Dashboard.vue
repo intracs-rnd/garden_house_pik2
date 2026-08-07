@@ -458,28 +458,41 @@ async function loadCctvSnapshots() {
     const res = await transactionApi.getLatestCctvSnapshots()
     const records = res.data || []
 
-    // Cek apakah ada foto baru yang belum ada di slides
-    const existingPaths = new Set(cctvSlides.value.map(s => s.view_image_path))
-    for (const rec of records) {
-      if (!existingPaths.has(rec.view_image_path)) {
-        const slide = reactive({
-          id: rec.id,
-          cctv: rec.cctv,
-          view_image_path: rec.view_image_path,
-          log_time: rec.log_time,
-          imageUrl: null,
-          loading: true,
-          error: false,
-        })
-        cctvSlides.value.unshift(slide)
-        fetchSlideImage(slide)
+    // Build a map of existing slides keyed by view_image_path so we can reuse
+    // already-fetched blob URLs and avoid re-downloading unchanged images.
+    const existingMap = new Map(cctvSlides.value.map(s => [s.view_image_path, s]))
+
+    const nextSlides = records.map(rec => {
+      if (existingMap.has(rec.view_image_path)) {
+        const existing = existingMap.get(rec.view_image_path)
+        // Retry fetch if previous attempt failed
+        if (existing.error) fetchSlideImage(existing)
+        return existing
       }
-    }
-    // Batasi maksimum 8 slide, buang yang lama & revoke URL-nya
-    if (cctvSlides.value.length > 8) {
-      const dropped = cctvSlides.value.splice(8)
-      dropped.forEach(s => { if (s.imageUrl) URL.revokeObjectURL(s.imageUrl) })
-    }
+      // New photo — create slide and fetch image
+      const slide = reactive({
+        id: rec.id,
+        cctv: rec.cctv,
+        view_image_path: rec.view_image_path,
+        log_time: rec.log_time,
+        imageUrl: null,
+        loading: true,
+        error: false,
+      })
+      fetchSlideImage(slide)
+      return slide
+    })
+
+    // Revoke blob URLs for slides that are no longer in the latest set
+    const nextPaths = new Set(nextSlides.map(s => s.view_image_path))
+    cctvSlides.value.forEach(s => {
+      if (!nextPaths.has(s.view_image_path) && s.imageUrl) {
+        URL.revokeObjectURL(s.imageUrl)
+      }
+    })
+
+    cctvSlides.value = nextSlides
+
     // Reset index bila out-of-bounds
     if (cctvActiveSlide.value >= cctvSlides.value.length) {
       cctvActiveSlide.value = 0
