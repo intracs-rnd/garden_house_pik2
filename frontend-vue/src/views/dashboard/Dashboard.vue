@@ -1235,8 +1235,8 @@ const cards = computed(() => [
     value: null,
     to: null,
     color: '#ef4444',
-    icon: 'M5 21V7l7-4 7 4v14M9 21v-6h6v6',
-    subtitle: cam1.value ? (isGateReaderOnline(cam1.value) ? 'Reader Online — Siap dikontrol' : 'Reader Offline') : 'Buka / Tutup Gate',
+    icon: 'M7 11V7a5 5 0 0 1 9.9-1 M5 11h14a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2z',
+    subtitle: cam1.value ? (isGateReaderOnline(cam1.value) ? 'Reader Online — Siap dikontrol' : 'Reader Offline') : 'Tekan untuk membuka',
     onClick: () => cam1.value && openGateModal(cam1.value),
     isAction: true,
   }] : []),
@@ -1333,16 +1333,18 @@ onUnmounted(() => {
           </div>
           <div class="stat-meta">
             <span v-if="card.isAction" class="stat-value stat-value-action">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;">
-                <path d="M5 21V7l7-4 7 4v14M9 21v-6h6v6"/>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;flex-shrink:0;">
+                <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+                <path d="M5 11h14a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2z"/>
               </svg>
-              Buka / Tutup
+              Buka Gate
             </span>
             <span v-else class="stat-value" :key="card.label + '-val'">
               {{ formatNumber(animatedCardValues[card.label] ?? 0) }}
             </span>
             <span class="stat-label">{{ card.label }}</span>
             <span v-if="card.subtitle" class="stat-subtitle">{{ card.subtitle }}</span>
+            <span v-if="card.isAction" class="gate-tap-hint">Ketuk untuk membuka</span>
           </div>
           <svg v-if="card.to" class="stat-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M9 18l6-6-6-6" />

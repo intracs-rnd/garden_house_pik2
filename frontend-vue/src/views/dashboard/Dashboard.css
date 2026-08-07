@@ -68,16 +68,32 @@ a.stat-card:hover {
   border-color: color-mix(in srgb, var(--color-primary, #4f46e5) 30%, var(--color-border));
 }
 
-/* Action card (Kontrol Gate) — menonjol dengan border merah + hover lebih dramatis */
+/* Action card (Kontrol Gate) — menonjol sebagai tombol utama buka gate */
 .stat-card-action {
-  border-color: rgb(239 68 68 / 0.35);
-  background: color-mix(in srgb, #ef4444 4%, var(--color-surface));
+  border: 2px solid rgb(239 68 68 / 0.45);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, #ef4444 9%, var(--color-surface)),
+    color-mix(in srgb, #ef4444 4%, var(--color-surface))
+  );
+  animation: gate-btn-pulse 2.8s ease-in-out infinite;
+}
+
+@keyframes gate-btn-pulse {
+  0%, 100% { box-shadow: var(--shadow-sm), 0 0 0 0 rgb(239 68 68 / 0.22); }
+  50%       { box-shadow: var(--shadow-sm), 0 0 0 8px rgb(239 68 68 / 0); }
 }
 
 .stat-card-action:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow), 0 0 0 3px rgb(239 68 68 / 0.15);
-  border-color: rgb(239 68 68 / 0.6);
+  transform: translateY(-3px) scale(1.015);
+  box-shadow: var(--shadow), 0 0 0 5px rgb(239 68 68 / 0.18);
+  border-color: rgb(239 68 68 / 0.75);
+  animation: none;
+}
+
+.stat-card-action:active {
+  transform: translateY(-1px) scale(0.99);
+  box-shadow: var(--shadow-sm), 0 0 0 3px rgb(239 68 68 / 0.25);
 }
 
 .stat-card-action:hover .stat-arrow {
@@ -85,14 +101,35 @@ a.stat-card:hover {
   transform: translateX(0);
 }
 
-/* Value area for action card (icon + text instead of number) */
+/* Value area for action card — styled as a pill button */
 .stat-value-action {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  font-size: 18px !important;
+  gap: 6px;
+  font-size: 15px !important;
   font-weight: 700;
   color: #ef4444;
+  background: rgb(239 68 68 / 0.1);
+  border: 1.5px solid rgb(239 68 68 / 0.3);
+  padding: 5px 13px 5px 10px;
+  border-radius: 999px;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.stat-card-action:hover .stat-value-action {
+  background: rgb(239 68 68 / 0.18);
+  border-color: rgb(239 68 68 / 0.55);
+  transform: scale(1.04);
+}
+
+/* "Ketuk untuk membuka" hint */
+.gate-tap-hint {
+  font-size: 10px;
+  font-weight: 500;
+  color: rgb(239 68 68 / 0.55);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-top: 1px;
 }
 
 .stat-icon {

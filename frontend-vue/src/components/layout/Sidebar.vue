@@ -24,6 +24,12 @@ const menuGroups = [
         feature: null,
       },
       {
+        to: { name: 'settings.cameras' },
+        label: 'Kamera',
+        icon: 'M23 7l-7 5 7 5V7zM1 5h13a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H1a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z',
+        feature: 'cameras',
+      },
+      {
         to: { name: 'kartu.index' },
         label: 'Kartu Akses',
         icon: 'M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm-1 5h20M6 15h4',
@@ -93,12 +99,7 @@ const menuGroups = [
         feature: 'access_control',
         featureLevel: 'manage',
       },
-      {
-        to: { name: 'settings.cameras' },
-        label: 'Kamera',
-        icon: 'M23 7l-7 5 7 5V7zM1 5h13a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H1a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z',
-        feature: 'cameras',
-      },
+
       {
         to: { name: 'logs.index' },
         label: 'Log Error',
