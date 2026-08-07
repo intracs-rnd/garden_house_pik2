@@ -142,12 +142,19 @@ const routes = [
         component: () => import('@/views/settings/AccessControl.vue'),
         meta: { title: 'Pengaturan Hak Akses', feature: 'access_control', featureLevel: 'manage' },
       },
-      // Pengaturan kamera live CCTV (URL RTSP dinamis).
+      // Pengaturan kamera live CCTV — khusus role dengan akses manage.
       {
         path: 'pengaturan/kamera',
         name: 'settings.cameras',
         component: () => import('@/views/settings/CameraSettings.vue'),
-        meta: { title: 'Pengaturan Kamera', feature: 'cameras' },
+        meta: { title: 'Pengaturan Kamera', feature: 'cameras', featureLevel: 'manage' },
+      },
+      // Live CCTV view-only — untuk role yang hanya punya akses view.
+      {
+        path: 'kamera',
+        name: 'cameras',
+        component: () => import('@/views/settings/CameraSettings.vue'),
+        meta: { title: 'Kamera', feature: 'cameras' },
       },
       // Log error / bug aplikasi — hanya untuk Super Admin.
       {
