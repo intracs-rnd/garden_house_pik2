@@ -397,6 +397,8 @@ class TransactionController extends Controller
     /**
      * Proxy request ke Node-RED CCTV capture API.
      * Frontend tidak perlu akses langsung ke Node-RED (hindari CORS).
+     * Setelah capture berhasil, simpan image path ke log_cctv jika Node-RED
+     * mengembalikan path (Format 3) agar record selalu terbuat.
      */
     public function cctvCapture(Request $request): JsonResponse
     {
@@ -421,11 +423,60 @@ class TransactionController extends Controller
                 return $this->errorResponse('Node-RED capture gagal: HTTP ' . $response->status(), 502);
             }
 
-            return response()->json($response->json());
+            $data = $response->json();
+
+            // Insert log_cctv records for any image paths returned by Node-RED.
+            // Format 3: { data: { images: { view: { path: "..." }, anpr: { path: "..." } } } }
+            // Node-RED may not auto-insert for dashboard/manual capture flows,
+            // so we ensure the record always exists here.
+            $this->persistLogCctvFromCapture($data, $request->input('device'));
+
+            return response()->json($data);
         } catch (\Illuminate\Http\Client\ConnectionException $e) {
             return $this->errorResponse('Koneksi ke CCTV/Node-RED timeout: ' . $e->getMessage(), 504);
         } catch (\Exception $e) {
             return $this->errorResponse('Terjadi kesalahan pada capture CCTV: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Insert log_cctv records from a Node-RED capture response.
+     * Handles Format 3: { data: { images: { view: { path: "..." }, anpr: { path: "..." } } } }
+     * Silently skips if no paths are found (e.g. base64-only responses).
+     */
+    private function persistLogCctvFromCapture(array $data, string $device): void
+    {
+        $images = $data['data']['images'] ?? null;
+
+        if (!is_array($images) || empty($images)) {
+            return;
+        }
+
+        $now = now();
+
+        foreach ($images as $type => $imgData) {
+            $path = $imgData['path'] ?? null;
+            if (empty($path)) {
+                continue;
+            }
+
+            // Skip if this exact path is already recorded (avoid duplicates when
+            // Node-RED also inserts the record for certain flows).
+            $exists = LogCctv::where('view_image_path', $path)->exists();
+            if ($exists) {
+                continue;
+            }
+
+            try {
+                LogCctv::create([
+                    'cctv'            => $device,
+                    'view_image_path' => $path,
+                    'log_time'        => $now,
+                    'flags'           => 0,
+                ]);
+            } catch (\Exception $e) {
+                \Log::warning("persistLogCctvFromCapture: gagal insert untuk {$type}: " . $e->getMessage());
+            }
         }
     }
 
@@ -458,15 +509,24 @@ class TransactionController extends Controller
     }
 
     /**
-     * Set flags=1 pada 2 log_cctv record terbaru (by log_time).
-     * Node-RED insert 2 record sekaligus (anpr + view) saat capture,
-     * sehingga keduanya perlu di-update.
+     * Set flags=1 pada log_cctv record yang baru saja di-insert (dalam 30 detik terakhir).
+     * Dibatasi ke record terbaru agar tidak salah mem-flag record lama yang tidak terkait.
      */
     public function setLogCctvFlags(Request $request): JsonResponse
     {
-        $latest = LogCctv::orderBy('log_time', 'desc')
-            ->limit(2)
+        $since = now()->subSeconds(30);
+
+        $latest = LogCctv::where('log_time', '>=', $since)
+            ->orderBy('log_time', 'desc')
+            ->limit(4)
             ->get();
+
+        // Fallback: jika tidak ada record dalam 30 detik terakhir, ambil 2 terbaru
+        if ($latest->isEmpty()) {
+            $latest = LogCctv::orderBy('log_time', 'desc')
+                ->limit(2)
+                ->get();
+        }
 
         if ($latest->isEmpty()) {
             return $this->errorResponse('Tidak ada record log_cctv', 404);
