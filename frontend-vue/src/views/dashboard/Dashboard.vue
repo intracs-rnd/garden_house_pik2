@@ -1056,7 +1056,14 @@ async function captureFromCctv() {
     toastSuccess('Capture CCTV berhasil, silakan konfirmasi untuk membuka gate')
   } catch (err) {
     console.error('❌ Capture CCTV error:', err)
-    toastError(`Gagal capture dari CCTV: ${err.message}`)
+    const isTimeout = err.code === 'ECONNABORTED' || err.message?.includes('timeout')
+    if (isTimeout) {
+      toastError('Koneksi ke CCTV timeout setelah beberapa percobaan. Pastikan Node-RED dan kamera aktif, lalu coba lagi.')
+    } else if (err.response?.status === 502 || err.response?.status === 504) {
+      toastError('Server CCTV tidak merespons. Periksa koneksi Node-RED dan coba lagi.')
+    } else {
+      toastError(`Gagal capture dari CCTV: ${err.response?.data?.message || err.message}`)
+    }
   } finally {
     gateCaptureLoading.value = false
   }

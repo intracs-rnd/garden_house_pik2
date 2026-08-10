@@ -163,12 +163,34 @@ const transactionApi = {
    * @param {string} device - Nama device (e.g., "DASHBOARD-OUT")
    * @returns {Promise} Response dari Node-RED
    */
-  async cctvCapture(device) {
-    const response = await api.post('/cctv/capture', {
-      device,
-      capture: ['anpr', 'view'],
-    })
-    return response.data
+  async cctvCapture(device, { maxRetries = 2, retryDelay = 2000 } = {}) {
+    let lastError = null
+
+    for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+      try {
+        console.log(`📷 CCTV capture attempt ${attempt}/${maxRetries + 1}...`)
+        const response = await api.post('/cctv/capture', {
+          device,
+          capture: ['anpr', 'view'],
+        }, { timeout: 60000 }) // Frontend timeout > backend timeout (25s) agar backend sempat merespon error
+        return response.data
+      } catch (err) {
+        lastError = err
+        const isTimeout = err.code === 'ECONNABORTED' || err.message?.includes('timeout')
+        const isServerError = err.response?.status >= 500
+
+        // Retry hanya untuk timeout atau server error, dan jika masih ada sisa percobaan
+        if ((isTimeout || isServerError) && attempt <= maxRetries) {
+          console.warn(`⚠️ CCTV capture attempt ${attempt} failed (${err.message}), retrying in ${retryDelay / 1000}s...`)
+          await new Promise(resolve => setTimeout(resolve, retryDelay))
+          continue
+        }
+
+        throw err
+      }
+    }
+
+    throw lastError
   },
 
   /**

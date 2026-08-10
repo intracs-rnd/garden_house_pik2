@@ -405,19 +405,28 @@ class TransactionController extends Controller
             'capture' => 'required|array',
         ]);
 
-        $nodeRedUrl = 'http://192.168.214.163:1880/cctv';
+        $nodeRedUrl = env('NODE_RED_URL', 'http://127.0.0.1:1880') . '/cctv';
 
-        $response = \Illuminate\Support\Facades\Http::timeout(15)
-            ->post($nodeRedUrl, [
-                'device'  => $request->input('device'),
-                'capture' => $request->input('capture'),
-            ]);
+        try {
+            $response = \Illuminate\Support\Facades\Http::withOptions([
+                    'connect_timeout' => 5,
+                    'timeout'         => 25,
+                ])
+                ->post($nodeRedUrl, [
+                    'device'  => $request->input('device'),
+                    'capture' => $request->input('capture'),
+                ]);
 
-        if ($response->failed()) {
-            return $this->errorResponse('Node-RED capture gagal: HTTP ' . $response->status(), 502);
+            if ($response->failed()) {
+                return $this->errorResponse('Node-RED capture gagal: HTTP ' . $response->status(), 502);
+            }
+
+            return response()->json($response->json());
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            return $this->errorResponse('Koneksi ke CCTV/Node-RED timeout: ' . $e->getMessage(), 504);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Terjadi kesalahan pada capture CCTV: ' . $e->getMessage(), 500);
         }
-
-        return response()->json($response->json());
     }
 
     /**
