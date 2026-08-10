@@ -445,10 +445,12 @@ async function fetchSlideImage(slide) {
     if (slide.imageUrl) URL.revokeObjectURL(slide.imageUrl)
     slide.imageUrl = URL.createObjectURL(blob)
     slide.loading = false
+    slide.retryCount = 0
   } catch (err) {
     console.warn('[CCTV Slideshow] Gagal fetch gambar:', slide.cctv, err.message)
     slide.loading = false
     slide.error = true
+    slide.retryCount = (slide.retryCount || 0) + 1
   }
 }
 
@@ -465,8 +467,8 @@ async function loadCctvSnapshots() {
     const nextSlides = records.map(rec => {
       if (existingMap.has(rec.view_image_path)) {
         const existing = existingMap.get(rec.view_image_path)
-        // Retry fetch if previous attempt failed
-        if (existing.error) fetchSlideImage(existing)
+          // Retry fetch if previous attempt failed, but stop after 3 attempts
+          if (existing.error && (existing.retryCount || 0) < 3) fetchSlideImage(existing)
         return existing
       }
       // New photo — create slide and fetch image
@@ -478,6 +480,7 @@ async function loadCctvSnapshots() {
         imageUrl: null,
         loading: true,
         error: false,
+        retryCount: 0,
       })
       fetchSlideImage(slide)
       return slide

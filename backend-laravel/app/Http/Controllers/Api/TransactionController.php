@@ -483,6 +483,8 @@ class TransactionController extends Controller
     /**
      * Ambil 8 foto CCTV terbaru dari log_cctv (untuk slideshow dashboard).
      * Tidak dibatasi per kamera — ambil saja yang paling baru.
+     * Kecualikan record dari device dashboard/manual (cctv LIKE 'DASHBOARD%')
+     * karena path-nya ada di filesystem Node-RED, bukan di uploads server.
      */
     public function getLatestCctvSnapshots(Request $request): JsonResponse
     {
@@ -491,6 +493,7 @@ class TransactionController extends Controller
 
             $snapshots = LogCctv::whereNotNull('view_image_path')
                 ->where('view_image_path', '!=', '')
+                ->where('cctv', 'not ilike', 'DASHBOARD%')
                 ->orderBy('log_time', 'desc')
                 ->limit($limit)
                 ->get(['id', 'cctv', 'view_image_path', 'log_time'])
