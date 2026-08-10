@@ -435,13 +435,27 @@ async function fetchSlideImage(slide) {
   slide.loading = true
   slide.error = false
   try {
-    const res = await fetch(uploadsApiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path: slide.view_image_path }),
-    })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const blob = await res.blob()
+    let blob
+
+    // Path dari Node-RED (/data/cctv_images/) harus di-proxy via Laravel
+    // karena uploads API tidak bisa akses direktori tersebut.
+    if (slide.view_image_path && slide.view_image_path.startsWith('/data/cctv_images/')) {
+      const res = await transactionApi.fetchImage(slide.view_image_path)
+      if (!res.success || !res.base64) throw new Error('File tidak dapat diakses')
+      const byteChars = atob(res.base64)
+      const byteArr = new Uint8Array(byteChars.length)
+      for (let i = 0; i < byteChars.length; i++) byteArr[i] = byteChars.charCodeAt(i)
+      blob = new Blob([byteArr], { type: 'image/jpeg' })
+    } else {
+      const res = await fetch(uploadsApiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: slide.view_image_path }),
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      blob = await res.blob()
+    }
+
     if (slide.imageUrl) URL.revokeObjectURL(slide.imageUrl)
     slide.imageUrl = URL.createObjectURL(blob)
     slide.loading = false
