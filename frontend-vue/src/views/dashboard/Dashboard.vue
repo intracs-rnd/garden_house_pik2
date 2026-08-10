@@ -1008,23 +1008,48 @@ async function captureFromCctv() {
 
     const captured = []
 
-    // Format: { anpr: "base64...", view: "base64..." }
-    if (data.anpr) {
+    // Format 1: { anpr: "base64...", view: "base64..." }
+    if (typeof data.anpr === 'string') {
       captured.push({ base64: data.anpr, label: 'ANPR', source: 'ANPR', success: true })
     }
-    if (data.view) {
+    if (typeof data.view === 'string') {
       captured.push({ base64: data.view, label: 'View', source: 'CCTV', success: true })
     }
 
-    // Format: { data: { anpr: "...", view: "..." } }
-    if (data.data?.anpr) {
+    // Format 2: { data: { anpr: "base64...", view: "base64..." } }
+    if (typeof data.data?.anpr === 'string') {
       captured.push({ base64: data.data.anpr, label: 'ANPR', source: 'ANPR', success: true })
     }
-    if (data.data?.view) {
+    if (typeof data.data?.view === 'string') {
       captured.push({ base64: data.data.view, label: 'View', source: 'CCTV', success: true })
     }
 
-    // Format: array images
+    // Format 3: { data: { images: { anpr: { path: "..." }, view: { path: "..." } } } }
+    // Node-RED mengembalikan path file, bukan base64
+    if (data.data?.images && typeof data.data.images === 'object' && !Array.isArray(data.data.images)) {
+      const images = data.data.images
+      for (const [type, imgData] of Object.entries(images)) {
+        if (imgData?.path) {
+          const label = type === 'anpr' ? 'ANPR' : type === 'view' ? 'View' : type
+          const source = type === 'anpr' ? 'ANPR' : 'CCTV'
+          // Coba fetch base64 dari path
+          try {
+            const fetched = await transactionApi.fetchImage(imgData.path)
+            if (fetched.success && fetched.base64) {
+              captured.push({ base64: fetched.base64, label, source, path: imgData.path, success: true })
+            } else {
+              // Fallback: simpan path saja
+              captured.push({ path: imgData.path, label, source, success: true })
+            }
+          } catch (fetchErr) {
+            console.warn(`⚠️ Gagal fetch image ${type}:`, fetchErr.message)
+            captured.push({ path: imgData.path, label, source, success: true })
+          }
+        }
+      }
+    }
+
+    // Format 4: array images
     if (Array.isArray(data.images)) {
       data.images.forEach(img => {
         captured.push({
@@ -1888,37 +1913,37 @@ onUnmounted(() => {
           </div>
 
           <!-- Images hasil capture -->
-<!--          <template v-else>-->
-<!--            <div v-if="gateCaptureImages.length === 0" class="gate-capture-empty">-->
-<!--              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:28px;height:28px;opacity:0.35;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>-->
-<!--              <span>Tidak ada gambar diterima dari CCTV</span>-->
-<!--            </div>-->
-<!--            <div v-else class="gate-capture-images">-->
-<!--              <div v-for="(img, i) in gateCaptureImages" :key="'cap-' + i" class="gate-capture-img-wrap">-->
-<!--                <div class="image-label-overlay" :class="img.source === 'CCTV' ? 'label-cctv' : 'label-anpr'">{{ img.label }}</div>-->
-<!--                <img-->
-<!--                    v-if="img.base64"-->
-<!--                    :src="`data:image/jpeg;base64,${img.base64}`"-->
-<!--                    :alt="img.label"-->
-<!--                    style="width:100%;height:100%;object-fit:cover;cursor:pointer;"-->
-<!--                    @click="openImagePreview(img)"-->
-<!--                    @error="handleImageError"-->
-<!--                />-->
-<!--                <img-->
-<!--                    v-else-if="img.url"-->
-<!--                    :src="img.url"-->
-<!--                    :alt="img.label"-->
-<!--                    style="width:100%;height:100%;object-fit:cover;cursor:pointer;"-->
-<!--                    @click="openImagePreview(img)"-->
-<!--                    @error="handleImageError"-->
-<!--                />-->
-<!--                <div v-else class="image-placeholder">-->
-<!--                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:28px;height:28px;opacity:0.5;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>-->
-<!--                  <span style="font-size:11px;margin-top:6px;">Gagal memuat</span>-->
-<!--                </div>-->
-<!--              </div>-->
-<!--            </div>-->
-<!--          </template>-->
+          <template v-else>
+            <div v-if="gateCaptureImages.length === 0" class="gate-capture-empty">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:28px;height:28px;opacity:0.35;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+              <span>Tidak ada gambar diterima dari CCTV</span>
+            </div>
+            <div v-else class="gate-capture-images">
+              <div v-for="(img, i) in gateCaptureImages" :key="'cap-' + i" class="gate-capture-img-wrap">
+                <div class="image-label-overlay" :class="img.source === 'CCTV' ? 'label-cctv' : 'label-anpr'">{{ img.label }}</div>
+                <img
+                    v-if="img.base64"
+                    :src="`data:image/jpeg;base64,${img.base64}`"
+                    :alt="img.label"
+                    style="width:100%;height:100%;object-fit:cover;cursor:pointer;"
+                    @click="openImagePreview(img)"
+                    @error="handleImageError"
+                />
+                <img
+                    v-else-if="img.url"
+                    :src="img.url"
+                    :alt="img.label"
+                    style="width:100%;height:100%;object-fit:cover;cursor:pointer;"
+                    @click="openImagePreview(img)"
+                    @error="handleImageError"
+                />
+                <div v-else class="image-placeholder">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:28px;height:28px;opacity:0.5;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+                  <span style="font-size:11px;margin-top:6px;">Gagal memuat</span>
+                </div>
+              </div>
+            </div>
+          </template>
         </div>
 
         <div v-if="gatePublishError" class="alert alert-danger" style="margin-top: 12px;">
