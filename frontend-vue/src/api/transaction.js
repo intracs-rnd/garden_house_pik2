@@ -69,6 +69,30 @@ const transactionApi = {
     else if (imagePath.includes('/home/transjakarta/')) {
       pathVariations.push({ path: imagePath, label: 'original ANPR path' })
     }
+    // Handle /data/cctv_images/ prefix (from Node-RED capture - use backend filesystem proxy)
+    else if (imagePath.startsWith('/data/cctv_images/')) {
+      try {
+        console.log('Node-RED path detected, using backend filesystem proxy:', imagePath)
+        const response = await api.post('/images/serve-local', { path: imagePath }, {
+          timeout: 15000,
+          responseType: 'arraybuffer',
+        })
+        const base64Data = this._arrayBufferToBase64(response.data)
+        if (base64Data && base64Data.length > 100) {
+          console.log('Image fetched via serve-local successfully')
+          return { success: true, path: imagePath, url: null, base64: base64Data, usedPath: imagePath }
+        }
+      } catch (err) {
+        console.warn('serve-local failed for Node-RED path:', err.message)
+      }
+      return {
+        success: false,
+        path: imagePath,
+        url: null,
+        error: 'File Node-RED tidak dapat diakses via uploads API',
+        attemptedPaths: [imagePath],
+      }
+    }
     // Fallback: use original
     else {
       pathVariations.push({ path: imagePath, label: 'original path' })

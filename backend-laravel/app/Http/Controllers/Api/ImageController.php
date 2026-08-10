@@ -15,6 +15,86 @@ class ImageController extends Controller
     private $imageUploadApiUrl = 'http://192.168.214.163:4000/api/uploads';
 
     /**
+     * Serve file langsung dari filesystem server untuk path yang tidak bisa
+     * dilayani oleh uploads API (mis: /data/cctv_images/ dari Node-RED).
+     * Laravel berjalan di server yang sama sehingga bisa baca file secara langsung.
+     */
+    public function serveLocalFile(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'path' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        $path = $request->input('path');
+
+        // Batasi hanya path yang diizinkan agar tidak ada directory traversal
+        $allowedPrefixes = [
+            '/data/cctv_images/',
+        ];
+
+        $allowed = false;
+        foreach ($allowedPrefixes as $prefix) {
+            if (str_starts_with($path, $prefix)) {
+                $allowed = true;
+                break;
+            }
+        }
+
+        if (!$allowed) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Path tidak diizinkan',
+            ], 403);
+        }
+
+        // Cegah directory traversal
+        $realPath = realpath($path);
+        if ($realPath === false) {
+            return response()->json([
+                'success' => false,
+                'message' => 'File tidak ditemukan',
+            ], 404);
+        }
+
+        // Pastikan realpath masih dalam direktori yang diizinkan
+        $stillAllowed = false;
+        foreach ($allowedPrefixes as $prefix) {
+            if (str_starts_with($realPath, $prefix)) {
+                $stillAllowed = true;
+                break;
+            }
+        }
+        if (!$stillAllowed) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akses ditolak',
+            ], 403);
+        }
+
+        if (!is_file($realPath) || !is_readable($realPath)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'File tidak dapat dibaca',
+            ], 404);
+        }
+
+        $mimeType = mime_content_type($realPath) ?: 'image/jpeg';
+
+        return response()->file($realPath, [
+            'Content-Type'  => $mimeType,
+            'Cache-Control' => 'public, max-age=3600',
+        ]);
+    }
+
+    /**
      * Mengambil gambar dari API upload service berdasarkan path
      * 
      * @param Request $request

@@ -89,6 +89,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Endpoint untuk fetch gambar dari image upload API (192.168.214.7:4000)
     Route::post('/images/fetch', [ImageController::class, 'fetchImage']);
     Route::post('/images/fetch-multiple', [ImageController::class, 'fetchMultipleImages']);
+    // Serve file langsung dari filesystem (untuk path /data/cctv_images/ dari Node-RED)
+    Route::post('/images/serve-local', [ImageController::class, 'serveLocalFile']);
 
     // ---- Live CCTV camera configuration ----
     // Reading the full config (incl. RTSP URLs) needs "view"; saving/applying
