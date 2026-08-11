@@ -12,7 +12,7 @@ const routes = [
         path: 'dashboard',
         name: 'dashboard',
         component: () => import('@/views/dashboard/Dashboard.vue'),
-        meta: { title: 'Dashboard' },
+        meta: { title: 'Dashboard', feature: 'dashboard' },
       },
       // Profil pengguna yang sedang login
       {
@@ -107,12 +107,12 @@ const routes = [
         meta: { title: 'Edit Kartu Akses', feature: 'kartu', featureLevel: 'manage' },
         props: true,
       },
-      // Iuran Perumahan — semua role yang login dapat akses
+      // Iuran Perumahan
       {
         path: 'iuran',
         name: 'iuran.index',
         component: () => import('@/views/iuran/IuranList.vue'),
-        meta: { title: 'Iuran Perumahan' },
+        meta: { title: 'Iuran Perumahan', feature: 'iuran' },
       },
       // Laporan Transaksi Kartu
       {
@@ -175,21 +175,21 @@ const routes = [
         path: 'mqtt-test',
         name: 'mqtt.test',
         component: () => import('@/views/MqttTest.vue'),
-        meta: { title: 'MQTT Test' },
+        meta: { title: 'MQTT Test', superAdmin: true },
       },
       // Image Upload API Test (untuk development/testing)
       {
         path: 'image-test',
         name: 'image.test',
         component: () => import('@/views/ImageTest.vue'),
-        meta: { title: 'Image Upload Test' },
+        meta: { title: 'Image Upload Test', superAdmin: true },
       },
       // Image Upload API Test - Debug Version
       {
         path: 'image-test-debug',
         name: 'image.test.debug',
         component: () => import('@/views/ImageTestDebug.vue'),
-        meta: { title: 'Image Test Debug' },
+        meta: { title: 'Image Test Debug', superAdmin: true },
       },
     ],
   },
@@ -268,6 +268,9 @@ router.beforeEach((to) => {
       : auth.hasFeature(to.meta.feature)
 
     if (!allowed) {
+      if (to.name === 'dashboard') {
+        return { name: 'profile' }
+      }
       return { name: 'dashboard' }
     }
   }
