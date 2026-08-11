@@ -41,7 +41,7 @@ const transactionApi = {
    * @returns {Promise} Image data or URL
    */
   async fetchImage(imagePath) {
-    console.log('📥 Original image path:', imagePath)
+    //console.log('📥 Original image path:', imagePath)
 
     // Prepare multiple path variations to try
     const pathVariations = []
@@ -72,14 +72,14 @@ const transactionApi = {
     // Handle /data/cctv_images/ prefix (from Node-RED capture - use backend filesystem proxy)
     else if (imagePath.startsWith('/data/cctv_images/')) {
       try {
-        console.log('Node-RED path detected, using backend filesystem proxy:', imagePath)
+       // console.log('Node-RED path detected, using backend filesystem proxy:', imagePath)
         const response = await api.post('/images/serve-local', { path: imagePath }, {
           timeout: 15000,
           responseType: 'arraybuffer',
         })
         const base64Data = this._arrayBufferToBase64(response.data)
         if (base64Data && base64Data.length > 100) {
-          console.log('Image fetched via serve-local successfully')
+         // console.log('Image fetched via serve-local successfully')
           return { success: true, path: imagePath, url: null, base64: base64Data, usedPath: imagePath }
         }
       } catch (err) {
@@ -98,7 +98,7 @@ const transactionApi = {
       pathVariations.push({ path: imagePath, label: 'original path' })
     }
 
-    console.log('🔄 Will try', pathVariations.length, 'path variations:', pathVariations.map(p => p.label))
+   // console.log('🔄 Will try', pathVariations.length, 'path variations:', pathVariations.map(p => p.label))
 
     // Try each path variation until one succeeds
     let lastError = null
@@ -106,7 +106,7 @@ const transactionApi = {
       const { path: apiPath, label } = pathVariations[i]
 
       try {
-        console.log(`🌐 [Attempt ${i + 1}/${pathVariations.length}] Trying ${label}:`, apiPath)
+        //console.log(`🌐 [Attempt ${i + 1}/${pathVariations.length}] Trying ${label}:`, apiPath)
 
         // Try to get response as arraybuffer first to avoid encoding issues
         const uploadsApiUrl = import.meta.env.VITE_UPLOADS_API_URL
@@ -117,16 +117,16 @@ const transactionApi = {
           responseType: 'arraybuffer'  // Use arraybuffer to handle binary data properly
         })
 
-        console.log(`✅ [Attempt ${i + 1}] SUCCESS with ${label}!`)
-        console.log('📦 Response type:', typeof response.data, '| Byte length:', response.data.byteLength || response.data.length)
+        // console.log(`✅ [Attempt ${i + 1}] SUCCESS with ${label}!`)
+        // console.log('📦 Response type:', typeof response.data, '| Byte length:', response.data.byteLength || response.data.length)
 
         // Convert arraybuffer to base64
         const base64Data = this._arrayBufferToBase64(response.data)
-        console.log('📦 Converted to base64, length:', base64Data.length, '| Preview:', base64Data.substring(0, 50))
+        // console.log('📦 Converted to base64, length:', base64Data.length, '| Preview:', base64Data.substring(0, 50))
 
         // Return success immediately
         if (base64Data && base64Data.length > 100) {
-          console.log('✅ Image fetched successfully with', label)
+          // console.log('✅ Image fetched successfully with', label)
           return {
             success: true,
             path: imagePath,
@@ -137,23 +137,23 @@ const transactionApi = {
         }
 
         // Response received but data too short, try next variation
-        console.log(`⚠️ [Attempt ${i + 1}] Response OK but data too short, trying next...`)
+        // console.log(`⚠️ [Attempt ${i + 1}] Response OK but data too short, trying next...`)
 
       } catch (error) {
         lastError = error
-        console.error(`❌ [Attempt ${i + 1}] Failed with ${label}:`, error.message)
+         // console.error(`❌ [Attempt ${i + 1}] Failed with ${label}:`, error.message)
 
         // If this is not the last variation, continue to next
         if (i < pathVariations.length - 1) {
-          console.log(`🔄 Trying next path variation...`)
+           // console.log(`🔄 Trying next path variation...`)
           continue
         }
       }
     }
 
     // All attempts failed
-    console.error('❌ All path variations failed for:', imagePath)
-    console.error('❌ Last error:', lastError?.message)
+    // console.error('❌ All path variations failed for:', imagePath)
+    // console.error('❌ Last error:', lastError?.message)
 
     // Generate fallback URLs
     const uploadsBaseUrl = import.meta.env.VITE_UPLOADS_API_URL?.replace('/api/uploads', '') || ''
@@ -192,7 +192,7 @@ const transactionApi = {
 
     for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
       try {
-        console.log(`📷 CCTV capture attempt ${attempt}/${maxRetries + 1}...`)
+       // console.log(`📷 CCTV capture attempt ${attempt}/${maxRetries + 1}...`)
         const response = await api.post('/cctv/capture', {
           device,
           capture: ['anpr', 'view'],
