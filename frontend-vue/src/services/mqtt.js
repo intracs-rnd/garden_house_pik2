@@ -38,7 +38,7 @@ class MQTTService {
       // Format: ws://IP:PORT/PATH (EMQX default path: /mqtt)
       const brokerUrl = import.meta.env.VITE_MQTT_BROKER_URL || 'ws://localhost:8083/mqtt'
       
-      console.log('Connecting to MQTT broker:', brokerUrl)
+      // console.log('Connecting to MQTT broker:', brokerUrl)
       
       this.client = mqtt.connect(brokerUrl, options)
 
@@ -101,7 +101,7 @@ class MQTTService {
           console.error('Subscribe error:', error)
           reject(error)
         } else {
-          console.log(`Subscribed to topic: ${topic} (QoS: ${options.qos})`)
+          //console.log(`Subscribed to topic: ${topic} (QoS: ${options.qos})`)
           
           // Simpan callback untuk topic ini
           if (!this.subscribers.has(topic)) {
@@ -176,7 +176,7 @@ class MQTTService {
    */
   handleMessage(topic, message) {
     const payload = message.toString()
-    console.log('Message received:', { topic, payload })
+    // console.log('Message received:', { topic, payload })
 
     // Parse message berdasarkan format
     let parsedMessage
