@@ -15,7 +15,7 @@ class AccessControlSeeder extends Seeder
      * Defaults preserve the previous behaviour:
      * - superadmin: full access to everything (implicit, no rows needed).
      * - admin: read-only (view) on the operational features.
-     * - user: dashboard only.
+     * - user: dashboard only.  
      */
     public function run(): void
     {

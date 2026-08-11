@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Log;
 /**
  * MQTT Listener for Device Status.
  * 
- * Subscribes to the `get/+/status` topic and publishes JSON formatted
+ * Subscribes to the `gate/+/status` topic and publishes JSON formatted
  * status back to another topic (e.g., `dashboard/device/status`).
  * 
  * Run: php artisan mqtt:device-status
@@ -25,7 +25,7 @@ class MqttDeviceStatusListener extends Command
                             {--port=1883 : MQTT broker port}
                             {--username=dev : MQTT username}
                             {--password=dev : MQTT password}
-                            {--topic=get/+/status : MQTT topic to subscribe}
+                            {--topic=gate/+/status : MQTT topic to subscribe}
                             {--publish-topic=dashboard/device/status : Topic to publish JSON result}
                             {--qos=1 : MQTT QoS level}';
 

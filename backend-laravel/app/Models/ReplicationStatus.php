@@ -116,7 +116,7 @@ class ReplicationStatus extends Model
                         'publication_name' => $publicationName,
                         'status' => 'disconnected',
                         'is_connected' => false,
-                        'error_message' => "Publication '{$publicationName}' sudah ada. Subscriber belum connect — jalankan CREATE SUBSCRIPTION di server (192.168.214.7).",
+                        'error_message' => "Publication '{$publicationName}' sudah ada. Subscriber belum connect — jalankan CREATE SUBSCRIPTION di server (192.168.214.163).",
                         'last_error_at' => now(),
                     ]
                 );

@@ -159,6 +159,10 @@ class Kartu extends Model
         // "find existing card" pun pergi ke write host, menghindari replication lag
         // saat kartu baru dibuat dan langsung disync (sticky sudah handle ini di dalam
         // request, tapi writeQuery() menjamin konsistensi di luar request juga).
+        //
+        // TEMPORARILY DISABLED: Sync ke tabel `cards` di-comment sementara.
+        // Aktifkan kembali dengan menghapus block comment di bawah ini.
+        /*
         $syncCard = static function ($kartu) {
             try {
                 if (! $kartu->rfid_tag) {
@@ -197,6 +201,7 @@ class Kartu extends Model
 
         static::created($syncCard);
         static::updated($syncCard);
+        */
     }
 
     /**
