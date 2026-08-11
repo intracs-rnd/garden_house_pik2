@@ -132,7 +132,7 @@ class MQTTService {
           console.error('Unsubscribe error:', error)
           reject(error)
         } else {
-          console.log('Unsubscribed from topic:', topic)
+         // console.log('Unsubscribed from topic:', topic)
           this.subscribers.delete(topic)
           resolve()
         }
