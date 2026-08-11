@@ -161,7 +161,7 @@ class Kartu extends Model
         // request, tapi writeQuery() menjamin konsistensi di luar request juga).
         //
         // TEMPORARILY DISABLED: Sync ke tabel `cards` di-comment sementara.
-        // Aktifkan kembali dengan menghapus block comment di bawah ini.
+
         /*
         $syncCard = static function ($kartu) {
             try {

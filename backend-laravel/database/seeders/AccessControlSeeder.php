@@ -46,14 +46,14 @@ class AccessControlSeeder extends Seeder
                 'dashboard' => RoleFeaturePermission::ACCESS_VIEW,
                 'kartu'     => RoleFeaturePermission::ACCESS_VIEW,
                 'users'     => RoleFeaturePermission::ACCESS_VIEW,
-                'iuran'     => RoleFeaturePermission::ACCESS_VIEW,
-                'kendaraan' => RoleFeaturePermission::ACCESS_VIEW,
+                //'iuran'     => RoleFeaturePermission::ACCESS_VIEW,
+               // 'kendaraan' => RoleFeaturePermission::ACCESS_VIEW,
                 'reports'   => RoleFeaturePermission::ACCESS_VIEW,
             ],
             'user' => [
                 'dashboard' => RoleFeaturePermission::ACCESS_VIEW,
-                'kartu'     => RoleFeaturePermission::ACCESS_VIEW,
-                'iuran'     => RoleFeaturePermission::ACCESS_VIEW,
+                //'kartu'     => RoleFeaturePermission::ACCESS_VIEW,
+               // 'iuran'     => RoleFeaturePermission::ACCESS_VIEW,
             ],
         ];
 
