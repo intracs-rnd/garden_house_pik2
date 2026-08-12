@@ -32,6 +32,19 @@ class KartuService
      */
     public function list(array $filters = [], int $perPage = 15, bool $includeDeleted = false)
     {
+        // Sinkronisasi status realtime: setiap kali daftar kartu diminta,
+        // pastikan kartu yang masa berlaku (termasuk masa tenggang) sudah
+        // lewat langsung diturunkan ke status Non Aktif. Ini melengkapi
+        // scheduler hourly `kartu:deactivate-expired` sehingga UI selalu
+        // menampilkan status yang akurat pada jam terkini tanpa menunggu
+        // cron berikutnya atau tap gate.
+        try {
+            $this->deactivateExpired();
+        } catch (\Throwable $e) {
+            // Jangan gagalkan permintaan list hanya karena sinkronisasi
+            // status gagal; cukup lewatkan agar data tetap bisa ditampilkan.
+        }
+
         return $this->kartuRepository->filter($filters, $perPage, $includeDeleted);
     }
 
