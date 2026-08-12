@@ -329,9 +329,9 @@ onBeforeUnmount(() => {
             <Button variant="secondary" size="sm" :loading="downloading === 'gate-control-pdf'" @click="download('gate-control', { format: 'pdf' })">
               ⬇ PDF
             </Button>
-            <Button variant="secondary" size="sm" :loading="downloading === 'gate-control-excel'" @click="download('gate-control', { format: 'excel' })">
-              ⬇ Excel
-            </Button>
+<!--            <Button variant="secondary" size="sm" :loading="downloading === 'gate-control-excel'" @click="download('gate-control', { format: 'excel' })">-->
+<!--              ⬇ Excel-->
+<!--            </Button>-->
             <Button variant="ghost" size="sm" :loading="downloading === 'gate-control-preview'" @click="download('gate-control', { preview: true })">
               👁 Pratinjau PDF
             </Button>
