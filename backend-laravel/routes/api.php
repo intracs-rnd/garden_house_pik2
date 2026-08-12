@@ -159,6 +159,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware('feature:kartu,view')->group(function () {
         Route::post('/kartu/status-check', [KartuController::class, 'statusByNumber']);
+        Route::get('/kartu/available-rfid', [KartuController::class, 'availableRfid']);
         Route::get('/kartu/{id}/status', [KartuController::class, 'status']);
         Route::get('/kartu/{id}/logs', [KartuController::class, 'logs']);
         Route::get('/kartu', [KartuController::class, 'index']);

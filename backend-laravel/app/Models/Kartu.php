@@ -162,7 +162,7 @@ class Kartu extends Model
         //
         // TEMPORARILY DISABLED: Sync ke tabel `cards` di-comment sementara.
 
-        /*
+
         $syncCard = static function ($kartu) {
             try {
                 if (! $kartu->rfid_tag) {
@@ -171,16 +171,16 @@ class Kartu extends Model
 
                 // Map kartus integer status to cards varchar status.
                 $statusMap = [
-                    self::STATUS_AKTIF     => 'Active',
-                    self::STATUS_NONAKTIF  => 'Inactive',
-                    self::STATUS_BLACKLIST => 'Suspended',
+                    self::STATUS_AKTIF     => 'ALLOW',
+                    self::STATUS_NONAKTIF  => 'REJECT',
+                    self::STATUS_BLACKLIST => 'REJECT',
                 ];
 
                 $cardData = [
                     'uid'        => $kartu->rfid_tag,
                     'name'       => $kartu->user ? $kartu->user->name : null,
                     'unit'       => $kartu->nama,
-                    'status'     => $statusMap[$kartu->status] ?? 'Active',
+                    'status'     => $statusMap[$kartu->status] ?? 'ALLOW',
                     'expiry'     => $kartu->valid_until ? $kartu->valid_until->toDateString() : null,
                     'grace_days' => $kartu->grace_days,
                     'kartus_id'  => $kartu->id,
@@ -188,12 +188,11 @@ class Kartu extends Model
 
                 $cardData = array_filter($cardData, function ($v) { return $v !== null; });
 
-                // Force WRITE host (192.168.214.163) untuk SELECT + INSERT/UPDATE
-                // sehingga sync selalu konsisten dengan data master terbaru.
-                Card::writeQuery()->updateOrCreate(
-                    ['kartus_id' => $kartu->id],
-                    $cardData
-                );
+                // Disconnect any cards previously linked to this kartu (e.g. if RFID was changed)
+                Card::writeQuery()->where('kartus_id', $kartu->id)->update(['kartus_id' => null]);
+
+                // Update existing card matched by uid (rfid_tag) instead of creating.
+                Card::writeQuery()->where('uid', $kartu->rfid_tag)->update($cardData);
             } catch (\Throwable $e) {
                 Log::error(sprintf('Failed to sync Card for Kartu id %s: %s', $kartu->id ?? 'n/a', $e->getMessage()));
             }
@@ -201,7 +200,7 @@ class Kartu extends Model
 
         static::created($syncCard);
         static::updated($syncCard);
-        */
+
     }
 
     /**

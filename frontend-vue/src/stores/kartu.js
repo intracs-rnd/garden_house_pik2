@@ -139,6 +139,16 @@ export const useKartuStore = defineStore('kartu', {
       }
     },
 
+    async fetchAvailableRfid(currentRfid = null) {
+      try {
+        const res = await kartuApi.availableRfid({ current_rfid: currentRfid })
+        return res.data || []
+      } catch (error) {
+        this.error = extractErrorMessage(error, 'Gagal memuat data RFID.')
+        return []
+      }
+    },
+
     async create(payload) {
       this.saving = true
       try {

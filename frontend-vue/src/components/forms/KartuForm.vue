@@ -8,6 +8,7 @@ const props = defineProps({
   form: { type: Object, required: true },
   errors: { type: Object, default: () => ({}) },
   users: { type: Array, default: () => [] },
+  rfids: { type: Array, default: () => [] },
   isEdit: { type: Boolean, default: false },
   saving: { type: Boolean, default: false },
 })
@@ -15,10 +16,17 @@ const props = defineProps({
 const emit = defineEmits(['submit', 'cancel'])
 
 const userOptions = computed(() =>
-  props.users.map((user) => ({
-    value: user.id,
-    label: `${user.name}${user.email ? ` (${user.email})` : ''}`,
-  })),
+    props.users.map((user) => ({
+      value: user.id,
+      label: `${user.name}${user.email ? ` (${user.email})` : ''}`,
+    })),
+)
+
+const rfidOptions = computed(() =>
+    props.rfids.map((card) => ({
+      value: card.uid,
+      label: `${card.uid} - ${card.name || 'Unknown'} (${card.unit || 'No Unit'})`,
+    })),
 )
 
 /**
@@ -30,8 +38,8 @@ function simulateScan() {
   const bytes = new Uint8Array(5)
   crypto.getRandomValues(bytes)
   props.form.rfid_tag = Array.from(bytes, (b) => b.toString(16).padStart(2, '0'))
-    .join('')
-    .toUpperCase()
+      .join('')
+      .toUpperCase()
 }
 </script>
 
@@ -41,12 +49,12 @@ function simulateScan() {
       <div class="form-group">
         <label class="form-label">Pemilik Kartu <span class="req">*</span></label>
         <SearchableSelect
-          v-model="form.user_id"
-          :options="userOptions"
-          :invalid="!!errors.user_id"
-          :clearable="false"
-          placeholder="Pilih pengguna"
-          search-placeholder="Cari nama atau email..."
+            v-model="form.user_id"
+            :options="userOptions"
+            :invalid="!!errors.user_id"
+            :clearable="false"
+            placeholder="Pilih pengguna"
+            search-placeholder="Cari nama atau email..."
         />
         <span v-if="errors.user_id" class="form-error">{{ errors.user_id }}</span>
       </div>
@@ -55,11 +63,11 @@ function simulateScan() {
       <div class="form-group">
         <label class="form-label">Nama / Label Kartu</label>
         <input
-          v-model="form.nama"
-          type="text"
-          class="form-control"
-          :class="{ 'is-invalid': errors.nama }"
-          placeholder="Contoh: Kartu Penghuni Blok A"
+            v-model="form.nama"
+            type="text"
+            class="form-control"
+            :class="{ 'is-invalid': errors.nama }"
+            placeholder="Contoh: Dimas Anggara"
         />
         <span v-if="errors.nama" class="form-error">{{ errors.nama }}</span>
       </div>
@@ -67,30 +75,33 @@ function simulateScan() {
       <div class="form-group">
         <label class="form-label">RFID Tag</label>
         <div class="rfid-input">
-          <input
-            v-model="form.rfid_tag"
-            type="text"
-            class="form-control"
-            :class="{ 'is-invalid': errors.rfid_tag }"
-            placeholder="Scan kartu untuk mengisi otomatis"
-            readonly
+          <SearchableSelect
+              v-if="!isEdit"
+              v-model="form.rfid_tag"
+              :options="rfidOptions"
+              :invalid="!!errors.rfid_tag"
+              :clearable="true"
+              placeholder="Pilih RFID atau scan kartu"
+              search-placeholder="Cari UID RFID..."
+              style="flex: 1;"
           />
-          <Button v-if="!isEdit" variant="secondary" type="button" @click="simulateScan">
-            Scan Kartu
-          </Button>
+          <input
+              v-else
+              :value="form.rfid_tag"
+              type="text"
+              class="form-control"
+              disabled
+          />
         </div>
-        <small v-if="!isEdit" class="form-hint">
-          Tekan "Scan Kartu" untuk simulasi. Nantinya nilai ini terisi otomatis saat kartu di-scan.
-        </small>
         <span v-if="errors.rfid_tag" class="form-error">{{ errors.rfid_tag }}</span>
       </div>
 
       <div class="form-group">
         <label class="form-label">Status</label>
         <select
-          v-model.number="form.status"
-          class="form-control"
-          :class="{ 'is-invalid': errors.status }"
+            v-model.number="form.status"
+            class="form-control"
+            :class="{ 'is-invalid': errors.status }"
         >
           <option v-for="opt in KARTU_STATUS_OPTIONS" :key="opt.value" :value="opt.value">
             {{ opt.label }}
@@ -102,10 +113,10 @@ function simulateScan() {
       <div class="form-group">
         <label class="form-label">Masa Berlaku Mulai</label>
         <input
-          v-model="form.valid_from"
-          type="datetime-local"
-          class="form-control"
-          :class="{ 'is-invalid': errors.valid_from }"
+            v-model="form.valid_from"
+            type="datetime-local"
+            class="form-control"
+            :class="{ 'is-invalid': errors.valid_from }"
         />
         <span v-if="errors.valid_from" class="form-error">{{ errors.valid_from }}</span>
       </div>
@@ -113,10 +124,10 @@ function simulateScan() {
       <div class="form-group">
         <label class="form-label">Masa Berlaku Sampai</label>
         <input
-          v-model="form.valid_until"
-          type="datetime-local"
-          class="form-control"
-          :class="{ 'is-invalid': errors.valid_until }"
+            v-model="form.valid_until"
+            type="datetime-local"
+            class="form-control"
+            :class="{ 'is-invalid': errors.valid_until }"
         />
         <small class="form-hint">
           Kartu otomatis non-aktif setelah tanggal & jam ini (ditambah masa tenggang) terlewati.
@@ -127,13 +138,13 @@ function simulateScan() {
       <div class="form-group">
         <label class="form-label">Masa Tenggang (hari)</label>
         <input
-          v-model.number="form.grace_days"
-          type="number"
-          min="0"
-          max="365"
-          class="form-control"
-          :class="{ 'is-invalid': errors.grace_days }"
-          placeholder="0"
+            v-model.number="form.grace_days"
+            type="number"
+            min="0"
+            max="365"
+            class="form-control"
+            :class="{ 'is-invalid': errors.grace_days }"
+            placeholder="0"
         />
         <small class="form-hint">
           Kartu masih bisa dipakai selama jumlah hari ini setelah masa berlaku habis.
@@ -152,11 +163,11 @@ function simulateScan() {
     <div v-if="form.is_blacklisted" class="form-group">
       <label class="form-label">Alasan Blacklist</label>
       <input
-        v-model="form.blacklist_reason"
-        type="text"
-        class="form-control"
-        :class="{ 'is-invalid': errors.blacklist_reason }"
-        placeholder="Contoh: Tunggakan pembayaran belum diselesaikan"
+          v-model="form.blacklist_reason"
+          type="text"
+          class="form-control"
+          :class="{ 'is-invalid': errors.blacklist_reason }"
+          placeholder="Contoh: Tunggakan pembayaran belum diselesaikan"
       />
       <span v-if="errors.blacklist_reason" class="form-error">{{ errors.blacklist_reason }}</span>
     </div>
@@ -164,10 +175,10 @@ function simulateScan() {
     <div class="form-group">
       <label class="form-label">Keterangan</label>
       <textarea
-        v-model="form.keterangan"
-        class="form-control"
-        rows="3"
-        placeholder="Catatan tambahan (opsional)"
+          v-model="form.keterangan"
+          class="form-control"
+          rows="3"
+          placeholder="Catatan tambahan (opsional)"
       ></textarea>
       <span v-if="errors.keterangan" class="form-error">{{ errors.keterangan }}</span>
     </div>

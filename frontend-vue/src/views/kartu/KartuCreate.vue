@@ -12,6 +12,7 @@ const store = useKartuStore()
 const toast = useToast()
 
 const errors = ref({})
+const availableRfids = ref([])
 
 const form = reactive({
   user_id: '',
@@ -49,7 +50,10 @@ async function handleSubmit() {
   }
 }
 
-onMounted(() => store.fetchUsers())
+onMounted(async () => {
+  await store.fetchUsers()
+  availableRfids.value = await store.fetchAvailableRfid()
+})
 </script>
 
 <template>
@@ -62,6 +66,7 @@ onMounted(() => store.fetchUsers())
           :form="form"
           :errors="errors"
           :users="store.users"
+          :rfids="availableRfids"
           :saving="store.saving"
           @submit="handleSubmit"
           @cancel="router.push({ name: 'kartu.index' })"

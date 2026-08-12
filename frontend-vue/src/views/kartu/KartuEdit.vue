@@ -18,6 +18,7 @@ const toast = useToast()
 
 const loading = ref(true)
 const errors = ref({})
+const availableRfids = ref([])
 
 // Simpan masa berlaku awal supaya kita tahu ketika user memperpanjangnya.
 const originalValidUntil = ref('')
@@ -180,6 +181,8 @@ onMounted(async () => {
     originalValidUntil.value = toDateTimeInput(data.valid_until)
     originalValidFrom.value = toDateTimeInput(data.valid_from)
     originalGraceDays.value = Number(data.grace_days ?? 0)
+
+    availableRfids.value = await store.fetchAvailableRfid(data.rfid_tag)
   } catch (error) {
     toast.error(extractErrorMessage(error, 'Data kartu akses tidak ditemukan.'))
     router.push({ name: 'kartu.index' })
@@ -201,6 +204,7 @@ onMounted(async () => {
             :form="form"
             :errors="errors"
             :users="store.users"
+            :rfids="availableRfids"
             :saving="store.saving"
             is-edit
             @submit="handleSubmit"

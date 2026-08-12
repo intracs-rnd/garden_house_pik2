@@ -12,6 +12,11 @@ export default {
     return api.get('/kartu', { params }).then((res) => res.data)
   },
 
+  /** GET /api/kartu/available-rfid */
+  availableRfid(params = {}) {
+    return api.get('/kartu/available-rfid', { params }).then((res) => res.data)
+  },
+
   /** GET /api/kartu/{id} */
   get(id) {
     return api.get(`/kartu/${id}`).then((res) => res.data)

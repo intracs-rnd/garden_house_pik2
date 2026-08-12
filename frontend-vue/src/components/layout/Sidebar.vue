@@ -79,7 +79,7 @@ const menuGroups = [
     items: [
       {
         to: { name: 'reports.kartu' },
-        label: 'Rekap & Detail Kartu',
+        label: 'Laporan Warga',
         icon: 'M9 17v-6m3 6V7m3 10v-3M6 3h9l5 5v11a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z',
         feature: 'reports',
       },

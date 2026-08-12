@@ -247,4 +247,21 @@ class KartuController extends Controller
 
         return $this->successResponse($result, $message);
     }
+
+    /**
+     * Get available RFID tags from cards table.
+     */
+    public function availableRfid(Request $request): JsonResponse
+    {
+        $currentRfid = $request->query('current_rfid');
+        $query = \App\Models\Card::writeQuery()->whereNull('kartus_id');
+        
+        if ($currentRfid) {
+            $query->orWhere('uid', $currentRfid);
+        }
+        
+        $cards = $query->orderBy('uid')->get(['uid', 'name', 'unit']);
+        
+        return $this->successResponse($cards, 'Available RFID tags retrieved successfully.');
+    }
 }

@@ -93,7 +93,6 @@ const detailColumns = [
   { key: 'owner', label: 'Pemilik' },
   { key: 'direction_label', label: 'Arah' },
   { key: 'result_label', label: 'Hasil' },
-  { key: 'reason_label', label: 'Alasan' },
   { key: 'gate', label: 'Gate' },
   { key: 'actions', label: 'Aksi', align: 'center', width: '72px' },
 ]
@@ -236,7 +235,6 @@ const summaryCards = computed(() => {
   const s = summary.value
   if (!s) return []
   return [
-    { label: 'Total Tap', value: s.total, color: '#4f46e5' },
     { label: 'Tap In', value: s.tab_in, color: '#0ea5e9' },
     { label: 'Tap Out', value: s.tab_out, color: '#9333ea' },
     { label: 'Diterima', value: s.granted, color: '#16a34a' },
@@ -613,7 +611,7 @@ onBeforeUnmount(() => {
               </span>
             </dd>
           </div>
-          <div><dt>Alasan</dt><dd>{{ selectedRow.reason_label || '-' }}</dd></div>
+
           <div><dt>Gate</dt><dd>{{ selectedRow.gate || '-' }}</dd></div>
         </dl>
       </div>
