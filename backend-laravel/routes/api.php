@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\IuranController;
 use App\Http\Controllers\Api\KartuController;
 use App\Http\Controllers\Api\KendaraanController;
 use App\Http\Controllers\Api\LogRfidConnController;
+use App\Http\Controllers\Api\LogRfidScanController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Api\UserController;
@@ -81,6 +82,15 @@ Route::middleware('auth:sanctum')->group(function () {
     // RFID gate reader connection status (live heartbeat per gate)
     Route::get('/rfid-conn/status', [LogRfidConnController::class, 'index']);
     Route::get('/rfid-conn/history/{gateId}', [LogRfidConnController::class, 'history']);
+
+    // RFID scan logs (log_rfid_scan): tap history per gate / per card + stats
+    Route::get('/rfid-scan',                    [LogRfidScanController::class, 'index']);
+    Route::post('/rfid-scan',                   [LogRfidScanController::class, 'store']);
+    Route::get('/rfid-scan/latest-per-gate',    [LogRfidScanController::class, 'latestPerGate']);
+    Route::get('/rfid-scan/stats',              [LogRfidScanController::class, 'stats']);
+    Route::get('/rfid-scan/gate/{gateId}',      [LogRfidScanController::class, 'historyByGate']);
+    Route::get('/rfid-scan/uid/{uid}',          [LogRfidScanController::class, 'historyByUid']);
+    Route::get('/rfid-scan/{id}',               [LogRfidScanController::class, 'show']);
 
     // Live CCTV feeds for the dashboard grid (name + HLS only, no credentials).
     Route::get('/cameras/feeds', [CameraController::class, 'feeds']);

@@ -17,6 +17,7 @@ const PERIODS = [
   { value: 'harian', label: 'Harian' },
   { value: 'bulanan', label: 'Bulanan' },
   { value: 'tahunan', label: 'Tahunan' },
+  // { value: 'kustom', label: 'Kustom (Rentang Tanggal)' },
 ]
 
 const DIRECTIONS = [
@@ -34,12 +35,20 @@ const RESULTS = [
 const now = new Date()
 const pad = (n) => String(n).length === 1 ? `0${n}` : String(n)
 
+const _today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+const _weekAgo = (() => {
+  const d = new Date(now); d.setDate(d.getDate() - 6)
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+})()
+
 // Filter state. The date input adapts to the selected period.
 const filters = ref({
   period: 'bulanan',
-  day: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
+  day: _today,
   month: `${now.getFullYear()}-${pad(now.getMonth() + 1)}`,
   year: String(now.getFullYear()),
+  date_from: _weekAgo,
+  date_to: _today,
   time_from: '',
   time_to: '',
   no_plat: '',
@@ -67,15 +76,19 @@ const yearOptions = computed(() => {
 function resolveDate() {
   if (filters.value.period === 'harian') return filters.value.day
   if (filters.value.period === 'tahunan') return filters.value.year
+  if (filters.value.period === 'kustom') return filters.value.date_from
   return filters.value.month
 }
 
 /** Query params shared by preview + PDF requests. */
 function buildParams() {
   const isDaily = filters.value.period === 'harian'
+  const isCustom = filters.value.period === 'kustom'
   return {
     period: filters.value.period,
     date: resolveDate(),
+    date_from: isCustom ? (filters.value.date_from || undefined) : undefined,
+    date_to:   isCustom ? (filters.value.date_to   || undefined) : undefined,
     direction: filters.value.direction || undefined,
     access_granted: filters.value.access_granted !== '' ? filters.value.access_granted : undefined,
     gate: filters.value.gate || undefined,
@@ -89,9 +102,7 @@ const detailColumns = [
   { key: 'no', label: 'No', align: 'center', width: '56px' },
   { key: 'tapped_at_label', label: 'Waktu' },
   { key: 'card_number', label: 'Nomor Kartu', cellClass: 'fw-600' },
-  { key: 'no_plat', label: 'No. Plat' },
   { key: 'owner', label: 'Pemilik' },
-  { key: 'direction_label', label: 'Arah' },
   { key: 'result_label', label: 'Hasil' },
   { key: 'gate', label: 'Gate' },
   { key: 'actions', label: 'Aksi', align: 'center', width: '72px' },
@@ -105,6 +116,7 @@ const loadingImages = ref(false)
 const imageError = ref('')
 
 const IMAGE_FIELDS = [
+  { key: 'cctv_image_path', label: 'CCTV' },
   { key: 'entry_image_1', label: 'Entry 1' },
   { key: 'entry_image_2', label: 'Entry 2' },
   { key: 'entry_image_3', label: 'Entry 3' },
@@ -130,12 +142,20 @@ function cleanupSelectedImages() {
 }
 
 function extractImagePath(row) {
-  return IMAGE_FIELDS
+  const paths = IMAGE_FIELDS
     .map((field) => {
       const path = resolveUploadUrl(row?.[field.key])
       return path ? { ...field, path } : null
     })
     .filter(Boolean)
+
+  // Fallback: gambar CCTV bisa juga berada di row.cctv.view_image_path
+  const nested = resolveUploadUrl(row?.cctv?.view_image_path)
+  if (nested && !paths.some((p) => p.path === nested)) {
+    paths.unshift({ key: 'cctv_view', label: 'CCTV', path: nested })
+  }
+
+  return paths
 }
 
 async function fetchImageSource(path) {
@@ -338,12 +358,12 @@ onBeforeUnmount(() => {
             <Button variant="secondary" size="sm" :loading="downloading === 'detail-pdf'" @click="download('detail', { format: 'pdf' })">
               ⬇ Detail (PDF)
             </Button>
-            <Button variant="secondary" size="sm" :loading="downloading === 'rekap-excel'" @click="download('rekap', { format: 'excel' })">
-              ⬇ Rekap (Excel)
-            </Button>
-            <Button variant="secondary" size="sm" :loading="downloading === 'detail-excel'" @click="download('detail', { format: 'excel' })">
-              ⬇ Detail (Excel)
-            </Button>
+<!--            <Button variant="secondary" size="sm" :loading="downloading === 'rekap-excel'" @click="download('rekap', { format: 'excel' })">-->
+<!--              ⬇ Rekap (Excel)-->
+<!--            </Button>-->
+<!--            <Button variant="secondary" size="sm" :loading="downloading === 'detail-excel'" @click="download('detail', { format: 'excel' })">-->
+<!--              ⬇ Detail (Excel)-->
+<!--            </Button>-->
           </div>
         </div>
       </div>
@@ -373,26 +393,33 @@ onBeforeUnmount(() => {
             <label>Tanggal</label>
             <input v-if="filters.period === 'harian'" v-model="filters.day" type="date" class="form-control" />
             <input v-else-if="filters.period === 'bulanan'" v-model="filters.month" type="month" class="form-control" />
-            <select v-else v-model="filters.year" class="form-control">
+            <select v-else-if="filters.period === 'tahunan'" v-model="filters.year" class="form-control">
               <option v-for="y in yearOptions" :key="y" :value="y">{{ y }}</option>
             </select>
+            <input v-else type="text" class="form-control" disabled placeholder="Gunakan Dari / Sampai" />
           </div>
 
-          <template v-if="filters.period === 'harian'">
+          <template v-if="filters.period === 'kustom'">
             <div class="field">
-              <label>Waktu Awal</label>
-              <input v-model="filters.time_from" type="time" class="form-control" />
+              <label>Tanggal Dari</label>
+              <input v-model="filters.date_from" type="date" class="form-control" />
             </div>
             <div class="field">
-              <label>Waktu Akhir</label>
-              <input v-model="filters.time_to" type="time" class="form-control" />
+              <label>Tanggal Sampai</label>
+              <input v-model="filters.date_to" type="date" class="form-control" />
             </div>
           </template>
 
-          <div class="field">
-            <label>No. Plat</label>
-            <input v-model="filters.no_plat" type="text" class="form-control" placeholder="Semua plat" />
-          </div>
+<!--          <template v-if="filters.period === 'harian'">-->
+<!--            <div class="field">-->
+<!--              <label>Waktu Awal</label>-->
+<!--              <input v-model="filters.time_from" type="time" class="form-control" />-->
+<!--            </div>-->
+<!--            <div class="field">-->
+<!--              <label>Waktu Akhir</label>-->
+<!--              <input v-model="filters.time_to" type="time" class="form-control" />-->
+<!--            </div>-->
+<!--          </template>-->
 
           <div class="field">
             <label>Arah</label>
@@ -600,9 +627,9 @@ onBeforeUnmount(() => {
         <dl class="detail-grid">
           <div><dt>Waktu</dt><dd>{{ selectedRow.tapped_at_label }}</dd></div>
           <div><dt>Nomor Kartu</dt><dd>{{ selectedRow.card_number || '-' }}</dd></div>
-          <div><dt>No. Plat</dt><dd>{{ selectedRow.no_plat || '-' }}</dd></div>
+
           <div><dt>Pemilik</dt><dd>{{ selectedRow.owner || '-' }}</dd></div>
-          <div><dt>Arah</dt><dd>{{ selectedRow.direction_label }}</dd></div>
+
           <div>
             <dt>Hasil</dt>
             <dd>

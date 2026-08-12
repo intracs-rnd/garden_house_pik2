@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Kartu;
 use App\Models\KartuAccessLog;
+use App\Models\LogRfidScan;
 use App\Repositories\ReportRepository;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -15,7 +16,7 @@ use Illuminate\Support\Collection;
 class ReportService
 {
     /** Supported reporting periods. */
-    public const PERIODS = ['harian', 'bulanan', 'tahunan'];
+    public const PERIODS = ['harian', 'bulanan', 'tahunan', 'kustom'];
 
     /** Indonesian short month names (index 1..12). */
     protected const SHORT_MONTHS = [
@@ -36,7 +37,7 @@ class ReportService
      */
     public function recap(string $period, ?string $date, array $filters = []): array
     {
-        $range = $this->applyTimeWindow($this->resolveRange($period, $date), $filters);
+        $range = $this->applyTimeWindow($this->resolveRange($period, $date, $filters), $filters);
 
         return [
             'type'         => 'rekap',
@@ -58,7 +59,7 @@ class ReportService
      */
     public function detail(string $period, ?string $date, array $filters = []): array
     {
-        $range  = $this->applyTimeWindow($this->resolveRange($period, $date), $filters);
+        $range  = $this->applyTimeWindow($this->resolveRange($period, $date, $filters), $filters);
         $result = $this->reports->detailRows($range['from'], $range['to'], $filters);
         $rows   = $result['rows'];
 
@@ -85,12 +86,19 @@ class ReportService
     protected function buildTimelineSQL(array $range, array $filters): array
     {
         $keys    = $this->bucketKeys($range);
-        $grouped = $this->reports->timelineSQL($range['from'], $range['to'], $filters, $range['bucket']);
+        $isCustom = ($range['period'] ?? '') === 'kustom';
+        $grouped = $this->reports->timelineSQL(
+            $range['from'],
+            $range['to'],
+            $filters,
+            $range['bucket'],
+            $isCustom
+        );
 
         return collect($keys)->map(function ($key) use ($grouped, $range) {
             $bucket = $grouped[$key] ?? ['total' => 0, 'in' => 0, 'out' => 0, 'granted' => 0, 'denied' => 0];
             return [
-                'label'   => $this->bucketLabel($key, $range['bucket']),
+                'label'   => $this->bucketLabel((int) $key, $range['bucket'], $range),
                 'total'   => $bucket['total'],
                 'in'      => $bucket['in'],
                 'out'     => $bucket['out'],
@@ -109,10 +117,26 @@ class ReportService
     /**
      * Resolve the [from, to] window plus bucketing metadata for a period.
      *
+     * When `period === 'kustom'` (atau saat `filters.date_from` & `filters.date_to`
+     * dikirim tanpa periode standar), rentang diambil bebas dari filter tersebut
+     * dan bucket dipilih otomatis (hour / day / month) sesuai lebar rentang.
+     *
      * @return array{period:string, from:Carbon, to:Carbon, label:string, bucket:string}
      */
-    public function resolveRange(string $period, ?string $date): array
+    public function resolveRange(string $period, ?string $date, array $filters = []): array
     {
+        // Rentang bebas ("kustom") — dipicu oleh periode "kustom" atau ketika
+        // date_from + date_to sama-sama dikirim di filters.
+        $hasCustomRange = ($period === 'kustom')
+            || (! empty($filters['date_from']) && ! empty($filters['date_to']));
+
+        if ($hasCustomRange) {
+            return $this->resolveCustomRange(
+                $filters['date_from'] ?? $date,
+                $filters['date_to']   ?? $date
+            );
+        }
+
         $period = in_array($period, self::PERIODS, true) ? $period : 'bulanan';
         $anchor = $this->parseAnchor($period, $date);
 
@@ -144,6 +168,58 @@ class ReportService
                     'label'  => $anchor->locale('id')->isoFormat('MMMM Y'),
                     'bucket' => 'day',
                 ];
+        }
+    }
+
+    /**
+     * Rentang bebas: `from` → start-of-day, `to` → end-of-day.
+     * Bucket dipilih otomatis:
+     *   - <= 2 hari  → 'hour'
+     *   - <= 62 hari → 'day'
+     *   - lebih     → 'month'
+     */
+    protected function resolveCustomRange(?string $fromRaw, ?string $toRaw): array
+    {
+        $from = $this->parseDateLoose($fromRaw) ?: Carbon::now()->startOfDay();
+        $to   = $this->parseDateLoose($toRaw)   ?: Carbon::now()->endOfDay();
+
+        if ($from->greaterThan($to)) {
+            [$from, $to] = [$to, $from];
+        }
+
+        $from = $from->copy()->startOfDay();
+        $to   = $to->copy()->endOfDay();
+
+        $days = $from->diffInDays($to) + 1;
+        if     ($days <= 2)  $bucket = 'hour';
+        elseif ($days <= 62) $bucket = 'day';
+        else                 $bucket = 'month';
+
+        $label = $from->locale('id')->isoFormat('D MMM Y')
+               . ' – '
+               . $to->locale('id')->isoFormat('D MMM Y');
+
+        return [
+            'period' => 'kustom',
+            'from'   => $from,
+            'to'     => $to,
+            'label'  => $label,
+            'bucket' => $bucket,
+        ];
+    }
+
+    /**
+     * Parse a date/datetime string, returning null on failure.
+     */
+    protected function parseDateLoose(?string $value): ?Carbon
+    {
+        if (! $value) {
+            return null;
+        }
+        try {
+            return Carbon::parse($value);
+        } catch (\Throwable $e) {
+            return null;
         }
     }
 
@@ -301,11 +377,26 @@ class ReportService
     {
         switch ($range['bucket']) {
             case 'hour':
+                if (($range['period'] ?? '') === 'kustom') {
+                    // Kustom: rentang bisa >1 hari — kunci = jam serial sejak from.
+                    $hours = (int) $range['from']->diffInHours($range['to']) + 1;
+                    return range(0, max(0, $hours - 1));
+                }
                 return range(0, 23);
             case 'month':
+                if (($range['period'] ?? '') === 'kustom') {
+                    // Kustom: bulan serial (index sejak from), memuat >12 bila lintas tahun.
+                    $months = (int) $range['from']->copy()->startOfMonth()
+                        ->diffInMonths($range['to']->copy()->startOfMonth()) + 1;
+                    return range(0, max(0, $months - 1));
+                }
                 return range(1, 12);
             case 'day':
             default:
+                if (($range['period'] ?? '') === 'kustom') {
+                    $days = (int) $range['from']->diffInDays($range['to']) + 1;
+                    return range(0, max(0, $days - 1));
+                }
                 return range(1, $range['from']->daysInMonth);
         }
     }
@@ -333,15 +424,29 @@ class ReportService
     /**
      * Human-readable label for a bucket key.
      */
-    protected function bucketLabel(int $key, string $bucket): string
+    protected function bucketLabel(int $key, string $bucket, array $range = []): string
     {
+        $isCustom = ($range['period'] ?? '') === 'kustom';
+
         switch ($bucket) {
             case 'hour':
+                if ($isCustom && ! empty($range['from'])) {
+                    $ts = $range['from']->copy()->addHours($key);
+                    return $ts->locale('id')->isoFormat('D MMM HH:00');
+                }
                 return sprintf('%02d:00', $key);
             case 'month':
+                if ($isCustom && ! empty($range['from'])) {
+                    $ts = $range['from']->copy()->startOfMonth()->addMonths($key);
+                    return $ts->locale('id')->isoFormat('MMM Y');
+                }
                 return self::SHORT_MONTHS[$key] ?? (string) $key;
             case 'day':
             default:
+                if ($isCustom && ! empty($range['from'])) {
+                    $ts = $range['from']->copy()->addDays($key);
+                    return $ts->locale('id')->isoFormat('D MMM');
+                }
                 return sprintf('%02d', $key);
         }
     }
@@ -352,29 +457,67 @@ class ReportService
     |--------------------------------------------------------------------------
     */
 
-    protected function mapDetailRow(KartuAccessLog $row, int $no): array
+    protected function mapDetailRow($row, int $no): array
     {
-        $owner = optional(optional($row->kartu)->user)->name
-            ?: optional($row->user)->name
+        // Baris data adalah LogRfidScan (bukan lagi KartuAccessLog).
+        // Field diterjemahkan agar payload tetap kompatibel dengan frontend.
+        $tappedAt = $row->event_ts;
+
+        $kartu   = $row->relationLoaded('kartu') ? $row->getRelation('kartu') : null;
+        $card    = $row->relationLoaded('card')  ? $row->getRelation('card')  : null;
+        $cctv    = $row->relationLoaded('cctv')  ? $row->getRelation('cctv')  : null;
+
+        $owner = optional(optional($kartu)->user)->name
+            ?: optional($card)->name
             ?: 'Tidak dikenal';
+
+        $granted   = strtoupper((string) $row->result) === LogRfidScan::RESULT_ALLOW;
+        $direction = $this->deriveDirection($row->gate_id);
+
+        $cctvImagePath = $cctv->view_image_path ?? null;
 
         return [
             'no'              => $no,
-            'tapped_at'       => optional($row->tapped_at)->toIso8601String(),
-            'tapped_at_label' => $row->tapped_at
-                ? $row->tapped_at->locale('id')->isoFormat('DD MMM Y, HH:mm:ss')
+            'tapped_at'       => $tappedAt ? $tappedAt->toIso8601String() : null,
+            'tapped_at_label' => $tappedAt
+                ? $tappedAt->locale('id')->isoFormat('DD MMM Y, HH:mm:ss')
                 : '-',
-            'card_number'     => $row->card_number,
-            'no_plat'         => $row->no_plat ?: '-',
+            'card_number'     => $row->uid,
+            'uid'             => $row->uid,
+            'no_plat'         => '-',
             'owner'           => $owner,
-            'direction'       => (int) $row->direction,
-            'direction_label' => $row->direction_label,
-            'access_granted'  => (bool) $row->access_granted,
-            'result_label'    => $row->access_granted ? 'Diterima' : 'Ditolak',
-            'reason'          => $row->reason,
-            'reason_label'    => Kartu::REASON_MESSAGES[$row->reason] ?? ucfirst(str_replace('_', ' ', (string) $row->reason)),
-            'gate'            => $row->gate ?: '-',
+            'direction'       => $direction,
+            'direction_label' => KartuAccessLog::DIRECTIONS[$direction] ?? '-',
+            'access_granted'  => $granted,
+            'result'          => $row->result,
+            'result_label'    => $granted ? 'Diterima' : 'Ditolak',
+            'reason'          => $row->result,
+            'reason_label'    => $granted ? 'Diterima' : ($row->result ?: 'Tidak diketahui'),
+            'gate'            => $row->gate_id ?: '-',
+            'cctv_id'         => $row->cctv_id,
+            'cctv_image_path' => $cctvImagePath,
+            'cctv'            => $cctv ? [
+                'id'              => $cctv->id,
+                'cctv'            => $cctv->cctv ?? null,
+                'view_image_path' => $cctvImagePath,
+                'log_time'        => optional($cctv->log_time ?? null)?->toIso8601String(),
+            ] : null,
         ];
+    }
+
+    /**
+     * Turunkan direction (1 = Tab In, 2 = Tab Out) dari prefiks gate_id.
+     */
+    protected function deriveDirection(?string $gateId): int
+    {
+        $gate = strtoupper((string) $gateId);
+        if (str_starts_with($gate, 'GATE_IN')) {
+            return KartuAccessLog::DIRECTION_IN;
+        }
+        if (str_starts_with($gate, 'GATE_OUT')) {
+            return KartuAccessLog::DIRECTION_OUT;
+        }
+        return 0;
     }
 
     protected function rangeMeta(array $range): array
@@ -411,6 +554,10 @@ class ReportService
             $active[] = 'Jam: ' . ($filters['time_from'] ?? '00:00') . ' - ' . ($filters['time_to'] ?? '23:59');
         }
 
+        if (! empty($filters['date_from']) || ! empty($filters['date_to'])) {
+            $active[] = 'Rentang: ' . ($filters['date_from'] ?? '-') . ' s/d ' . ($filters['date_to'] ?? '-');
+        }
+
         return $active;
     }
 
@@ -420,6 +567,7 @@ class ReportService
             'harian'   => 'Harian',
             'bulanan'  => 'Bulanan',
             'tahunan'  => 'Tahunan',
+            'kustom'   => 'Kustom',
         ];
 
         return $labels[$period] ?? ucfirst($period);

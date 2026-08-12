@@ -138,6 +138,8 @@ class ReportController extends Controller
         return $request->validate([
             'period'         => ['nullable', Rule::in(ReportService::PERIODS)],
             'date'           => ['nullable', 'string', 'max:20'],
+            'date_from'      => ['nullable', 'string', 'max:25'],
+            'date_to'        => ['nullable', 'string', 'max:25'],
             'direction'      => ['nullable', 'integer', 'in:1,2'],
             'access_granted' => ['nullable', 'in:0,1,true,false'],
             'gate'           => ['nullable', 'string', 'max:50'],
@@ -162,6 +164,8 @@ class ReportController extends Controller
             'time_from'      => $params['time_from'] ?? null,
             'time_to'        => $params['time_to'] ?? null,
             'user_id'        => $params['user_id'] ?? null,
+            'date_from'      => $params['date_from'] ?? null,
+            'date_to'        => $params['date_to'] ?? null,
         ], fn ($value) => $value !== null && $value !== '');
     }
 
