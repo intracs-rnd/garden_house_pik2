@@ -159,4 +159,22 @@ class KartuRepository extends BaseRepository
             ->where('valid_until', '<=', now())
             ->get();
     }
+
+    /**
+     * Non-active (Non Aktif) cards whose validity window may still cover the
+     * current moment. The exact grace-window check is done in PHP so this
+     * query stays database-agnostic; we only pre-filter obvious rejects
+     * (blacklisted, without valid_until).
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Models\Kartu>
+     */
+    public function inactiveWithinValidityCandidates()
+    {
+        return $this->model->newQuery()
+            ->with('user')
+            ->where('status', Kartu::STATUS_NONAKTIF)
+            ->where('is_blacklisted', false)
+            ->whereNotNull('valid_until')
+            ->get();
+    }
 }

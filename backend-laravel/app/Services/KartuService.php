@@ -33,13 +33,15 @@ class KartuService
     public function list(array $filters = [], int $perPage = 15, bool $includeDeleted = false)
     {
         // Sinkronisasi status realtime: setiap kali daftar kartu diminta,
-        // pastikan kartu yang masa berlaku (termasuk masa tenggang) sudah
-        // lewat langsung diturunkan ke status Non Aktif. Ini melengkapi
-        // scheduler hourly `kartu:deactivate-expired` sehingga UI selalu
-        // menampilkan status yang akurat pada jam terkini tanpa menunggu
-        // cron berikutnya atau tap gate.
+        // pastikan status kartu mengikuti masa berlaku efektif pada jam
+        // terkini — kartu yang sudah lewat (valid_until + grace) diturunkan
+        // ke Non Aktif, sementara kartu Non Aktif yang masa berlakunya
+        // diperpanjang (mis. admin menambah tenggang / valid_until) kembali
+        // diangkat menjadi Aktif. Ini melengkapi scheduler hourly agar UI
+        // selalu akurat tanpa menunggu cron berikutnya atau tap gate.
         try {
             $this->deactivateExpired();
+            $this->reactivateWithinValidity();
         } catch (\Throwable $e) {
             // Jangan gagalkan permintaan list hanya karena sinkronisasi
             // status gagal; cukup lewatkan agar data tetap bisa ditampilkan.
@@ -404,6 +406,27 @@ class KartuService
         }
 
         return $deactivated;
+    }
+
+    /**
+     * Automatically restore every Non Aktif card back to "Aktif" when its
+     * validity window (including the grace period) still covers the current
+     * moment. Blacklisted cards and cards without a validity window are
+     * intentionally left untouched so manual overrides remain sticky.
+     *
+     * @return int Number of cards that were reactivated.
+     */
+    public function reactivateWithinValidity(): int
+    {
+        $reactivated = 0;
+
+        foreach ($this->kartuRepository->inactiveWithinValidityCandidates() as $kartu) {
+            if ($kartu->reactivateIfWithinValidity()) {
+                $reactivated++;
+            }
+        }
+
+        return $reactivated;
     }
 
     /**

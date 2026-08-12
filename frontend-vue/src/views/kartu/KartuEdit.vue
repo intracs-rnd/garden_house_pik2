@@ -21,8 +21,11 @@ const errors = ref({})
 
 // Simpan masa berlaku awal supaya kita tahu ketika user memperpanjangnya.
 const originalValidUntil = ref('')
+const originalValidFrom = ref('')
+const originalGraceDays = ref(0)
 
 const STATUS_AKTIF = 1
+const STATUS_NONAKTIF = 2
 
 const form = reactive({
   user_id: '',
@@ -105,9 +108,12 @@ function wibInputToUtcMs(wibInput) {
 }
 
 /**
- * Jika masa berlaku diperpanjang (valid_until baru lebih lama dari sebelumnya
- * dan berada di masa depan), aktifkan kembali kartu yang tadinya non-aktif
- * karena kadaluarsa — selama kartu tidak di-blacklist.
+ * Jika masa berlaku efektif (valid_until + masa tenggang) diperpanjang atau
+ * valid_from mundur sehingga kartu kini berada di rentang berlaku, aktifkan
+ * kembali kartu yang tadinya non-aktif karena kadaluarsa. Reaktivasi hanya
+ * terjadi jika salah satu field validitas benar-benar berubah, sehingga
+ * admin yang sengaja menonaktifkan kartu (tanpa mengubah masa berlaku)
+ * tidak diganggu. Kartu blacklist tidak pernah diaktifkan dari sini.
  */
 function reactivateIfExtended() {
   if (form.is_blacklisted || !form.valid_until) return
@@ -115,11 +121,28 @@ function reactivateIfExtended() {
   const newUntilMs = wibInputToUtcMs(form.valid_until)
   if (Number.isNaN(newUntilMs)) return
 
-  const isInFuture = newUntilMs > Date.now()
-  const previousMs = originalValidUntil.value ? wibInputToUtcMs(originalValidUntil.value) : null
-  const isExtended = !previousMs || newUntilMs > previousMs
+  const nowMs = Date.now()
+  const graceDays = Math.max(0, Number(form.grace_days) || 0)
+  const effectiveUntilMs = newUntilMs + graceDays * 86400000
 
-  if (isInFuture && isExtended) {
+  // Kartu belum berlaku jika valid_from ada dan masih di masa depan.
+  const newFromMs = form.valid_from ? wibInputToUtcMs(form.valid_from) : null
+  const notYetValid = newFromMs !== null && !Number.isNaN(newFromMs) && newFromMs > nowMs
+
+  // Deteksi perubahan pada salah satu field validitas dibandingkan data awal.
+  const prevUntilMs = originalValidUntil.value ? wibInputToUtcMs(originalValidUntil.value) : null
+  const prevFromMs = originalValidFrom.value ? wibInputToUtcMs(originalValidFrom.value) : null
+  const untilChanged = prevUntilMs === null || newUntilMs !== prevUntilMs
+  const fromChanged = (prevFromMs ?? null) !== (newFromMs ?? null)
+  const graceChanged = graceDays !== Number(originalGraceDays.value || 0)
+  const validityChanged = untilChanged || fromChanged || graceChanged
+
+  if (
+    validityChanged
+    && effectiveUntilMs > nowMs
+    && !notYetValid
+    && Number(form.status) === STATUS_NONAKTIF
+  ) {
     form.status = STATUS_AKTIF
   }
 }
@@ -155,6 +178,8 @@ onMounted(async () => {
       keterangan: data.keterangan ?? '',
     })
     originalValidUntil.value = toDateTimeInput(data.valid_until)
+    originalValidFrom.value = toDateTimeInput(data.valid_from)
+    originalGraceDays.value = Number(data.grace_days ?? 0)
   } catch (error) {
     toast.error(extractErrorMessage(error, 'Data kartu akses tidak ditemukan.'))
     router.push({ name: 'kartu.index' })

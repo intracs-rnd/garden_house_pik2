@@ -405,6 +405,52 @@ class Kartu extends Model
     }
 
     /**
+     * Automatically restore the card to "Aktif" when it is currently Non Aktif
+     * but its validity (including grace period) still covers the current
+     * moment. This is the counterpart of {@see deactivateIfExpired()} and
+     * makes status behave as a live projection of the card's validity window.
+     *
+     * Guard rails:
+     *  - Only cards currently Non Aktif are touched.
+     *  - Blacklisted cards are left alone.
+     *  - Cards that are not yet valid (valid_from in the future) stay Non Aktif.
+     *  - Cards without any valid_until date are left alone so admins can still
+     *    keep a card manually deactivated without a validity window.
+     *
+     * @return bool True when the status was flipped back to Aktif.
+     */
+    public function reactivateIfWithinValidity(): bool
+    {
+        if ((int) $this->status !== self::STATUS_NONAKTIF) {
+            return false;
+        }
+
+        if ($this->isBlacklisted()) {
+            return false;
+        }
+
+        if ($this->valid_until === null) {
+            return false;
+        }
+
+        if ($this->isNotYetValid()) {
+            return false;
+        }
+
+        if ($this->isPastGrace()) {
+            return false;
+        }
+
+        $this->status = self::STATUS_AKTIF;
+
+        if ($this->exists) {
+            $this->saveQuietly();
+        }
+
+        return true;
+    }
+
+    /**
      * Blacklist a card automatically when the owner's outstanding iuran
      * persists beyond (deadline + grace_days + 1 day).
      *
