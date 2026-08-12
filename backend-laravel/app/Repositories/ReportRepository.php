@@ -66,11 +66,11 @@ class ReportRepository extends BaseRepository
                 function ($query) use ($filters) {
                     $granted = filter_var($filters['access_granted'], FILTER_VALIDATE_BOOLEAN);
                     if ($granted) {
-                        $query->where('result', self::RESULT_ALLOW);
+                        $query->whereRaw('UPPER(result) = ?', [self::RESULT_ALLOW]);
                     } else {
                         $query->where(function ($q) {
                             $q->whereNull('result')
-                                ->orWhere('result', '<>', self::RESULT_ALLOW);
+                              ->orWhereRaw('UPPER(result) <> ?', [self::RESULT_ALLOW]);
                         });
                     }
                 }
@@ -98,7 +98,7 @@ class ReportRepository extends BaseRepository
         $row = $this->rangeQuery($from, $to, $filters)
             ->selectRaw("
                 COUNT(*)                                                                       AS total,
-                SUM(CASE WHEN result = ?                    THEN 1 ELSE 0 END)                AS granted,
+                SUM(CASE WHEN UPPER(result) = ?                    THEN 1 ELSE 0 END)                AS granted,
                 SUM(CASE WHEN ({$direction}) = 1            THEN 1 ELSE 0 END)                AS tab_in,
                 SUM(CASE WHEN ({$direction}) = 2            THEN 1 ELSE 0 END)                AS tab_out,
                 COUNT(DISTINCT CASE WHEN uid IS NOT NULL THEN uid END)                        AS unique_cards
@@ -162,7 +162,7 @@ class ReportRepository extends BaseRepository
             ->selectRaw("
                 {$expr}                                                            AS bucket_key,
                 COUNT(*)                                                           AS total,
-                SUM(CASE WHEN result = ?             THEN 1 ELSE 0 END)            AS granted,
+                SUM(CASE WHEN UPPER(result) = ?             THEN 1 ELSE 0 END)            AS granted,
                 SUM(CASE WHEN ({$direction}) = 1     THEN 1 ELSE 0 END)            AS tab_in,
                 SUM(CASE WHEN ({$direction}) = 2     THEN 1 ELSE 0 END)            AS tab_out
             ", [$allow])
@@ -193,7 +193,7 @@ class ReportRepository extends BaseRepository
             ->selectRaw("
                 COALESCE(NULLIF(result, ''), 'UNKNOWN')                                AS reason,
                 COUNT(*)                                                               AS total,
-                SUM(CASE WHEN result = ? THEN 1 ELSE 0 END)                            AS granted
+                SUM(CASE WHEN UPPER(result) = ? THEN 1 ELSE 0 END)                            AS granted
             ", [$allow])
             ->groupByRaw("COALESCE(NULLIF(result, ''), 'UNKNOWN')")
             ->orderByRaw('total DESC')

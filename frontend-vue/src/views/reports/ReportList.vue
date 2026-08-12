@@ -47,7 +47,7 @@ const filters = ref({
 })
 
 const loading = ref(false)
-const downloading = ref('') 
+const downloading = ref('')
 const error = ref('')
 
 const gateControlData = ref(null)
@@ -120,7 +120,7 @@ const gateControlPerPage = ref(10)
 const gateRows = computed(() => gateControlData.value?.rows || [])
 const gateTotal = computed(() => gateRows.value.length)
 const gateLastPage = computed(() =>
-  Math.max(1, Math.ceil(gateTotal.value / gateControlPerPage.value)),
+    Math.max(1, Math.ceil(gateTotal.value / gateControlPerPage.value)),
 )
 const pagedGateRows = computed(() => {
   const start = (gateControlPage.value - 1) * gateControlPerPage.value
@@ -171,12 +171,12 @@ async function openGateDetail(row) {
       const resolved = resp?.data?.resolved_images
       if (Array.isArray(resolved) && resolved.length) {
         pathItems = resolved
-          .filter(item => item && item.path)
-          .map(item => ({
-            path: item.path,
-            label: item.label || 'Gambar',
-            source: item.source || 'MR',
-          }))
+            .filter(item => item && item.path)
+            .map(item => ({
+              path: item.path,
+              label: item.label || 'Gambar',
+              source: item.source || 'MR',
+            }))
       }
     } catch (err) {
       console.warn('⚠️ Gagal resolve via code_transaction, fallback ke image_paths:', err?.message)
@@ -208,14 +208,14 @@ async function openGateDetail(row) {
   })
 
   const resolved = await Promise.all(
-    unique.map(async ({ path, label }) => {
-      try {
-        const src = await fetchImageSource(path)
-        return { key: path, label, src }
-      } catch {
-        return null
-      }
-    }),
+      unique.map(async ({ path, label }) => {
+        try {
+          const src = await fetchImageSource(path)
+          return { key: path, label, src }
+        } catch {
+          return null
+        }
+      }),
   )
 
   gateDetailLoadingImages.value = false
@@ -260,7 +260,7 @@ async function download(kind, { format = 'pdf', preview = false } = {}) {
   try {
     const stamp = new Date().toISOString().slice(0, 10)
     const params = { ...buildParams(), download: preview ? undefined : 1 }
-    
+
     if (format === 'excel') {
       const blob = await reportApi.gateControlExcel(buildParams())
       downloadBlob(blob, `laporan-kunjungan-visitor-${filters.value.period}-${stamp}.xlsx`)
@@ -283,21 +283,21 @@ async function download(kind, { format = 'pdf', preview = false } = {}) {
 onMounted(generate)
 
 watch(
-  () => ({
-    period: filters.value.period,
-    day: filters.value.day,
-    month: filters.value.month,
-    year: filters.value.year,
-    no_plat: filters.value.no_plat,
-    direction: filters.value.direction,
-    access_granted: filters.value.access_granted,
-    gate: filters.value.gate,
-  }),
-  () => {
-    gateControlData.value = null
-    gateControlError.value = ''
-    loadGateControl()
-  },
+    () => ({
+      period: filters.value.period,
+      day: filters.value.day,
+      month: filters.value.month,
+      year: filters.value.year,
+      no_plat: filters.value.no_plat,
+      direction: filters.value.direction,
+      access_granted: filters.value.access_granted,
+      gate: filters.value.gate,
+    }),
+    () => {
+      gateControlData.value = null
+      gateControlError.value = ''
+      loadGateControl()
+    },
 )
 
 watch(showGateDetailModal, (open) => {
@@ -315,8 +315,8 @@ onBeforeUnmount(() => {
 <template>
   <div class="page">
     <PageHeader
-      title="Laporan Kunjungan Visitor"
-      subtitle="Laporan aktivitas kunjungan visitor (harian, bulanan, tahunan)"
+        title="Laporan Kunjungan Visitor"
+        subtitle="Laporan aktivitas kunjungan visitor (harian, bulanan, tahunan)"
     />
 
     <div v-if="error" class="alert alert-danger">{{ error }}</div>
@@ -329,9 +329,9 @@ onBeforeUnmount(() => {
             <Button variant="secondary" size="sm" :loading="downloading === 'gate-control-pdf'" @click="download('gate-control', { format: 'pdf' })">
               ⬇ PDF
             </Button>
-<!--            <Button variant="secondary" size="sm" :loading="downloading === 'gate-control-excel'" @click="download('gate-control', { format: 'excel' })">-->
-<!--              ⬇ Excel-->
-<!--            </Button>-->
+            <!--            <Button variant="secondary" size="sm" :loading="downloading === 'gate-control-excel'" @click="download('gate-control', { format: 'excel' })">-->
+            <!--              ⬇ Excel-->
+            <!--            </Button>-->
             <Button variant="ghost" size="sm" :loading="downloading === 'gate-control-preview'" @click="download('gate-control', { preview: true })">
               👁 Pratinjau PDF
             </Button>
@@ -374,19 +374,19 @@ onBeforeUnmount(() => {
             <input v-model="filters.no_plat" type="text" class="form-control" placeholder="Semua plat" />
           </div>
 
-<!--          <div class="field">-->
-<!--            <label>Arah</label>-->
-<!--            <select v-model="filters.direction" class="form-control">-->
-<!--              <option v-for="d in DIRECTIONS" :key="d.label" :value="d.value">{{ d.label }}</option>-->
-<!--            </select>-->
-<!--          </div>-->
+          <!--          <div class="field">-->
+          <!--            <label>Arah</label>-->
+          <!--            <select v-model="filters.direction" class="form-control">-->
+          <!--              <option v-for="d in DIRECTIONS" :key="d.label" :value="d.value">{{ d.label }}</option>-->
+          <!--            </select>-->
+          <!--          </div>-->
 
-<!--          <div class="field">-->
-<!--            <label>Hasil</label>-->
-<!--            <select v-model="filters.access_granted" class="form-control">-->
-<!--              <option v-for="r in RESULTS" :key="r.label" :value="r.value">{{ r.label }}</option>-->
-<!--            </select>-->
-<!--          </div>-->
+          <!--          <div class="field">-->
+          <!--            <label>Hasil</label>-->
+          <!--            <select v-model="filters.access_granted" class="form-control">-->
+          <!--              <option v-for="r in RESULTS" :key="r.label" :value="r.value">{{ r.label }}</option>-->
+          <!--            </select>-->
+          <!--          </div>-->
 
           <div class="field">
             <label>Gate</label>
@@ -403,16 +403,16 @@ onBeforeUnmount(() => {
       <div v-else-if="gateControlError" class="alert alert-danger">{{ gateControlError }}</div>
       <template v-else>
         <DataTable
-          :columns="gateColumns"
-          :rows="pagedGateRows"
-          :paginated="true"
-          :page="gateControlPage"
-          :per-page="gateControlPerPage"
-          :total="gateTotal"
-          :last-page="gateLastPage"
-          empty-text="Tidak ada data kunjungan visitor pada periode ini."
-          @change-page="onGateChangePage"
-          @change-per-page="onGateChangePerPage"
+            :columns="gateColumns"
+            :rows="pagedGateRows"
+            :paginated="true"
+            :page="gateControlPage"
+            :per-page="gateControlPerPage"
+            :total="gateTotal"
+            :last-page="gateLastPage"
+            empty-text="Tidak ada data kunjungan visitor pada periode ini."
+            @change-page="onGateChangePage"
+            @change-per-page="onGateChangePerPage"
         >
           <template #cell-action_label="{ row }">
             <span class="badge" :class="row.action === 'OPEN' ? 'badge-success' : 'badge-secondary'">
@@ -435,12 +435,12 @@ onBeforeUnmount(() => {
           </div>
           <div v-else-if="gateDetailImages.length" class="detail-image-grid">
             <a
-              v-for="img in gateDetailImages"
-              :key="img.key"
-              class="detail-image-item"
-              :href="img.src"
-              target="_blank"
-              rel="noopener noreferrer"
+                v-for="img in gateDetailImages"
+                :key="img.key"
+                class="detail-image-item"
+                :href="img.src"
+                target="_blank"
+                rel="noopener noreferrer"
             >
               <img :src="img.src" :alt="img.label" loading="lazy" />
               <small>{{ img.label }}</small>
