@@ -232,17 +232,17 @@
 }
 .detail-img-label {
     position: absolute;
-    top: 8px;
-    left: 8px;
+    top: 0;
+    left: 0;
     padding: 3px 8px;
-    border-radius: 5px;
-    font-size: 11px;
+    border-bottom-right-radius: 6px;
+    font-size: 10px;
     font-weight: 700;
-    letter-spacing: 0.3px;
-    text-transform: uppercase;
+    letter-spacing: 0.04em;
     backdrop-filter: blur(4px);
     line-height: 1.4;
     pointer-events: none;
+    z-index: 2;
 }
 .label-anpr {
     background: rgba(109, 40, 217, 0.82);

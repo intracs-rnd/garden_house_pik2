@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="header">
       <h2>🖼️ Image Upload API Test</h2>
-      <p class="subtitle">Test integrasi API upload gambar (192.168.214.7:4000)</p>
+      <p class="subtitle">Test integrasi API upload gambar (192.168.214.163:4000)</p>
     </div>
 
     <!-- Status Indicator -->
@@ -105,7 +105,7 @@
         <li>✅ Backend Controller: <code>ImageController.php</code></li>
         <li>✅ API Endpoint: <code>POST /api/images/fetch</code></li>
         <li>✅ Vue Composable: <code>useImageFetch()</code></li>
-        <li>✅ Image API: <code>http://192.168.214.7:4000/api/uploads</code></li>
+        <li>✅ Image API: <code>http://192.168.214.163:4000/api/uploads</code></li>
       </ul>
       <p class="hint">Lihat dokumentasi lengkap di <code>IMAGE_UPLOAD_INTEGRATION.md</code></p>
     </div>

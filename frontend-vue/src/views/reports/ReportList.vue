@@ -209,7 +209,11 @@ async function openGateDetail(row) {
             .filter(item => item && item.path)
             .map(item => ({
               path: item.path,
-              label: item.label || 'Gambar',
+              // Hapus suffix "(Masuk)"/"(Keluar)" & "·CCTV" — tab sudah menunjukkan arahnya
+              label: (item.label || 'Gambar')
+                  .replace(/\s*\([^)]*\)/g, '')
+                  .replace(/·CCTV/gi, '')
+                  .trim() || 'Gambar',
               source: item.source || 'MR',
               direction: item.direction || 'entry',
             }))
