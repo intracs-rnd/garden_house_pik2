@@ -1204,6 +1204,20 @@ function hasImages(log) {
   return !!(log.code_transaction || log.view_image_path || log.entry_image_1 || log.entry_image_2 || log.entry_image_3 || log.entry_image_4)
 }
 
+/**
+ * Ekstrak label & source dari path gambar capture dashboard.
+ * Untuk /storage/cctv_captures/..., nama file mengandung label aslinya (ANPR / View).
+ */
+function capturePathLabel(path, fallbackIdx = 1) {
+  if (path && path.startsWith('/storage/cctv_captures/')) {
+    const filename = path.split('/').pop() || ''
+    if (/_ANPR_/i.test(filename)) return { label: 'ANPR', source: 'ANPR' }
+    if (/_View_/i.test(filename)) return { label: 'View', source: 'CCTV' }
+    return { label: 'Capture', source: 'CCTV' }
+  }
+  return { label: `Gambar ${fallbackIdx}`, source: 'MR' }
+}
+
 const logImagesModal = ref(false)
 const logImagesData = ref([])
 const logImagesLoading = ref(false)
@@ -1251,7 +1265,20 @@ async function openLogImagesModal(log) {
     for (let i = 1; i <= 4; i++) {
       const p = log['entry_image_' + i]
       if (p != null && p !== '') {
-        pathItems.push({ path: p, label: 'Gambar ' + i, source: 'MR', direction: 'entry' })
+        const lbl = capturePathLabel(p, i)
+        pathItems.push({ path: p, label: lbl.label, source: lbl.source, direction: 'exit' })
+      }
+    }
+  } else {
+    // Tambahkan exit captures (entry_image_1..4 yang berupa /storage/cctv_captures/)
+    // yang tidak ada di resolved_images transaksi
+    const existing = new Set(pathItems.map(i => i.path))
+    for (let i = 1; i <= 4; i++) {
+      const p = log['entry_image_' + i]
+      if (p && !existing.has(p)) {
+        const lbl = capturePathLabel(p, i)
+        pathItems.push({ path: p, label: lbl.label, source: lbl.source, direction: 'exit' })
+        existing.add(p)
       }
     }
   }

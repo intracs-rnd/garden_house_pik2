@@ -224,17 +224,25 @@ async function openGateDetail(row) {
   // yang TIDAK ada di resolved_images transaksi karena berasal dari gate_manual_control.
   const rowPaths = Array.isArray(row.image_paths) ? row.image_paths : []
   const existingPaths = new Set(pathItems.map(i => i.path))
-  const sourceLabels = ['CCTV Validasi', 'Capture 2', 'Capture 3', 'Capture 4', 'Capture 5']
   rowPaths.forEach((path, idx) => {
-    if (path && !existingPaths.has(path)) {
-      pathItems.push({
-        path,
-        label: sourceLabels[idx] || `Capture ${idx + 1}`,
-        source: idx === 0 ? 'CCTV' : 'MR',
-        direction: 'exit',
-      })
-      existingPaths.add(path)
+    if (!path || existingPaths.has(path)) return
+    let label, source
+    if (path.startsWith('/storage/cctv_captures/')) {
+      // Ekstrak label dari nama file: {Ymd_His}_{device}_{label}_{uniqid}.jpg
+      const filename = path.split('/').pop() || ''
+      if (/_ANPR_/i.test(filename)) {
+        label = 'ANPR'; source = 'ANPR'
+      } else if (/_View_/i.test(filename)) {
+        label = 'View'; source = 'CCTV'
+      } else {
+        label = 'Capture'; source = 'CCTV'
+      }
+    } else {
+      label = idx === 0 ? 'CCTV' : `Gambar ${idx + 1}`
+      source = idx === 0 ? 'CCTV' : 'MR'
     }
+    pathItems.push({ path, label, source, direction: 'exit' })
+    existingPaths.add(path)
   })
 
   if (pathItems.length === 0) {
