@@ -237,6 +237,35 @@ async function openGateDetail(row) {
     }
   })
 
+  // Ambil gambar validasi CCTV langsung dari log_cctv di sekitar waktu event gate.
+  // Ini penting ketika slot gambar di gate_manual_control (view_image_path + entry_image_1..4)
+  // sudah penuh, sehingga gambar validasi tidak sempat tersimpan di baris tersebut.
+  // Diletakkan di tab Keluar (direction: 'exit').
+  if (row.event_ts_raw) {
+    try {
+      const cctvResp = await transactionApi.getLogCctvByTime(row.event_ts_raw, {
+        beforeSeconds: 180,
+        afterSeconds: 60,
+        limit: 4,
+      })
+      const records = Array.isArray(cctvResp?.data) ? cctvResp.data : []
+      records.forEach((rec) => {
+        const path = rec?.view_image_path
+        if (path && !existingPaths.has(path)) {
+          pathItems.push({
+            path,
+            label: 'CCTV Validasi',
+            source: 'CCTV',
+            direction: 'exit',
+          })
+          existingPaths.add(path)
+        }
+      })
+    } catch (err) {
+      console.warn('⚠️ Gagal ambil gambar validasi CCTV dari log_cctv:', err?.message)
+    }
+  }
+
   if (pathItems.length === 0) {
     gateDetailLoadingImages.value = false
     return

@@ -215,6 +215,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Snapshot CCTV terbaru per kamera (untuk dashboard)
     Route::get('/log-cctv/latest-snapshots', [TransactionController::class, 'getLatestCctvSnapshots']);
 
+    // Gambar validasi CCTV dari log_cctv di sekitar waktu tertentu (Detail Kunjungan Visitor)
+    Route::get('/log-cctv/by-time', [TransactionController::class, 'getLogCctvByTime']);
+
     // Proxy ke Node-RED capture API (hindari CORS di production)
     Route::post('/cctv/capture', [TransactionController::class, 'cctvCapture']);
     

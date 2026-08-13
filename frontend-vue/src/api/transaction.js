@@ -271,6 +271,24 @@ const transactionApi = {
   },
 
   /**
+   * Ambil gambar validasi CCTV dari log_cctv di sekitar waktu tertentu.
+   * Dipakai Detail Kunjungan Visitor (tab Keluar) agar gambar validasi tetap
+   * tampil walau slot gambar di gate_manual_control sudah penuh.
+   * @param {string} ts - Timestamp acuan (ISO-8601), biasanya event_ts baris gate.
+   * @param {{ beforeSeconds?: number, afterSeconds?: number, flaggedOnly?: boolean, limit?: number }} [opts]
+   * @returns {Promise} Array of { id, cctv, view_image_path, log_time, flags }
+   */
+  async getLogCctvByTime(ts, opts = {}) {
+    const params = { ts }
+    if (opts.beforeSeconds != null) params.before_seconds = opts.beforeSeconds
+    if (opts.afterSeconds != null) params.after_seconds = opts.afterSeconds
+    if (opts.flaggedOnly != null) params.flagged_only = opts.flaggedOnly ? 1 : 0
+    if (opts.limit != null) params.limit = opts.limit
+    const response = await api.get('/log-cctv/by-time', { params })
+    return response.data
+  },
+
+  /**
    * Update transaction status to COMPLETED
    * @param {string} transactionId - The transaction ID to update
    * @returns {Promise} Update result

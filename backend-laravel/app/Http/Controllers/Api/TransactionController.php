@@ -7,6 +7,7 @@ use App\Models\Transaction;
 use App\Models\LogCctv;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class TransactionController extends Controller
 {
@@ -505,6 +506,63 @@ class TransactionController extends Controller
             return $this->successResponse($snapshots, 'Snapshots CCTV terbaru.');
         } catch (\Exception $e) {
             return $this->errorResponse('Gagal mengambil snapshots: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Ambil gambar validasi CCTV dari log_cctv di sekitar waktu tertentu.
+     *
+     * Dipakai oleh Detail Kunjungan Visitor (tab Keluar) agar gambar validasi CCTV
+     * bisa diambil langsung dari log_cctv — berguna saat slot gambar di
+     * gate_manual_control (view_image_path + entry_image_1..4) sudah penuh sehingga
+     * gambar validasi tidak sempat tersimpan di sana.
+     *
+     * Query params:
+     *  - ts             : timestamp acuan (ISO-8601), biasanya event_ts baris gate.
+     *  - before_seconds : jendela sebelum ts (default 180).
+     *  - after_seconds  : jendela sesudah ts (default 60).
+     *  - flagged_only   : jika true, hanya ambil record flags=1 (hasil validasi).
+     *  - limit          : maksimum record (default 4, maks 10).
+     */
+    public function getLogCctvByTime(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'ts'             => ['required', 'date'],
+            'before_seconds' => ['nullable', 'integer', 'min:0', 'max:3600'],
+            'after_seconds'  => ['nullable', 'integer', 'min:0', 'max:3600'],
+            'flagged_only'   => ['nullable', 'boolean'],
+            'limit'          => ['nullable', 'integer', 'min:1', 'max:10'],
+        ]);
+
+        try {
+            $anchor = Carbon::parse($validated['ts']);
+            $from   = $anchor->copy()->subSeconds((int) ($validated['before_seconds'] ?? 180));
+            $to     = $anchor->copy()->addSeconds((int) ($validated['after_seconds'] ?? 60));
+            $limit  = (int) ($validated['limit'] ?? 4);
+
+            $query = LogCctv::whereNotNull('view_image_path')
+                ->where('view_image_path', '!=', '')
+                ->whereBetween('log_time', [$from, $to]);
+
+            if (!empty($validated['flagged_only'])) {
+                $query->where('flags', 1);
+            }
+
+            $records = $query->orderBy('log_time', 'desc')
+                ->limit($limit)
+                ->get(['id', 'cctv', 'view_image_path', 'log_time', 'flags'])
+                ->values()
+                ->map(fn($r) => [
+                    'id'              => $r->id,
+                    'cctv'            => $r->cctv,
+                    'view_image_path' => $r->view_image_path,
+                    'log_time'        => $r->log_time,
+                    'flags'           => $r->flags,
+                ]);
+
+            return $this->successResponse($records, 'Gambar validasi CCTV.');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Gagal mengambil gambar CCTV: ' . $e->getMessage(), 500);
         }
     }
 

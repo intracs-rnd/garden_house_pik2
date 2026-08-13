@@ -284,6 +284,7 @@ class GateController extends Controller
             return [
                 'no'               => $i + 1,
                 'event_ts'         => $ts ? $ts->format('d/m/Y H:i:s') : '—',
+                'event_ts_raw'     => $ts ? $ts->toIso8601String() : null,
                 'gate_id'          => $row->gate_id ?: '—',
                 'action'           => $row->action ?: '—',
                 'action_label'     => strtoupper((string) $row->action) === 'OPEN' ? 'Buka' : 'Tutup',
