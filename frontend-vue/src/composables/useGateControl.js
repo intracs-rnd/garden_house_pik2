@@ -11,7 +11,7 @@ export function useGateControl() {
   const publishError = ref(null)
   const isConnecting = ref(false)
 
-  const TOPIC_GATE_CMD = 'gate/in/cmd'
+  const TOPIC_GATE_CMD = 'gate/out/cmd'
 
   /**
    * Publish gate action ke MQTT dan log ke database
