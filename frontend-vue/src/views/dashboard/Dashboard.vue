@@ -969,8 +969,15 @@ function submitGateAction() {
 
   gateSubmitting.value = true
 
-  const viewPath = gateImages.value.find(img => img.source === 'CCTV')?.path || null
-  const anprPaths = gateImages.value.filter(img => img.source === 'ANPR' || img.source === 'MR').map(img => img.path)
+  const viewPath = gateImages.value.find(img => img.source === 'CCTV' && img.direction === 'entry')?.path
+    || gateImages.value.find(img => img.source === 'CCTV')?.path
+    || null
+
+  // Kumpulkan semua gambar lainnya (ANPR/MR dari entry + semua exit capture) yang punya path
+  const otherPaths = gateImages.value
+    .filter(img => img.path && img.path !== viewPath)
+    .map(img => img.path)
+    .filter(Boolean)
 
   // Publish gate action ke MQTT dan log dengan nomor plat + gambar
   publishGateAction('VISITOR_OUT', gateAction.value === 'open', {
@@ -980,10 +987,10 @@ function submitGateAction() {
     code_transaction: gateTransactionData.value?.code_transaction || null,
     // Masukkan gambar CCTV ke view_image_path, sisanya (baik entry maupun exit) ke slot entry_image_1 s/d 4
     view_image_path: viewPath,
-    entry_image_1: anprPaths[0] || null,
-    entry_image_2: anprPaths[1] || null,
-    entry_image_3: anprPaths[2] || null,
-    entry_image_4: anprPaths[3] || null,
+    entry_image_1: otherPaths[0] || null,
+    entry_image_2: otherPaths[1] || null,
+    entry_image_3: otherPaths[2] || null,
+    entry_image_4: otherPaths[3] || null,
   })
       .then(async (success) => {
         if (success) {
@@ -1079,9 +1086,26 @@ async function captureFromCctv() {
       })
     }
 
-    gateCaptureImages.value = captured
+    // Upload gambar base64-only ke server untuk mendapatkan path permanen,
+    // agar bisa tersimpan ke database saat klik Buka Gate.
+    const capturedWithPaths = await Promise.all(captured.map(async (img) => {
+      if (img.base64 && !img.path) {
+        try {
+          const saved = await transactionApi.saveCaptureImage(img.base64, img.label, 'DASHBOARD-OUT')
+          if (saved.success && saved.path) {
+            console.log(`✅ Gambar ${img.label} tersimpan di server:`, saved.path)
+            return { ...img, path: saved.path }
+          }
+        } catch (err) {
+          console.warn(`⚠️ Gagal simpan gambar ${img.label} ke server:`, err.message)
+        }
+      }
+      return img
+    }))
+
+    gateCaptureImages.value = capturedWithPaths
     // Juga tambahkan ke gateImages direction exit untuk disimpan ke log gate
-    const newImages = captured.map(img => ({ ...img, direction: 'exit' }))
+    const newImages = capturedWithPaths.map(img => ({ ...img, direction: 'exit' }))
     if (newImages.length > 0) {
       gateImages.value = [...gateImages.value, ...newImages]
     }

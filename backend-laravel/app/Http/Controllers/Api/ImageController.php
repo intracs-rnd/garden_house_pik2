@@ -187,6 +187,76 @@ class ImageController extends Controller
     }
 
     /**
+     * Simpan gambar CCTV dari base64 ke storage (untuk validasi capture dari dashboard).
+     * Menyimpan ke storage/app/public/cctv_captures/ dan mengembalikan path yang bisa
+     * diambil kembali via endpoint serve-storage.
+     */
+    public function saveCapture(Request $request): JsonResponse
+    {
+        $request->validate([
+            'base64' => 'required|string',
+            'label'  => 'nullable|string|max:50',
+            'device' => 'nullable|string|max:100',
+        ]);
+
+        $base64 = $request->input('base64');
+
+        // Lepaskan prefix data URI jika ada (misal: "data:image/jpeg;base64,/9j/...")
+        if (str_contains($base64, ',')) {
+            $base64 = explode(',', $base64, 2)[1];
+        }
+
+        $imageData = base64_decode($base64, true);
+        if ($imageData === false || strlen($imageData) < 100) {
+            return response()->json(['success' => false, 'message' => 'Data gambar tidak valid'], 422);
+        }
+
+        $label    = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $request->input('label', 'capture'));
+        $device   = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $request->input('device', 'DASHBOARD'));
+        $filename = now()->format('Ymd_His') . '_' . $device . '_' . $label . '_' . uniqid() . '.jpg';
+        $relativePath = 'cctv_captures/' . $filename;
+
+        \Illuminate\Support\Facades\Storage::disk('public')->put($relativePath, $imageData);
+
+        return response()->json([
+            'success' => true,
+            'path'    => '/storage/cctv_captures/' . $filename,
+        ]);
+    }
+
+    /**
+     * Sajikan file dari public storage disk (storage/app/public/).
+     * Digunakan khusus untuk path /storage/cctv_captures/ yang disimpan dari saveCapture().
+     */
+    public function serveStorageFile(Request $request)
+    {
+        $request->validate([
+            'path' => 'required|string',
+        ]);
+
+        $path = $request->input('path');
+
+        // Hanya izinkan subdirektori cctv_captures
+        if (!preg_match('#^/storage/cctv_captures/[a-zA-Z0-9_\-\.]+$#', $path)) {
+            return response()->json(['success' => false, 'message' => 'Path tidak diizinkan'], 403);
+        }
+
+        // Ubah "/storage/cctv_captures/file.jpg" → "cctv_captures/file.jpg"
+        $relativePath = 'cctv_captures/' . basename($path);
+
+        if (!\Illuminate\Support\Facades\Storage::disk('public')->exists($relativePath)) {
+            return response()->json(['success' => false, 'message' => 'File tidak ditemukan'], 404);
+        }
+
+        $contents = \Illuminate\Support\Facades\Storage::disk('public')->get($relativePath);
+
+        return response($contents, 200, [
+            'Content-Type'  => 'image/jpeg',
+            'Cache-Control' => 'public, max-age=3600',
+        ]);
+    }
+
+    /**
      * Batch fetch multiple images
      * 
      * @param Request $request

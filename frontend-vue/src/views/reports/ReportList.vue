@@ -88,7 +88,20 @@ const gateColumns = [
 
 const uploadApiUrl = (import.meta.env.VITE_UPLOADS_API_URL || import.meta.env.VITE_UPLOADS_BASE_URL || 'http://192.168.214.7:4000/api/uploads').replace(/\/+$/, '')
 
+/**
+ * Ambil src gambar dari path apapun.
+ * Mendelegasikan ke transactionApi.fetchImage() agar semua jenis path ditangani
+ * secara konsisten (uploads API, /data/cctv_images/, /storage/cctv_captures/, dll.).
+ */
 async function fetchImageSource(path) {
+  const result = await transactionApi.fetchImage(path)
+  if (result.success && result.base64) {
+    return `data:image/jpeg;base64,${result.base64}`
+  }
+  if (result.url) {
+    return result.url
+  }
+  // Fallback: uploads API langsung (untuk path yang tidak dikenali transactionApi)
   const response = await fetch(uploadApiUrl, {
     method: 'POST',
     headers: {
@@ -183,16 +196,22 @@ async function openGateDetail(row) {
     }
   }
 
-  // Fallback: gunakan image_paths yang tersimpan di row gate_manual_control
-  if (pathItems.length === 0) {
-    const paths = Array.isArray(row.image_paths) ? row.image_paths : []
-    const sourceLabels = ['CCTV', 'Gambar 2', 'Gambar 3', 'Gambar 4', 'Gambar 5']
-    pathItems = paths.map((path, idx) => ({
-      path,
-      label: sourceLabels[idx] || `Gambar ${idx + 1}`,
-      source: idx === 0 ? 'CCTV' : 'MR',
-    }))
-  }
+  // Selalu tambahkan image_paths dari baris gate_manual_control (view_image_path + entry_image_1..4).
+  // Ini menyertakan gambar validasi CCTV (/storage/cctv_captures/...) yang disimpan saat klik Buka Gate,
+  // yang TIDAK ada di resolved_images transaksi karena berasal dari gate_manual_control.
+  const rowPaths = Array.isArray(row.image_paths) ? row.image_paths : []
+  const existingPaths = new Set(pathItems.map(i => i.path))
+  const sourceLabels = ['CCTV Validasi', 'Capture 2', 'Capture 3', 'Capture 4', 'Capture 5']
+  rowPaths.forEach((path, idx) => {
+    if (path && !existingPaths.has(path)) {
+      pathItems.push({
+        path,
+        label: sourceLabels[idx] || `Capture ${idx + 1}`,
+        source: idx === 0 ? 'CCTV' : 'MR',
+      })
+      existingPaths.add(path)
+    }
+  })
 
   if (pathItems.length === 0) {
     gateDetailLoadingImages.value = false

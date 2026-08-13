@@ -24,6 +24,19 @@ const transactionApi = {
   },
 
   /**
+   * Simpan gambar CCTV capture (base64) ke server storage dan dapatkan path permanennya.
+   * Path yang dikembalikan (/storage/cctv_captures/...) bisa digunakan di logManualControl.
+   * @param {string} base64 - Data gambar dalam format base64 (dengan atau tanpa data URI prefix)
+   * @param {string} label  - Label gambar (misal: 'ANPR', 'View')
+   * @param {string} device - Nama device (misal: 'DASHBOARD-OUT')
+   * @returns {Promise<{ success: boolean, path: string }>}
+   */
+  async saveCaptureImage(base64, label = 'capture', device = 'DASHBOARD') {
+    const response = await api.post('/images/save-capture', { base64, label, device })
+    return response.data
+  },
+
+  /**
    * Validate plate number and get transaction data
    * @param {string} plateNumber - The plate number to validate
    * @returns {Promise} Transaction data if valid
@@ -68,6 +81,28 @@ const transactionApi = {
     // Handle /home/transjakarta/ prefix (from ANPR system - already working)
     else if (imagePath.includes('/home/transjakarta/')) {
       pathVariations.push({ path: imagePath, label: 'original ANPR path' })
+    }
+    // Handle /storage/cctv_captures/ prefix (dari saveCapture dashboard - tersimpan di Laravel public storage)
+    else if (imagePath.startsWith('/storage/cctv_captures/')) {
+      try {
+        const response = await api.post('/images/serve-storage', { path: imagePath }, {
+          timeout: 15000,
+          responseType: 'arraybuffer',
+        })
+        const base64Data = this._arrayBufferToBase64(response.data)
+        if (base64Data && base64Data.length > 100) {
+          return { success: true, path: imagePath, url: null, base64: base64Data, usedPath: imagePath }
+        }
+      } catch (err) {
+        console.warn('serve-storage failed for capture path:', err.message)
+      }
+      return {
+        success: false,
+        path: imagePath,
+        url: null,
+        error: 'File capture tidak dapat diakses',
+        attemptedPaths: [imagePath],
+      }
     }
     // Handle /data/cctv_images/ prefix (from Node-RED capture - use backend filesystem proxy)
     else if (imagePath.startsWith('/data/cctv_images/')) {

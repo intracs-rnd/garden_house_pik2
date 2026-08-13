@@ -101,6 +101,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/images/fetch-multiple', [ImageController::class, 'fetchMultipleImages']);
     // Serve file langsung dari filesystem (untuk path /data/cctv_images/ dari Node-RED)
     Route::post('/images/serve-local', [ImageController::class, 'serveLocalFile']);
+    // Simpan gambar capture (base64) ke public storage dan kembalikan path-nya
+    Route::post('/images/save-capture', [ImageController::class, 'saveCapture']);
+    // Sajikan file dari public storage (untuk path /storage/cctv_captures/ dari dashboard capture)
+    Route::post('/images/serve-storage', [ImageController::class, 'serveStorageFile']);
 
     // ---- Live CCTV camera configuration ----
     // Reading the full config (incl. RTSP URLs) needs "view"; saving/applying
