@@ -159,6 +159,27 @@ const showGateDetailModal = ref(false)
 const gateDetailImages = ref([])
 const gateDetailLoadingImages = ref(false)
 const gateDetailImageError = ref('')
+const gateDetailActiveTab = ref('entry')
+
+const entryImages = computed(() =>
+    gateDetailImages.value.filter(img => {
+      if (img.direction) return img.direction === 'entry'
+      const lbl = (img.label || '').toLowerCase()
+      return lbl.includes('masuk') || (!lbl.includes('keluar') && !lbl.includes('exit'))
+    }),
+)
+const exitImages = computed(() =>
+    gateDetailImages.value.filter(img => {
+      if (img.direction) return img.direction === 'exit'
+      const lbl = (img.label || '').toLowerCase()
+      return lbl.includes('keluar') || lbl.includes('exit')
+    }),
+)
+const activeTabImages = computed(() =>
+    gateDetailActiveTab.value === 'entry' ? entryImages.value : exitImages.value,
+)
+const entryCount = computed(() => entryImages.value.length)
+const exitCount = computed(() => exitImages.value.length)
 
 function cleanupGateDetailImages() {
   gateDetailImages.value.forEach((img) => {
@@ -171,6 +192,7 @@ async function openGateDetail(row) {
   selectedGateRow.value = row
   cleanupGateDetailImages()
   gateDetailImageError.value = ''
+  gateDetailActiveTab.value = 'entry'
   showGateDetailModal.value = true
   gateDetailLoadingImages.value = true
 
@@ -189,6 +211,7 @@ async function openGateDetail(row) {
               path: item.path,
               label: item.label || 'Gambar',
               source: item.source || 'MR',
+              direction: item.direction || 'entry',
             }))
       }
     } catch (err) {
@@ -208,6 +231,7 @@ async function openGateDetail(row) {
         path,
         label: sourceLabels[idx] || `Capture ${idx + 1}`,
         source: idx === 0 ? 'CCTV' : 'MR',
+        direction: 'exit',
       })
       existingPaths.add(path)
     }
@@ -227,10 +251,10 @@ async function openGateDetail(row) {
   })
 
   const resolved = await Promise.all(
-      unique.map(async ({ path, label }) => {
+      unique.map(async ({ path, label, source, direction }) => {
         try {
           const src = await fetchImageSource(path)
-          return { key: path, label, src }
+          return { key: path, label, source: source || 'MR', src, direction: direction || '' }
         } catch {
           return null
         }
@@ -452,19 +476,50 @@ onBeforeUnmount(() => {
             <span>⏳</span>
             <small>Memuat gambar CCTV...</small>
           </div>
-          <div v-else-if="gateDetailImages.length" class="detail-image-grid">
-            <a
-                v-for="img in gateDetailImages"
-                :key="img.key"
-                class="detail-image-item"
-                :href="img.src"
-                target="_blank"
-                rel="noopener noreferrer"
-            >
-              <img :src="img.src" :alt="img.label" loading="lazy" />
-              <small>{{ img.label }}</small>
-            </a>
-          </div>
+          <template v-else-if="gateDetailImages.length">
+            <!-- Tabs Masuk / Keluar -->
+            <div class="detail-image-tabs">
+              <button
+                  class="detail-image-tab"
+                  :class="{ active: gateDetailActiveTab === 'entry' }"
+                  @click="gateDetailActiveTab = 'entry'"
+              >
+                📥 Masuk
+                <span v-if="entryCount" class="tab-count">{{ entryCount }}</span>
+              </button>
+              <button
+                  class="detail-image-tab"
+                  :class="{ active: gateDetailActiveTab === 'exit' }"
+                  @click="gateDetailActiveTab = 'exit'"
+              >
+                📤 Keluar
+                <span v-if="exitCount" class="tab-count">{{ exitCount }}</span>
+              </button>
+            </div>
+            <!-- Image grid for active tab -->
+            <div v-if="activeTabImages.length" class="detail-image-grid">
+              <a
+                  v-for="img in activeTabImages"
+                  :key="img.key"
+                  class="detail-image-item"
+                  :href="img.src"
+                  target="_blank"
+                  rel="noopener noreferrer"
+              >
+                <div class="detail-image-wrap">
+                  <img :src="img.src" :alt="img.label" loading="lazy" />
+                  <span
+                      class="detail-img-label"
+                      :class="img.source === 'ANPR' ? 'label-anpr' : img.source === 'CCTV' ? 'label-cctv' : 'label-mr'"
+                  >{{ img.label }}</span>
+                </div>
+              </a>
+            </div>
+            <div v-else class="detail-image-placeholder detail-image-placeholder--sm">
+              <span>🚗</span>
+              <small>Tidak ada gambar {{ gateDetailActiveTab === 'entry' ? 'masuk' : 'keluar' }}</small>
+            </div>
+          </template>
           <div v-else class="detail-image-placeholder">
             <span>🚗</span>
             <small>{{ gateDetailImageError || 'Gambar tidak tersedia' }}</small>
