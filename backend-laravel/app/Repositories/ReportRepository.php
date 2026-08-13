@@ -273,16 +273,23 @@ class ReportRepository extends BaseRepository
             return;
         }
 
-        // Peta uid → Kartu (dengan pemilik). Menggunakan koneksi `pgsql`.
+        // Peta uid → Card (untuk fallback nama/unit + jembatan ke kartus).
+        // Relasi: log_rfid_scan.uid → cards.uid → cards.kartus_id → kartus.id.
         $uids = $rows->pluck('uid')->filter()->unique()->values()->all();
-        $kartuByUid = ! empty($uids)
-            ? Kartu::query()->with('user')->whereIn('rfid_tag', $uids)->get()->keyBy('rfid_tag')
-            : collect();
-
-        // Peta uid → Card (untuk fallback nama/unit dari tabel cards di replica).
         $cardByUid = ! empty($uids)
             ? Card::query()->whereIn('uid', $uids)->get()->keyBy('uid')
             : collect();
+
+        // Peta uid → Kartu (dengan pemilik) melalui cards.kartus_id.
+        $kartusIds = $cardByUid->pluck('kartus_id')->filter()->unique()->values()->all();
+        $kartuById = ! empty($kartusIds)
+            ? Kartu::query()->with('user')->whereIn('id', $kartusIds)->get()->keyBy('id')
+            : collect();
+
+        // uid → Kartu, dijembatani oleh card.kartus_id.
+        $kartuByUid = $cardByUid
+            ->filter(fn ($card) => $card->kartus_id && $kartuById->has($card->kartus_id))
+            ->mapWithKeys(fn ($card, $uid) => [$uid => $kartuById->get($card->kartus_id)]);
 
         // Peta cctv_id → LogCctv.
         $cctvIds = $rows->pluck('cctv_id')->filter()->unique()->values()->all();

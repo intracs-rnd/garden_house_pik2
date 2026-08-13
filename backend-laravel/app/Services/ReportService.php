@@ -482,7 +482,7 @@ class ReportService
             'tapped_at_label' => $tappedAt
                 ? $tappedAt->locale('id')->isoFormat('DD MMM Y, HH:mm:ss')
                 : '-',
-            'card_number'     => $row->uid,
+            'card_number'     => optional($kartu)->card_number ?: $row->uid,
             'uid'             => $row->uid,
             'no_plat'         => '-',
             'owner'           => $owner,
