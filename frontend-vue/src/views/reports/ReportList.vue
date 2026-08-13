@@ -224,13 +224,12 @@ async function openGateDetail(row) {
   // yang TIDAK ada di resolved_images transaksi karena berasal dari gate_manual_control.
   const rowPaths = Array.isArray(row.image_paths) ? row.image_paths : []
   const existingPaths = new Set(pathItems.map(i => i.path))
-  const sourceLabels = ['CCTV Validasi', 'Capture 2', 'Capture 3', 'Capture 4', 'Capture 5']
-  rowPaths.forEach((path, idx) => {
+  rowPaths.forEach((path) => {
     if (path && !existingPaths.has(path)) {
       pathItems.push({
         path,
-        label: sourceLabels[idx] || `Capture ${idx + 1}`,
-        source: idx === 0 ? 'CCTV' : 'MR',
+        label: 'CCTV Validasi',
+        source: 'CCTV',
         direction: 'exit',
       })
       existingPaths.add(path)
