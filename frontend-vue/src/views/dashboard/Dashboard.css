@@ -1,4 +1,4 @@
-﻿/* ---------- Header ---------- */
+/* ---------- Header ---------- */
 .dashboard-head {
   display: flex;
   align-items: flex-start;
@@ -1104,6 +1104,12 @@ a.stat-card:hover .stat-arrow {
 }
 
 /* "Live" pulsing indicator */
+.live-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .live-indicator {
   display: inline-flex;
   align-items: center;
@@ -1113,6 +1119,29 @@ a.stat-card:hover .stat-arrow {
   color: var(--color-danger);
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+
+.live-clear-btn {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  background: #f1f5f9;
+  border-radius: 6px;
+  color: var(--color-text-muted, #64748b);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.live-clear-btn:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+.live-clear-btn svg {
+  width: 14px;
+  height: 14px;
 }
 
 .live-pulse {
