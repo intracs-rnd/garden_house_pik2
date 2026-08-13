@@ -178,6 +178,38 @@ const exitImages = computed(() =>
 const activeTabImages = computed(() =>
     gateDetailActiveTab.value === 'entry' ? entryImages.value : exitImages.value,
 )
+
+const activeTabImagesGrouped = computed(() => {
+  const groups = {
+    MR: [],
+    CCTV: [],
+    ANPR: []
+  }
+  activeTabImages.value.forEach(img => {
+    const s = img.source || 'MR'
+    if (groups[s]) {
+      groups[s].push(img)
+    } else {
+      groups[s] = [img]
+    }
+  })
+  const result = {}
+  for (const key in groups) {
+    if (groups[key].length > 0) {
+      result[key] = groups[key]
+    }
+  }
+  return result
+})
+
+const lightboxImage = ref(null)
+const showLightbox = ref(false)
+
+function openLightbox(src) {
+  lightboxImage.value = src
+  showLightbox.value = true
+}
+
 const entryCount = computed(() => entryImages.value.length)
 const exitCount = computed(() => exitImages.value.length)
 
@@ -526,24 +558,32 @@ onBeforeUnmount(() => {
                 <span v-if="exitCount" class="tab-count">{{ exitCount }}</span>
               </button>
             </div>
-            <!-- Image grid for active tab -->
-            <div v-if="activeTabImages.length" class="detail-image-grid">
-              <a
-                  v-for="img in activeTabImages"
-                  :key="img.key"
-                  class="detail-image-item"
-                  :href="img.src"
-                  target="_blank"
-                  rel="noopener noreferrer"
+
+            <!-- Baris per source: MR, lalu CCTV, lalu ANPR -->
+            <div v-if="activeTabImages.length" class="detail-image-groups">
+              <div
+                  v-for="(imgs, source) in activeTabImagesGrouped"
+                  :key="source"
+                  class="image-source-group"
               >
-                <div class="detail-image-wrap">
-                  <img :src="img.src" :alt="img.label" loading="lazy" />
-                  <span
-                      class="detail-img-label"
-                      :class="img.source === 'ANPR' ? 'label-anpr' : img.source === 'CCTV' ? 'label-cctv' : 'label-mr'"
-                  >{{ img.label }}</span>
+                <h5 class="image-source-title">Gambar {{ source }}</h5>
+                <div class="detail-image-grid">
+                  <div
+                      v-for="img in imgs"
+                      :key="img.key"
+                      class="detail-image-item"
+                      @click.stop.prevent="openLightbox(img.src)"
+                  >
+                    <div class="detail-image-wrap">
+                      <img :src="img.src" :alt="img.label" loading="lazy" />
+                      <span
+                          class="detail-img-label"
+                          :class="img.source === 'ANPR' ? 'label-anpr' : img.source === 'CCTV' ? 'label-cctv' : 'label-mr'"
+                      >{{ img.label }}</span>
+                    </div>
+                  </div>
                 </div>
-              </a>
+              </div>
             </div>
             <div v-else class="detail-image-placeholder detail-image-placeholder--sm">
               <span>🚗</span>
@@ -570,6 +610,13 @@ onBeforeUnmount(() => {
           <div><dt>Operator</dt><dd>{{ selectedGateRow.user_name }}</dd></div>
           <div><dt>Hasil</dt><dd>{{ selectedGateRow.result }}</dd></div>
         </dl>
+      </div>
+    </Modal>
+
+    <!-- Lightbox: sekarang jadi modal terpisah (sibling), bukan nested di modal detail -->
+    <Modal v-model="showLightbox" title="Pratinjau Gambar" size="xl">
+      <div v-if="lightboxImage" class="lightbox-container">
+        <img :src="lightboxImage" alt="Pratinjau" class="lightbox-img" />
       </div>
     </Modal>
   </div>

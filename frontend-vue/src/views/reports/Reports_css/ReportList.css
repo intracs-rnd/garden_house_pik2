@@ -215,6 +215,7 @@
     overflow: hidden;
     transition: box-shadow 0.15s;
     background: #f8fafc;
+    cursor: pointer;
 }
 .detail-image-item:hover {
     box-shadow: 0 4px 16px rgba(0,0,0,0.12);
@@ -278,4 +279,35 @@
     margin: 0;
     font-size: 14px;
     font-weight: 500;
+}
+
+.detail-image-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.image-source-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.image-source-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text, #1e293b);
+    border-bottom: 1px solid var(--color-border, #e5e7eb);
+    padding-bottom: 4px;
+}
+.lightbox-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: transparent;
+    padding: 10px;
+}
+.lightbox-img {
+    max-width: 100%;
+    max-height: 80vh;
+    object-fit: contain;
 }
