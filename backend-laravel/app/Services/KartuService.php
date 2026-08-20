@@ -96,6 +96,58 @@ class KartuService
     }
 
     /**
+     * Get remaining card slots for a user (considering KK group).
+     */
+    public function getRemainingSlots($userId): int
+    {
+        $user = User::find($userId);
+        if ($user === null) {
+            return Kartu::MAX_CARDS_PER_KK;
+        }
+
+        $userIds = ! empty($user->no_kk)
+            ? User::where('no_kk', $user->no_kk)->pluck('id')->all()
+            : [$user->id];
+
+        $count = $this->kartuRepository->countActiveForUsers($userIds);
+
+        return max(0, Kartu::MAX_CARDS_PER_KK - $count);
+    }
+
+    /**
+     * Create multiple cards at once, each with a different RFID tag.
+     * All cards share the same base data (user_id, nama, status, etc.).
+     *
+     * @param  array   $baseData  Fields shared across all cards (no rfid_tag).
+     * @param  array   $rfidTags  RFID UIDs to assign, one per card.
+     * @return array<\App\Models\Kartu>
+     */
+    public function createBatch(array $baseData, array $rfidTags): array
+    {
+        $remaining = $this->getRemainingSlots($baseData['user_id']);
+
+        if (count($rfidTags) > $remaining) {
+            throw ValidationException::withMessages([
+                'rfid_tags' => [
+                    $remaining === 0
+                        ? 'KK ini sudah mencapai batas maksimal ' . Kartu::MAX_CARDS_PER_KK . ' kartu akses.'
+                        : "Hanya tersisa {$remaining} slot kartu untuk KK ini, tidak bisa menambah " . count($rfidTags) . ' kartu sekaligus.',
+                ],
+            ]);
+        }
+
+        $created = [];
+        foreach ($rfidTags as $rfidTag) {
+            $data            = $baseData;
+            $data['rfid_tag'] = $rfidTag;
+            // card_number is generated inside create() when empty.
+            $created[] = $this->create($data);
+        }
+
+        return $created;
+    }
+
+    /**
      * Ensure that assigning a card to the given user does not exceed the
      * maximum number of access cards allowed per Kartu Keluarga (no_kk).
      *

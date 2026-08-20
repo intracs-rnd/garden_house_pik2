@@ -249,6 +249,54 @@ class KartuController extends Controller
     }
 
     /**
+     * How many more access cards a user (and their KK group) can still add.
+     */
+    public function remainingSlots(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'user_id' => ['required', 'exists:users,id'],
+        ]);
+
+        $remaining = $this->kartuService->getRemainingSlots($data['user_id']);
+
+        return $this->successResponse(
+            ['remaining' => $remaining, 'max' => \App\Models\Kartu::MAX_CARDS_PER_KK],
+            'Remaining slots retrieved.'
+        );
+    }
+
+    /**
+     * Create multiple access cards at once (one per RFID tag).
+     */
+    public function storeBatch(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'user_id'          => ['required', 'exists:users,id'],
+            'rfid_tags'        => ['required', 'array', 'min:1', 'max:4'],
+            'rfid_tags.*'      => [
+                'required', 'string', 'max:100',
+                Rule::unique('kartus', 'rfid_tag')
+                    ->where(fn ($query) => $query->where('is_deleted', false)),
+            ],
+            'nama'             => ['nullable', 'string', 'max:255'],
+            'status'           => ['nullable', 'integer', 'in:1,2,3'],
+            'is_blacklisted'   => ['nullable', 'boolean'],
+            'blacklist_reason' => ['nullable', 'string', 'max:255'],
+            'valid_from'       => ['nullable', 'date'],
+            'valid_until'      => ['nullable', 'date', 'after_or_equal:valid_from'],
+            'grace_days'       => ['nullable', 'integer', 'min:0', 'max:365'],
+            'keterangan'       => ['nullable', 'string'],
+        ]);
+
+        $rfidTags = $data['rfid_tags'];
+        unset($data['rfid_tags']);
+
+        $kartus = $this->kartuService->createBatch($data, $rfidTags);
+
+        return $this->successResponse($kartus, 'Access cards created successfully.', 201);
+    }
+
+    /**
      * Get available RFID tags from cards table.
      */
     public function availableRfid(Request $request): JsonResponse
@@ -260,7 +308,7 @@ class KartuController extends Controller
             $query->orWhere('uid', $currentRfid);
         }
         
-        $cards = $query->orderBy('uid')->get(['uid', 'name', 'unit']);
+        $cards = $query->orderBy('uid')->get(['id', 'uid', 'name', 'unit']);
         
         return $this->successResponse($cards, 'Available RFID tags retrieved successfully.');
     }

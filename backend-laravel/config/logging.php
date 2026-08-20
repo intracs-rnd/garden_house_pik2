@@ -9,10 +9,7 @@ return [
 
     'default' => env('LOG_CHANNEL', 'stack'),
 
-    'deprecations' => [
-        'channel' => env('LOG_DEPRECATIONS_CHANNEL', 'null'),
-        'trace' => false,
-    ],
+    'deprecations' => env('LOG_DEPRECATIONS_CHANNEL', 'null'),
 
     'channels' => [
         'stack' => [

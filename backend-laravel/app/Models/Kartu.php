@@ -169,6 +169,14 @@ class Kartu extends Model
                     return;
                 }
 
+                // Disconnect any cards previously linked to this kartu (e.g. if RFID was changed).
+                Card::writeQuery()->where('kartus_id', $kartu->id)->update(['kartus_id' => null]);
+
+                // When the kartu is soft-deleted, just unlink — don't re-associate.
+                if ($kartu->is_deleted) {
+                    return;
+                }
+
                 // Map kartus integer status to cards varchar status.
                 $statusMap = [
                     self::STATUS_AKTIF     => 'ALLOW',
@@ -187,9 +195,6 @@ class Kartu extends Model
                 ];
 
                 $cardData = array_filter($cardData, function ($v) { return $v !== null; });
-
-                // Disconnect any cards previously linked to this kartu (e.g. if RFID was changed)
-                Card::writeQuery()->where('kartus_id', $kartu->id)->update(['kartus_id' => null]);
 
                 // Update existing card matched by uid (rfid_tag) instead of creating.
                 Card::writeQuery()->where('uid', $kartu->rfid_tag)->update($cardData);

@@ -17,6 +17,11 @@ export default {
     return api.get('/kartu/available-rfid', { params }).then((res) => res.data)
   },
 
+  /** GET /api/kartu/remaining-slots?user_id=X */
+  remainingSlots(params = {}) {
+    return api.get('/kartu/remaining-slots', { params }).then((res) => res.data)
+  },
+
   /** GET /api/kartu/{id} */
   get(id) {
     return api.get(`/kartu/${id}`).then((res) => res.data)
@@ -25,6 +30,11 @@ export default {
   /** POST /api/kartu */
   create(payload) {
     return api.post('/kartu', payload).then((res) => res.data)
+  },
+
+  /** POST /api/kartu/batch — create multiple cards at once. */
+  createBatch(payload) {
+    return api.post('/kartu/batch', payload).then((res) => res.data)
   },
 
   /** PUT /api/kartu/{id} */

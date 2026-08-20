@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { KARTU_STATUS_OPTIONS } from '@/utils/helper'
 import Button from '@/components/common/Button.vue'
 import SearchableSelect from '@/components/common/SearchableSelect.vue'
@@ -9,11 +9,14 @@ const props = defineProps({
   errors: { type: Object, default: () => ({}) },
   users: { type: Array, default: () => [] },
   rfids: { type: Array, default: () => [] },
+  remainingSlots: { type: Number, default: 4 },
   isEdit: { type: Boolean, default: false },
   saving: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['submit', 'cancel'])
+
+const rfidSearch = ref('')
 
 const userOptions = computed(() =>
     props.users.map((user) => ({
@@ -22,24 +25,36 @@ const userOptions = computed(() =>
     })),
 )
 
-const rfidOptions = computed(() =>
-    props.rfids.map((card) => ({
-      value: card.uid,
-      label: `${card.uid} - ${card.name || 'Unknown'} (${card.unit || 'No Unit'})`,
-    })),
-)
+const filteredRfids = computed(() => {
+  const q = rfidSearch.value.trim().toLowerCase()
+  if (!q) return props.rfids
+  return props.rfids.filter(
+      (r) =>
+          String(r.id || '').toLowerCase().includes(q) ||
+          (r.uid || '').toLowerCase().includes(q) ||
+          (r.name || '').toLowerCase().includes(q) ||
+          (r.unit || '').toLowerCase().includes(q),
+  )
+})
 
-/**
- * Simulasi scan kartu RFID: menghasilkan rfid_tag acak (10 karakter hex uppercase),
- * meniru format yang dibuat backend. Nantinya trigger ini bisa diganti dengan
- * event scan kartu fisik.
- */
-function simulateScan() {
-  const bytes = new Uint8Array(5)
-  crypto.getRandomValues(bytes)
-  props.form.rfid_tag = Array.from(bytes, (b) => b.toString(16).padStart(2, '0'))
-      .join('')
-      .toUpperCase()
+const maxSelectable = computed(() => props.remainingSlots)
+const selectedCount = computed(() => (props.form.rfid_tags || []).length)
+
+function isChecked(uid) {
+  return (props.form.rfid_tags || []).includes(uid)
+}
+
+function toggleRfid(uid) {
+  const tags = props.form.rfid_tags || []
+  if (tags.includes(uid)) {
+    props.form.rfid_tags = tags.filter((t) => t !== uid)
+  } else if (tags.length < maxSelectable.value) {
+    props.form.rfid_tags = [...tags, uid]
+  }
+}
+
+function isDisabled(uid) {
+  return !isChecked(uid) && selectedCount.value >= maxSelectable.value
 }
 </script>
 
@@ -72,28 +87,68 @@ function simulateScan() {
         <span v-if="errors.nama" class="form-error">{{ errors.nama }}</span>
       </div>
 
-      <div class="form-group">
-        <label class="form-label">RFID Tag</label>
-        <div class="rfid-input">
-          <SearchableSelect
-              v-if="!isEdit"
-              v-model="form.rfid_tag"
-              :options="rfidOptions"
-              :invalid="!!errors.rfid_tag"
-              :clearable="true"
-              placeholder="Pilih RFID atau scan kartu"
-              search-placeholder="Cari UID RFID..."
-              style="flex: 1;"
-          />
-          <input
-              v-else
-              :value="form.rfid_tag"
-              type="text"
-              class="form-control"
-              disabled
-          />
+      <div class="form-group rfid-group" :class="{ 'is-invalid': errors.rfid_tags }">
+        <div class="rfid-header">
+          <label class="form-label">RFID Tag</label>
+          <span v-if="!isEdit" class="rfid-counter" :class="{ 'at-max': selectedCount >= maxSelectable }">
+            {{ selectedCount }} / {{ maxSelectable }} dipilih
+          </span>
         </div>
-        <span v-if="errors.rfid_tag" class="form-error">{{ errors.rfid_tag }}</span>
+
+        <template v-if="!isEdit">
+          <div v-if="maxSelectable === 0" class="rfid-limit-notice">
+            KK ini sudah mencapai batas maksimal 4 kartu akses.
+          </div>
+          <template v-else>
+            <input
+                v-model="rfidSearch"
+                type="text"
+                class="form-control rfid-search"
+                placeholder="Cari UID, nama, atau unit..."
+            />
+            <div class="rfid-table-wrap">
+              <table class="rfid-table">
+                <thead>
+                  <tr>
+                    <th class="col-check"></th>
+                    <th>ID</th>
+                    <th>UID</th>
+                    <th>Nama</th>
+                    <th>Unit</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="filteredRfids.length === 0">
+                    <td colspan="5" class="rfid-empty">Tidak ada RFID tersedia</td>
+                  </tr>
+                  <tr
+                      v-for="rfid in filteredRfids"
+                      :key="rfid.uid"
+                      :class="{ selected: isChecked(rfid.uid), disabled: isDisabled(rfid.uid) }"
+                      @click="!isDisabled(rfid.uid) && toggleRfid(rfid.uid)"
+                  >
+                    <td class="col-check">
+                      <input
+                          type="checkbox"
+                          :checked="isChecked(rfid.uid)"
+                          :disabled="isDisabled(rfid.uid)"
+                          @click.stop="toggleRfid(rfid.uid)"
+                      />
+                    </td>
+                    <td class="col-id">{{ rfid.id }}</td>
+                    <td class="col-uid">{{ rfid.uid }}</td>
+                    <td>{{ rfid.name || '-' }}</td>
+                    <td>{{ rfid.unit || '-' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </template>
+        </template>
+
+        <input v-else :value="form.rfid_tag" type="text" class="form-control" disabled />
+
+        <span v-if="errors.rfid_tags" class="form-error">{{ errors.rfid_tags }}</span>
       </div>
 
       <div class="form-group">
@@ -202,13 +257,102 @@ function simulateScan() {
   color: var(--color-text-muted);
   font-size: 12px;
 }
-.rfid-input {
-  display: flex;
-  gap: 8px;
-  align-items: stretch;
+.rfid-group {
+  grid-column: 1 / -1;
 }
-.rfid-input .form-control {
-  flex: 1;
+.rfid-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.rfid-header .form-label {
+  margin-bottom: 0;
+}
+.rfid-counter {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-bg-soft, #f3f4f6);
+  padding: 2px 10px;
+  border-radius: 999px;
+}
+.rfid-counter.at-max {
+  color: var(--color-primary, #2563eb);
+  background: var(--color-primary-light, #dbeafe);
+}
+.rfid-search {
+  margin-bottom: 6px;
+}
+.rfid-table-wrap {
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  overflow: hidden;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.rfid-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.rfid-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--color-bg-soft, #f9fafb);
+  padding: 8px 12px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.rfid-table tbody tr {
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.rfid-table tbody tr:not(:last-child) td {
+  border-bottom: 1px solid var(--color-border);
+}
+.rfid-table tbody tr:hover:not(.disabled) {
+  background: var(--color-bg-hover, #f3f4f6);
+}
+.rfid-table tbody tr.selected {
+  background: var(--color-primary-light, #dbeafe);
+}
+.rfid-table tbody tr.disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.rfid-table td {
+  padding: 8px 12px;
+}
+.col-check {
+  width: 40px;
+  text-align: center;
+}
+.col-id {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  width: 60px;
+}
+.col-uid {
+  font-family: monospace;
+  letter-spacing: 0.05em;
+}
+.rfid-empty {
+  text-align: center;
+  color: var(--color-text-muted);
+  padding: 24px !important;
+}
+.rfid-limit-notice {
+  padding: 12px;
+  border-radius: 6px;
+  background: var(--color-danger-light, #fee2e2);
+  color: var(--color-danger, #dc2626);
+  font-size: 13px;
 }
 .checkbox-group {
   margin-top: 4px;

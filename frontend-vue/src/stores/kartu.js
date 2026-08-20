@@ -149,10 +149,30 @@ export const useKartuStore = defineStore('kartu', {
       }
     },
 
+    async fetchRemainingSlots(userId) {
+      try {
+        const res = await kartuApi.remainingSlots({ user_id: userId })
+        return res.data?.remaining ?? 4
+      } catch {
+        return 4
+      }
+    },
+
     async create(payload) {
       this.saving = true
       try {
         const res = await kartuApi.create(payload)
+        this.clearCache()
+        return res
+      } finally {
+        this.saving = false
+      }
+    },
+
+    async createBatch(payload) {
+      this.saving = true
+      try {
+        const res = await kartuApi.createBatch(payload)
         this.clearCache()
         return res
       } finally {

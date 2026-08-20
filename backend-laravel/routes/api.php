@@ -174,6 +174,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('feature:kartu,view')->group(function () {
         Route::post('/kartu/status-check', [KartuController::class, 'statusByNumber']);
         Route::get('/kartu/available-rfid', [KartuController::class, 'availableRfid']);
+        Route::get('/kartu/remaining-slots', [KartuController::class, 'remainingSlots']);
         Route::get('/kartu/{id}/status', [KartuController::class, 'status']);
         Route::get('/kartu/{id}/logs', [KartuController::class, 'logs']);
         Route::get('/kartu', [KartuController::class, 'index']);
@@ -194,6 +195,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('feature:kartu,manage')->group(function () {
         Route::post('/kartu/{id}/blacklist', [KartuController::class, 'blacklist']);
         Route::post('/kartu/{id}/clear-blacklist', [KartuController::class, 'clearBlacklist']);
+        Route::post('/kartu/batch', [KartuController::class, 'storeBatch']);
         Route::post('/kartu', [KartuController::class, 'store']);
         Route::match(['put', 'patch'], '/kartu/{kartu}', [KartuController::class, 'update']);
         Route::delete('/kartu/{kartu}', [KartuController::class, 'destroy']);
