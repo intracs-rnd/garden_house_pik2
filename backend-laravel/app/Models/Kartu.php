@@ -165,15 +165,30 @@ class Kartu extends Model
 
         $syncCard = static function ($kartu) {
             try {
-                if (! $kartu->rfid_tag) {
-                    return;
+                // Disconnect any cards previously linked to this kartu (e.g. if RFID was changed or kartu was deleted).
+                $disconnectQuery = Card::writeQuery()->where('kartus_id', $kartu->id);
+                if ($kartu->rfid_tag) {
+                    $disconnectQuery->orWhere(function ($q) use ($kartu) {
+                        $q->where('uid', $kartu->rfid_tag)
+                          ->where(function ($sub) use ($kartu) {
+                              $sub->whereNull('kartus_id')
+                                  ->orWhere('kartus_id', $kartu->id);
+                          });
+                    });
                 }
-
-                // Disconnect any cards previously linked to this kartu (e.g. if RFID was changed).
-                Card::writeQuery()->where('kartus_id', $kartu->id)->update(['kartus_id' => null]);
+                $disconnectQuery->update([
+                    'kartus_id'  => null,
+                    'name'       => null,
+                    'unit'       => null,
+                    'grace_days' => 0,
+                ]);
 
                 // When the kartu is soft-deleted, just unlink — don't re-associate.
                 if ($kartu->is_deleted) {
+                    return;
+                }
+
+                if (! $kartu->rfid_tag) {
                     return;
                 }
 
@@ -190,7 +205,7 @@ class Kartu extends Model
                     'unit'       => $kartu->nama,
                     'status'     => $statusMap[$kartu->status] ?? 'ALLOW',
                     'expiry'     => $kartu->valid_until ? $kartu->valid_until->toDateString() : null,
-                    'grace_days' => $kartu->grace_days,
+                    'grace_days' => $kartu->grace_days ?? 0,
                     'kartus_id'  => $kartu->id,
                 ];
 
@@ -205,7 +220,7 @@ class Kartu extends Model
 
         static::created($syncCard);
         static::updated($syncCard);
-
+        static::deleted($syncCard);
     }
 
     /**
